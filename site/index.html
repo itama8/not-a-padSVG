@@ -4,19 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>not-padgtp</title>
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)" />
   <meta name="description" content="not-padgtp: a supercharged notepad. Plain text, a tiny UI, and an x-ray you hold to see." />
   <style>
-    /* Layout: one sheet of white paper. The wordmark sits on the prototype's 560x440 plane, centred.
-       Everything else is x-ray: notes placed around it at reveal time, clear of the thumb.
-       Light-only on purpose, like the prototype: blue = the user's ink, graphite = the app's ink. */
+    /* Layout: one sheet of paper. The wordmark sits on the prototype's 560x440 plane, centred.
+       No visible words. The x-ray shows the tasks to come as icon tiles snapped to a canvas grid,
+       placed at reveal time clear of the wordmark and the thumb.
+       Blue = the user's ink, graphite = the app's ink, on every paper.
+       Two inks only: light and dark, following the device unless the viewer picks one (data-scheme).
+       Customisation is the paper ruling, drawn as SVG patterns registered to the wordmark. */
+    :root { --paper: #ffffff; --blue: #1978cf; --ink: #202027; --kl: 1; --kt: 1; color-scheme: light; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-scheme="light"]) { --paper: #16181c; --blue: #5ea9f4; --ink: #e7e9ed; --kl: 1.55; --kt: 1.15; color-scheme: dark; } }
+    :root[data-theme="dark"]:not([data-scheme="light"]), :root[data-scheme="dark"] { --paper: #16181c; --blue: #5ea9f4; --ink: #e7e9ed; --kl: 1.55; --kt: 1.15; color-scheme: dark; }
     :root {
-      color-scheme: only light;
-      --paper: #fff;
-      --blue: #1978cf;          /* the user's ink */
-      --ink: #202027;           /* the app's ink (graphite) */
-      --rule: rgba(32, 32, 39, .32);
-      --rule-faint: rgba(32, 32, 39, .14);
+      --rule: color-mix(in srgb, var(--ink) calc(32% * var(--kl)), transparent);
+      --rule-faint: color-mix(in srgb, var(--ink) calc(14% * var(--kl)), transparent);
       --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
     * { box-sizing: border-box; }
@@ -35,7 +39,7 @@
     #app {
       position: fixed; inset: 0; width: 100%;
       height: 100%; height: 100dvh;
-      overflow: hidden; background: var(--paper);
+      overflow: hidden; background-color: var(--paper);
       font-family: var(--mono); color: var(--ink);
       cursor: pointer; touch-action: none;
       user-select: none; -webkit-user-select: none;
@@ -69,9 +73,9 @@
     .construction path, .construction circle {
       stroke: currentColor; fill: none; stroke-width: 1; vector-effect: non-scaling-stroke;
     }
-    .construction .hidden { opacity: .24; stroke-dasharray: 3 5; }
-    .construction .witness { opacity: .17; }
-    .construction .node { opacity: .29; }
+    .construction .hidden { opacity: min(1, calc(.24 * var(--kl))); stroke-dasharray: 3 5; }
+    .construction .witness { opacity: min(1, calc(.17 * var(--kl))); }
+    .construction .node { opacity: min(1, calc(.29 * var(--kl))); }
 
     /* ---------- x-ray visibility ---------- */
     .xr { opacity: 0; transition: opacity 150ms ease-out; }
@@ -84,7 +88,6 @@
       stroke-dashoffset: 0;
       transition: stroke-dashoffset var(--dur, 220ms) cubic-bezier(.55, .05, .35, 1) var(--d, 0ms);
     }
-    /* Dashed construction lines are drawn in by a wiping mask, so their dash pattern stays put. */
     .wipe-y, .wipe-x { transform-box: fill-box; transition: transform 0s linear 170ms; }
     .wipe-y { transform-origin: 50% 0; transform: scaleY(0); }
     .wipe-x { transform-origin: 0 50%; transform: scaleX(0); }
@@ -93,83 +96,163 @@
     }
     .pop { opacity: 0; transition: opacity 0s linear 170ms; }
     .is-on .pop { opacity: 1; transition: opacity 160ms ease var(--d, 0ms); }
+    .xi { opacity: 0; transition: opacity 90ms linear; }
+    .is-on .xi { opacity: 1; transition: opacity 240ms ease var(--d, 0ms); }
+    .is-on .xi.stowed { opacity: 0; }
     .instant, .instant * { transition: none !important; }
 
-    /* ---------- overlay marks (leaders, press point, movement, input surface) ---------- */
+    /* ---------- overlay marks (press point, movement, input surface) ---------- */
     #marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 2; }
     #marks path, #marks circle { fill: none; stroke: var(--ink); stroke-width: 1; stroke-linecap: round; }
-    #marks .leader { opacity: .36; }
-    #marks .lnode { fill: var(--paper); opacity: .55; }
-    #marks .proposed { stroke-dasharray: 3 5; opacity: .3; }
-    #marks .witness { opacity: .22; }
-    #marks .press-ring { opacity: .3; }
-    #marks .press-node { fill: var(--ink); stroke: none; opacity: .45; }
-    #marks .movement { stroke-dasharray: 4 6; opacity: .5; }
-    #marks .movement-head { opacity: .7; stroke-width: 1.25; }
+    #marks .proposed { stroke-dasharray: 3 5; opacity: min(1, calc(.3 * var(--kl))); }
+    #marks .witness { opacity: min(1, calc(.22 * var(--kl))); }
+    #marks .press-ring { opacity: min(1, calc(.3 * var(--kl))); }
+    #marks .press-node { fill: var(--ink); stroke: none; opacity: min(1, calc(.45 * var(--kl))); }
+    #marks .movement { stroke-dasharray: 4 6; opacity: min(1, calc(.5 * var(--kl))); }
+    #marks .movement-head { opacity: min(1, calc(.7 * var(--kl))); stroke-width: 1.25; }
     #move[hidden] { display: none; }
 
-    /* ---------- x-ray notes ---------- */
+    /* ---------- x-ray layer ---------- */
     #xray { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-    .note {
-      position: absolute; left: 0; top: 0; margin: 0;
-      font-size: 11px; line-height: 1.5; letter-spacing: .01em;
-      opacity: 0; transition: opacity 90ms linear;
-    }
-    .is-on .note { opacity: 1; transition: opacity 240ms ease var(--d, 0ms); }
-    .is-on .note.stowed { opacity: 0; }
-    .note .lead { opacity: .92; }
-    .note .rest { opacity: .58; }
 
-    /* Drafting title block: the links live here. */
-    .tb { border: 1px solid var(--rule); background: var(--paper); font-size: 10.5px; line-height: 1.45; }
-    .tb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 9px 6px; }
-    .tb-name { font-size: 12.5px; font-weight: 600; letter-spacing: 0; }
-    .tb-rev { opacity: .5; }
-    .tb-row { display: grid; grid-template-columns: 6.2em 1fr; border-top: 1px solid var(--rule-faint); }
-    .tb-row > * { padding: 5px 9px; min-width: 0; }
-    .tb-k {
-      border-right: 1px solid var(--rule-faint); opacity: .55;
-      text-transform: uppercase; font-size: 9px; letter-spacing: .1em; padding-top: 6.5px;
-    }
-    .sw { display: inline-block; width: 14px; height: 0; vertical-align: middle; border-top: 2px solid; margin-right: 5px; border-radius: 2px; }
-    .sw.blue { border-color: var(--blue); }
-    .sw.graphite { border-color: var(--ink); }
-    .tb a {
-      color: var(--ink); white-space: nowrap; pointer-events: none;
-      display: inline-block; padding-block: 3px; margin-block: -3px;
-      text-decoration: underline; text-decoration-thickness: 1px;
-      text-underline-offset: 3px; text-decoration-color: var(--rule);
-      outline: none; -webkit-tap-highlight-color: transparent;
-    }
-    #app[data-xray="kept"] .tb a { pointer-events: auto; cursor: pointer; }
-    .tb a:hover, .tb a.armed { text-decoration-thickness: 2px; text-decoration-color: var(--ink); }
-    .tb a:focus-visible { outline: 1px dashed var(--ink); outline-offset: 2px; }
+    /* Shared icon ink: graphite for the app's structure, blue for what you put in. */
+    .ic { display: block; width: 100%; height: 100%; overflow: visible; }
+    .ic * { transform-box: fill-box; transform-origin: center; }
+    .ic .g { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: min(1, calc(.82 * var(--kt))); }
+    .ic .g.faint { opacity: min(1, calc(.4 * var(--kl))); }
+    .ic .b { fill: none; stroke: var(--blue); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .ic .gf { fill: var(--ink); stroke: none; opacity: min(1, calc(.6 * var(--kt))); }
+    .ic .bf { fill: var(--blue); stroke: none; }
 
-    /* ---------- the quiet hint ---------- */
+    /* Task tiles: dashed = proposed, i.e. coming. */
+    .tile {
+      position: absolute; left: 0; top: 0; margin: 0; padding: 0;
+      border: 0; background: none; color: inherit; font: inherit; border-radius: 6px;
+      cursor: pointer; pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    #app[data-xray="kept"] .tile, #app[data-xray="kept"] .ilink { pointer-events: auto; }
+    .tile.stowed { visibility: hidden; }
+    .tile .frame {
+      fill: var(--paper); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 5;
+      vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl)));
+      transition: opacity 120ms;
+    }
+    .tile:hover .frame, .tile.armed .frame, .tile:focus-visible .frame, .tile.play .frame {
+      stroke-dasharray: none; opacity: min(1, calc(.6 * var(--kl)));
+    }
+    .tile:focus-visible .frame { stroke-width: 1.5; }
+
+    /* hidden-until-played parts */
+    .fx { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; }
+    .steam, .spark, .rep { opacity: 0; }
+
+    /* ---------- the little demos, one per task ---------- */
+    @keyframes draw-hold { 0% { stroke-dashoffset: 1.02 } 22%, 82% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 1.02 } }
+    @keyframes rewrite { 0%, 16% { stroke-dashoffset: 0 } 18%, 36% { stroke-dashoffset: 1.02 } 100% { stroke-dashoffset: 0 } }
+    @keyframes flow { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -.36 } }
+    @keyframes pulse { 0%, 100% { transform: none } 50% { transform: scale(1.4) } }
+    @keyframes meet { 0% { transform: none } 28%, 44% { transform: translate(14px, 6px) } 66%, 82% { transform: translate(21px, 12px) } 100% { transform: none } }
+    @keyframes flip { 0% { transform: none } 22% { transform: scaleX(.06) } 44%, 100% { transform: none } }
+    @keyframes req { 0% { transform: none; opacity: 1 } 38% { transform: translate(11px, 11px); opacity: 1 } 46%, 100% { transform: translate(11px, 11px); opacity: 0 } }
+    @keyframes steam { 0% { opacity: 0; transform: translateY(4px) } 45% { opacity: .75 } 100% { opacity: 0; transform: translateY(-5px) } }
+    @keyframes ring-a { 0% { transform: none } 22% { transform: translateX(-7px) } 60%, 100% { transform: none } }
+    @keyframes ring-b { 0% { transform: none } 22% { transform: translateX(7px) } 60%, 100% { transform: none } }
+    @keyframes spark { 0%, 52% { transform: scale(0) rotate(0); opacity: 0 } 66% { transform: scale(1.2) rotate(45deg); opacity: 1 } 100% { transform: scale(0) rotate(90deg); opacity: 0 } }
+    @keyframes lift { 0%, 100% { transform: none } 18% { transform: translateY(-8px) } 38% { transform: none } 58% { transform: translateY(-8px) } 78% { transform: none } }
+    @keyframes rep { 0% { opacity: 0 } 8%, 86% { opacity: 1 } 100% { opacity: 0 } }
+    @keyframes shuffle { 0%, 100% { transform: none } 32%, 66% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) } }
+    @keyframes nope { 20% { transform: translateX(-3px) } 40% { transform: translateX(3px) } 60% { transform: translateX(-2px) } 80% { transform: translateX(2px) } }
+
+    .play .tick { animation: draw-hold 2s ease both; animation-delay: var(--ad, 0s); }
+    .play .meet { animation: meet 2s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .page { animation: flip 1.9s ease both; transform-origin: 0 50%; }
+    .play .ln { animation: rewrite 1.9s ease both; animation-delay: var(--ad, 0s); }
+    .play .req { animation: req 1.9s ease both; }
+    .play .edge { stroke-dasharray: .1 .08; animation: flow .5s linear .55s 3 both; }
+    .play .core { animation: pulse .4s ease .62s both; }
+    .play .kid { animation: pulse .45s ease both; animation-delay: var(--ad, 0s); }
+    .play .steam { animation: steam 1s ease-out 2 both; animation-delay: var(--ad, 0s); }
+    .play .ring-a { animation: ring-a 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .ring-b { animation: ring-b 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .spark { animation: spark 1.8s ease both; }
+    .play .bell { animation: lift 1.9s ease-in-out both; }
+    .play .rep { animation: rep 1.9s ease both; animation-delay: var(--ad, 0s); }
+    .play .arrow { stroke-dasharray: .14 .1; animation: flow .5s linear 4 both; }
+    .play .circ { animation: rewrite 1.9s ease both; }
+    .play .rnd { animation: shuffle 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+
+    /* ---------- paper rulings (app's ink, faint) ---------- */
+    #paper { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    #paper .rl { fill: none; stroke: var(--ink); opacity: min(1, calc(.11 * var(--kl))); }
+    #paper .rl.major { opacity: min(1, calc(.2 * var(--kl))); }
+    #paper .rl.minor { opacity: min(1, calc(.065 * var(--kl))); }
+    #paper .dot { fill: var(--ink); stroke: none; opacity: min(1, calc(.3 * var(--kl))); }
+    #paper .margin { fill: none; stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.22 * var(--kl))); }
+
+    /* Paper picker: swatches drawn with the same ruling, plus light/dark. */
+    #papers {
+      position: absolute; left: 0; top: 0; display: flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--rule); background: var(--paper); border-radius: 4px;
+    }
+    .pbtn {
+      width: 38px; height: 44px; display: grid; place-items: center; margin: 0; padding: 0;
+      border: 0; background: none; color: var(--ink); border-radius: 3px; cursor: pointer;
+      pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    #app[data-xray="kept"] .pbtn { pointer-events: auto; }
+    .pbtn .ic { width: 26px; height: 26px; }
+    .pbtn .sw-frame { fill: var(--paper); stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.4 * var(--kl))); }
+    .pbtn .sw-l { fill: none; stroke: var(--ink); stroke-width: .8; opacity: min(1, calc(.45 * var(--kl))); }
+    .pbtn .sw-d { fill: var(--ink); opacity: min(1, calc(.55 * var(--kl))); }
+    .pbtn[aria-pressed="true"] .sw-frame { stroke-width: 1.6; opacity: min(1, calc(.85 * var(--kt))); }
+    .pbtn.sep { margin-left: 5px; }
+    .pbtn:hover, .pbtn.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
+    .pbtn:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
+
+    /* Links: a small solid title block, icons only. Solid = exists. */
+    #links {
+      position: absolute; left: 0; top: 0; display: flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--rule); background: var(--paper); border-radius: 4px;
+    }
+    .ilink {
+      width: 44px; height: 44px; display: grid; place-items: center; border-radius: 3px;
+      color: var(--ink); pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    .ilink .ic { width: 22px; height: 22px; }
+    .ilink:hover, .ilink.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
+    .ilink:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
+    .ilink.nope { animation: nope .42s ease; }
+
+    /* ---------- the quiet hint: press, hold, follow a path to a tile ---------- */
     #hint {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; margin: 0;
-      padding-left: max(16px, env(safe-area-inset-left, 0px));
-      padding-right: max(16px, env(safe-area-inset-right, 0px));
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-      text-align: center; font-size: 11px; letter-spacing: .06em;
-      opacity: .5; transition: opacity 700ms ease; pointer-events: none;
+      position: absolute; left: 50%; z-index: 1; width: 76px; height: 30px; margin: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 9px); transform: translateX(-50%);
+      opacity: min(1, calc(.62 * var(--kt))); transition: opacity 700ms ease; pointer-events: none;
     }
-    #hint .sub { opacity: .6; }
-    #hint .fine { display: none; }
-    @media (hover: hover) and (pointer: fine) {
-      #hint .fine { display: inline; }
-      #hint .coarse { display: none; }
-    }
-    #app[data-hint="1"] #hint { opacity: .28; }
+    #hint svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    #hint .s { fill: none; stroke: var(--ink); stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+    #hint .h-dot { fill: var(--ink); transform-box: fill-box; transform-origin: center; animation: h-dot 3.8s ease-in-out infinite; }
+    #hint .h-ring { transform-box: fill-box; transform-origin: center; animation: h-ring 3.8s ease-in-out infinite; }
+    #hint .h-path { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; animation: h-path 3.8s ease-in-out infinite; }
+    #hint .h-head { animation: h-head 3.8s ease-in-out infinite; }
+    #hint .h-tile { stroke-dasharray: 2 2.5; transform-box: fill-box; transform-origin: center; animation: h-tile 3.8s ease-in-out infinite; }
+    @keyframes h-dot { 0%, 100% { transform: none } 8%, 72% { transform: scale(.75) } 84% { transform: none } }
+    @keyframes h-ring { 0%, 6% { transform: scale(.3); opacity: 0 } 30%, 72% { transform: none; opacity: 1 } 86%, 100% { transform: none; opacity: 0 } }
+    @keyframes h-path { 0%, 30% { stroke-dashoffset: 1.02; opacity: 1 } 54%, 72% { stroke-dashoffset: 0; opacity: 1 } 86%, 100% { stroke-dashoffset: 0; opacity: 0 } }
+    @keyframes h-head { 0%, 52% { opacity: 0 } 56%, 72% { opacity: 1 } 86%, 100% { opacity: 0 } }
+    @keyframes h-tile { 0%, 54% { opacity: 0; transform: scale(.6) } 62%, 74% { opacity: 1; transform: none } 88%, 100% { opacity: 0; transform: none } }
+    #app[data-hint="1"] #hint { opacity: min(1, calc(.3 * var(--kt))); }
     #app[data-hint="2"] #hint { opacity: 0; }
     #app.is-on #hint { opacity: 0; transition-duration: 120ms; }
 
     @media (prefers-reduced-motion: reduce) {
       .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
       .wipe-y, .wipe-x, .is-on .wipe-y, .is-on .wipe-x { transform: none; transition: none !important; }
-      .pop, .is-on .pop { transition: none !important; }
-      .note, .is-on .note { transition: opacity 120ms linear !important; }
+      .pop, .is-on .pop, .xi, .is-on .xi { transition: none !important; }
       .xr, .is-on .xr { transition: opacity 120ms linear; }
+      .play * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+      #hint * { animation: none !important; }
+      #hint .h-path { stroke-dashoffset: 0; }
     }
   </style>
 </head>
@@ -178,10 +261,34 @@
   <div id="app" data-xray="off" data-hint="0">
     <h1 class="sr-only">not-padgtp</h1>
 
+    <!-- Paper ruling. Pattern units are the wordmark's plane: one rule = the 32.5-unit half-step between
+         the Not and pad baselines; the grid's origin sits on the G-T-P registration line. -->
+    <svg id="paper" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="pat-ruled" patternUnits="userSpaceOnUse" width="65" height="32.5">
+          <path class="rl" d="M -1 0 H 66 M -1 32.5 H 66" />
+        </pattern>
+        <pattern id="pat-grid" patternUnits="userSpaceOnUse" width="16.25" height="16.25">
+          <path class="rl" d="M 0 0 V 16.25 M 16.25 0 V 16.25 M 0 0 H 16.25 M 0 16.25 H 16.25" />
+        </pattern>
+        <pattern id="pat-graph" patternUnits="userSpaceOnUse" width="32.5" height="32.5">
+          <path class="rl minor" d="M 8.125 0 V 32.5 M 16.25 0 V 32.5 M 24.375 0 V 32.5 M 0 8.125 H 32.5 M 0 16.25 H 32.5 M 0 24.375 H 32.5" />
+          <path class="rl major" d="M 0 0 V 32.5 M 32.5 0 V 32.5 M 0 0 H 32.5 M 0 32.5 H 32.5" />
+        </pattern>
+        <pattern id="pat-dots" patternUnits="userSpaceOnUse" width="16.25" height="16.25">
+          <circle class="dot" cx="0" cy="0" r="1" /><circle class="dot" cx="16.25" cy="0" r="1" />
+          <circle class="dot" cx="0" cy="16.25" r="1" /><circle class="dot" cx="16.25" cy="16.25" r="1" />
+        </pattern>
+        <pattern id="pat-iso" patternUnits="userSpaceOnUse" width="28.146" height="16.25">
+          <path class="rl" d="M 0 0 L 28.146 16.25 M 0 16.25 L 28.146 0 M 0 0 V 16.25 M 14.073 0 V 16.25 M 28.146 0 V 16.25" />
+        </pattern>
+      </defs>
+      <rect id="paper-fill" x="0" y="0" width="100%" height="100%" fill="none" />
+      <path id="paper-margin" class="margin" d="" />
+    </svg>
+
     <div class="stage">
-      <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint">
-        <!-- The prototype's single 560x440 plane. Letterforms are the user's, unchanged.
-             Only change: multi-stroke paths are split into one path per pen stroke so they can be written in. -->
+      <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint-desc">
         <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
           <title id="mark-title">not-padgtp wordmark</title>
           <desc id="mark-desc">Blue handwritten "Not" above "pad". In the x-ray, black handwritten G, T, P appear in a column beneath the d.</desc>
@@ -242,13 +349,13 @@
       </button>
     </div>
 
-    <!-- Plotter marks drawn in screen space; positions are set by the script at reveal time. -->
     <svg id="marks" class="xr" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <mask id="input-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
           <rect id="input-wipe-rect" class="wipe-x" style="--d:820ms;--dur:420ms" x="0" y="0" width="0" height="20" fill="#fff" />
         </mask>
       </defs>
+      <!-- a proposed edge where a phone keyboard would rise: the app draws its own input surface -->
       <g id="input-surface">
         <path id="input-line" class="proposed" mask="url(#input-wipe)" d="" />
         <path id="input-ticks" class="witness pen" pathLength="1" style="--d:1150ms;--dur:120ms" d="" />
@@ -257,48 +364,194 @@
         <circle class="press-ring pen" pathLength="1" style="--d:0ms;--dur:200ms" r="18" cx="0" cy="0" />
         <circle class="press-node" r="2" cx="0" cy="0" />
       </g>
-      <g id="leaders"></g>
       <g id="move" hidden>
         <path class="movement" d="" />
         <path class="movement-head" d="" />
       </g>
     </svg>
 
-    <!-- The website itself lives in the x-ray. Always in the document, so screen readers get it at rest. -->
+    <!-- The x-ray. No visible words; screen readers get them from the labels. -->
     <section id="xray" class="xr" aria-label="X-ray">
-      <p class="note" data-note="what">
-        <span class="lead">a supercharged notepad.</span>
-        <span class="rest">plain text, and a UI so small it's hard-coded.</span>
-      </p>
-      <p class="note" data-note="xray">
-        <span class="lead">the rest lives in the x-ray.</span>
-        <span class="rest">it draws when you hesitate and gets out of your way when you write.</span>
-      </p>
-      <p class="note" data-note="hold">
-        <span class="lead">hold to peek, then follow a path to an action.</span>
-        <span class="rest">tap to keep it on. tap again to let go.</span>
-      </p>
-      <p class="note" data-note="keys">
-        <span class="lead">no keyboard pops up on your phone.</span>
-        <span class="rest">not-padgtp draws its own input surface.</span>
-      </p>
-      <div class="note tb" data-note="title">
-        <div class="tb-head"><span class="tb-name">not-padgtp</span><span class="tb-rev">rev 0 · 2026</span></div>
-        <div class="tb-row"><span class="tb-k">desktop</span><span>open source · <a data-link="source" href="#">source code ↗</a></span></div>
-        <div class="tb-row"><span class="tb-k">phone</span><span>in progress · <a data-link="progress" href="#">follow progress ↗</a> · <a data-link="waitlist" href="#">waitlist ↗</a></span></div>
-        <div class="tb-row"><span class="tb-k">canvas</span><span>infinite, tiled like a window manager</span></div>
-        <div class="tb-row"><span class="tb-k">ink</span><span><i class="sw blue" aria-hidden="true"></i>yours · <i class="sw graphite" aria-hidden="true"></i>the app's</span></div>
+      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop. These tasks are coming:</p>
+
+      <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="7" y="9" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 13 c3 -2.5 5 2.5 8 0 s5 -2.5 9 0" />
+          <rect class="g pen" x="7" y="20" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 24 c3 -2.5 5 2.5 8 0 s4 -2 6 0" />
+          <rect class="g pen" x="7" y="31" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 35 c3 -2.5 5 2.5 8 0 s6 -2.5 11 0" />
+          <path class="g fx tick" pathLength="1" style="--ad:.1s" d="M8.8 13 l2.2 2.3 l4.2 -5" />
+          <path class="g fx tick" pathLength="1" style="--ad:.45s" d="M8.8 24 l2.2 2.3 l4.2 -5" />
+          <path class="g fx tick" pathLength="1" style="--ad:.8s" d="M8.8 35 l2.2 2.3 l4.2 -5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="calendar" aria-label="Calendar and meetings. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="6" y="10" width="36" height="32" rx="3" />
+          <path class="g pen" d="M6 18 H42" />
+          <path class="g pen" d="M15 6 V13" />
+          <path class="g pen" d="M33 6 V13" />
+          <g class="pop">
+            <circle class="gf" cx="31" cy="24" r="1" /><circle class="gf" cx="37" cy="24" r="1" />
+            <circle class="gf" cx="12" cy="30.5" r="1" /><circle class="gf" cx="19" cy="30.5" r="1" /><circle class="gf" cx="26" cy="30.5" r="1" /><circle class="gf" cx="33" cy="30.5" r="1" />
+            <circle class="gf" cx="12" cy="37" r="1" /><circle class="gf" cx="19" cy="37" r="1" /><circle class="gf" cx="26" cy="37" r="1" /><circle class="gf" cx="33" cy="37" r="1" />
+          </g>
+          <rect class="b pen meet" x="10" y="21.8" width="13" height="4.6" rx="1.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="daily" aria-label="Daily notes. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="page">
+            <path class="g pen" d="M11 6 H30 L38 14 V42 H11 Z" />
+            <path class="g pen" d="M30 6 V14 H38" />
+            <path class="b pen ln" d="M16 21 c3 -2 5 2 8 0 s5 -2 9 0" />
+            <path class="b pen ln" style="--ad:.12s" d="M16 28 c3 -2 5 2 8 0 s4 -2 7 0" />
+            <path class="b pen ln" style="--ad:.24s" d="M16 35 c3 -2 4 2 6 0" />
+          </g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="agents" aria-label="AI agents. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen edge" d="M20.6 27.4 L12.3 35.7" />
+          <path class="g pen edge" d="M27.4 27.4 L35.7 35.7" />
+          <path class="g pen edge" d="M27.4 20.6 L35.7 12.3" />
+          <circle class="g pen core" cx="24" cy="24" r="4.8" />
+          <circle class="g pen kid" style="--ad:1s" cx="10" cy="38" r="3.2" />
+          <circle class="g pen kid" style="--ad:1.12s" cx="38" cy="38" r="3.2" />
+          <circle class="g pen kid" style="--ad:1.24s" cx="38" cy="10" r="3.2" />
+          <g class="pop"><circle class="bf req" cx="11" cy="11" r="2.6" /></g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="meals" aria-label="Meal plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <circle class="g pen" cx="24" cy="28" r="11" />
+          <circle class="g pen faint" cx="24" cy="28" r="7" />
+          <path class="b pen" d="M20.5 28 c1.5 -3 5.5 -3 7 0 c-1.5 3 -5.5 3 -7 0 z" />
+          <path class="g pen" d="M5.5 16 V21 Q8 25 10.5 21 V16" />
+          <path class="g pen" d="M8 23 V40" />
+          <path class="g pen" d="M41 40 V16 Q37 19 37.5 28 H41" />
+          <path class="g steam" style="--ad:0s" d="M20 13 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+          <path class="g steam" style="--ad:.2s" d="M24 12 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+          <path class="g steam" style="--ad:.4s" d="M28 13 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="wedding" aria-label="Wedding plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="ring-a"><circle class="g pen" cx="18" cy="29" r="9" /></g>
+          <g class="ring-b">
+            <circle class="g pen" cx="30" cy="29" r="9" />
+            <path class="b pen" d="M27 16 L30 12 L33 16 L30 20 Z" />
+          </g>
+          <path class="g spark" d="M41 6 V13 M37.5 9.5 H44.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="workout" aria-label="Workout plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="bell">
+            <path class="g pen" d="M12 22 H36" />
+            <rect class="g pen" x="8" y="14" width="5" height="16" rx="1.5" />
+            <rect class="g pen" x="35" y="14" width="5" height="16" rx="1.5" />
+            <rect class="g pen" x="4.5" y="17" width="3.5" height="10" rx="1" />
+            <rect class="g pen" x="40" y="17" width="3.5" height="10" rx="1" />
+          </g>
+          <path class="g pen faint" d="M6 41 H42" />
+          <path class="b rep" style="--ad:.3s" d="M21 37 V32.5" />
+          <path class="b rep" style="--ad:1.05s" d="M27 37 V32.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="explain" aria-label="Technical explanations. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="4" y="8" width="15" height="10" rx="1.5" />
+          <rect class="g pen" x="29" y="8" width="15" height="10" rx="1.5" />
+          <rect class="g pen" x="16.5" y="32" width="15" height="10" rx="1.5" />
+          <path class="g pen arrow" d="M19.5 13 H28" />
+          <path class="g pen" d="M25.5 10.5 L28.3 13 L25.5 15.5" />
+          <path class="g pen arrow" d="M36.5 18.5 L28 31" />
+          <path class="g pen" d="M28.1 26.8 L28 31 L31.9 29.4" />
+          <path class="b pen circ" d="M2.5 12.5 C2 5 21 4.5 21 12.5 C21 20 4 20.5 3.5 14" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="random" aria-label="Random stuff. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen rnd" style="--tx:16px;--ty:-14px;--rot:120deg" d="M8 36 L14 26 L20 36 Z" />
+          <circle class="g pen rnd" style="--tx:-18px;--ty:16px;--rot:0deg" cx="34" cy="13" r="5" />
+          <path class="b pen rnd" style="--tx:6px;--ty:22px;--rot:-30deg" d="M7 12 c3 -4 6 4 9 0 s6 4 9 0" />
+          <rect class="g pen rnd" style="--tx:-14px;--ty:-18px;--rot:45deg" x="29" y="29" width="10" height="10" rx="1.5" />
+          <g class="pop"><circle class="gf rnd" style="--tx:10px;--ty:-8px;--rot:0deg" cx="24" cy="24" r="1.8" /></g>
+        </svg>
+      </button>
+
+      <div id="papers" class="xi" role="group" aria-label="Paper">
+        <button class="pbtn" type="button" data-ruling="blank" aria-label="Blank paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="ruled" aria-label="Ruled paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" d="M 3.5 7.5 H 20.5 M 3.5 12 H 20.5 M 3.5 16.5 H 20.5 M 7.5 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="grid" aria-label="Squared paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" d="M 3.5 7 H 20.5 M 3.5 12 H 20.5 M 3.5 17 H 20.5 M 7.5 2.5 V 21.5 M 12 2.5 V 21.5 M 16.5 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="graph" aria-label="Graph paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" style="opacity:.25" d="M 3.5 5 H 20.5 M 3.5 8 H 20.5 M 3.5 14 H 20.5 M 3.5 17 H 20.5 M 6 2.5 V 21.5 M 9 2.5 V 21.5 M 15 2.5 V 21.5 M 18 2.5 V 21.5" /><path class="sw-l" d="M 3.5 11 H 20.5 M 12 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="dots" aria-label="Dotted paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><g class="sw-d"><circle cx="7.5" cy="7" r=".9" /><circle cx="12" cy="7" r=".9" /><circle cx="16.5" cy="7" r=".9" /><circle cx="7.5" cy="12" r=".9" /><circle cx="12" cy="12" r=".9" /><circle cx="16.5" cy="12" r=".9" /><circle cx="7.5" cy="17" r=".9" /><circle cx="12" cy="17" r=".9" /><circle cx="16.5" cy="17" r=".9" /></g></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="iso" aria-label="Isometric paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="sw-clip"><rect x="3" y="2" width="18" height="20" rx="2" /></clipPath></defs><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" clip-path="url(#sw-clip)" d="M 3 4 L 21 14.4 M 3 11 L 21 21.4 M 3 18 L 10 22 M 3 14.4 L 21 4 M 3 21.4 L 21 11 M 14 2 L 21 6 M 3 8 L 13 2 M 12 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn sep" type="button" data-scheme-toggle aria-label="Dark paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle class="sw-frame" cx="12" cy="12" r="7.5" /><path class="sw-d" d="M 12 4.5 A 7.5 7.5 0 0 1 12 19.5 Z" /></svg>
+        </button>
       </div>
+
+      <nav id="links" class="xi" aria-label="Links">
+        <a class="ilink" data-link="source" href="#" aria-label="Source code">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="g" d="M8 7 L3 12 L8 17" /><path class="g" d="M16 7 L21 12 L16 17" /><path class="g" d="M14 5 L10 19" /></svg>
+        </a>
+        <a class="ilink" data-link="progress" href="#" aria-label="Follow progress">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle class="gf" cx="6" cy="18" r="1.8" /><path class="g" d="M5 11.5 A7.5 7.5 0 0 1 12.5 19" /><path class="g" d="M5 5.5 A13.5 13.5 0 0 1 18.5 19" /></svg>
+        </a>
+        <a class="ilink" data-link="waitlist" href="#" aria-label="Join the waitlist">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="g" d="M4 6 H15" /><path class="g" d="M4 11 H15" /><path class="g" d="M4 16 H11" /><circle class="bf" cx="17" cy="16" r="2.4" /></svg>
+        </a>
+      </nav>
     </section>
 
-    <p id="hint">
-      hold to x-ray<span class="sub"> · tap to keep<span class="fine"> · or hold alt</span></span>
-    </p>
+    <div id="hint">
+      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, hold Alt, or press Enter on the wordmark.</span>
+      <svg viewBox="0 0 76 30" aria-hidden="true">
+        <circle class="h-ring s" cx="10" cy="15" r="8" />
+        <circle class="h-dot" cx="10" cy="15" r="3" />
+        <path class="h-path s" pathLength="1" d="M21 15 H49" />
+        <path class="h-head s" d="M45.5 11.5 L49 15 L45.5 18.5" />
+        <rect class="h-tile s" x="55" y="6" width="18" height="18" rx="2.5" />
+      </svg>
+    </div>
   </div>
 
   <script>
     (() => {
-      // ---- Links. Fill these in; empty ones show "link coming soon" when followed. ----
+      // ---- Links. Fill these in; empty ones give a small "not yet" shake when followed. ----
       const LINKS = {
         source: '',   // TODO: desktop source code repository URL
         progress: '', // TODO: where to follow progress (blog, newsletter, social)
@@ -306,27 +559,86 @@
       };
 
       const $ = (s, r = document) => r.querySelector(s);
-      const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
-      const leaders = $('#leaders'), pressG = $('#press'), move = $('#move');
-      const moveLine = move.children[0], moveHead = move.children[1];
-      const xray = $('#xray');
-      const links = [...xray.querySelectorAll('a[data-link]')];
       const NS = 'http://www.w3.org/2000/svg';
+
+      // ---- paper: a ruling plus light/dark, remembered per viewer ----
+      const RULINGS = ['blank', 'ruled', 'grid', 'graph', 'dots', 'iso'];
+      const prefs = { ruling: 'blank', scheme: '' };
+      try { Object.assign(prefs, JSON.parse(localStorage.getItem('npg.paper') || '{}')); } catch (_) {}
+      if (!RULINGS.includes(prefs.ruling)) prefs.ruling = 'blank';
+      const savePrefs = () => { try { localStorage.setItem('npg.paper', JSON.stringify(prefs)); } catch (_) {} };
+
+      const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
+      const pressG = $('#press'), move = $('#move');
+      const moveLine = move.children[0], moveHead = move.children[1];
+      const xray = $('#xray'), linksBox = $('#links');
+      const tiles = [...xray.querySelectorAll('.tile')];
+      const papersBox = $('#papers');
+      const pbtns = [...papersBox.querySelectorAll('.pbtn')];
+      const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+      const links = [...xray.querySelectorAll('a[data-link]')];
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+      // Pen strokes need pathLength, which is most reliable on <path>: turn pen circles and rects into paths.
+      const toPath = (el) => {
+        const n = (a) => parseFloat(el.getAttribute(a) || '0');
+        let d;
+        if (el.tagName === 'circle') {
+          const cx = n('cx'), cy = n('cy'), r = n('r');
+          d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy}`;
+        } else {
+          const x = n('x'), y = n('y'), w = n('width'), h = n('height'), r = Math.min(n('rx'), w / 2, h / 2);
+          d = `M ${x + r} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w} ${y + r} V ${y + h - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x + r} A ${r} ${r} 0 0 1 ${x} ${y + h - r} V ${y + r} A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
+        }
+        const p = document.createElementNS(NS, 'path');
+        for (const a of el.attributes) if (!['cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'rx'].includes(a.name)) p.setAttribute(a.name, a.value);
+        p.setAttribute('d', d);
+        el.replaceWith(p);
+      };
+      xray.querySelectorAll('circle.pen, rect.pen').forEach(toPath);
+      xray.querySelectorAll('.pen').forEach((p) => p.setAttribute('pathLength', '1'));
+      const tileParts = new Map(tiles.map((t) => [t, [...t.querySelectorAll('.pen, .pop')]]));
 
       // ---- links: real or placeholder ----
       links.forEach((a) => {
         const url = LINKS[a.dataset.link];
-        a.dataset.label = a.textContent;
         if (url) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; }
-        else a.dataset.placeholder = '';
+        else { a.dataset.placeholder = ''; a.setAttribute('aria-label', a.getAttribute('aria-label') + '. Not available yet.'); }
         a.addEventListener('click', (e) => {
           if (!('placeholder' in a.dataset)) return;
           e.preventDefault();
-          a.textContent = 'link coming soon';
-          clearTimeout(a._t);
-          a._t = setTimeout(() => { a.textContent = a.dataset.label; }, 1800);
+          a.classList.remove('nope'); void a.offsetWidth; a.classList.add('nope');
         });
       });
+
+      // ---- tile demos ----
+      const play = (t) => {
+        t.classList.remove('play'); void t.getBoundingClientRect(); t.classList.add('play');
+        clearTimeout(t._t);
+        t._t = setTimeout(() => t.classList.remove('play'), 2300);
+      };
+      tiles.forEach((t) => {
+        t.addEventListener('click', () => { play(t); pauseDemo(); });
+        t.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') play(t); });
+      });
+
+      // While kept and idle, the tiles take turns showing what they do.
+      let order = tiles, demoT = 0, demoI = 0, demoPause = 0;
+      const pauseDemo = () => { demoPause = performance.now() + 7000; };
+      const stopDemo = () => clearTimeout(demoT);
+      const startDemo = () => {
+        stopDemo();
+        if (reduce.matches) return;
+        const tick = () => {
+          if (state !== 'kept') return;
+          if (performance.now() > demoPause) {
+            const vis = order.filter((t) => !t.classList.contains('stowed'));
+            if (vis.length) play(vis[demoI++ % vis.length]);
+          }
+          demoT = setTimeout(tick, 2400);
+        };
+        demoT = setTimeout(tick, 1900);
+      };
 
       // ---- hint memory (a per-viewer convenience only) ----
       let uses = 0;
@@ -341,12 +653,48 @@
       // ---- state: off | peek | kept ----
       let state = 'off';
       const setState = (s) => {
+        const prev = state;
         state = s;
         app.dataset.xray = s;
         app.classList.toggle('is-on', s !== 'off');
         mark.setAttribute('aria-pressed', String(s === 'kept'));
-        if (s === 'off') { move.hidden = true; disarm(); }
+        if (s === 'off') { move.hidden = true; disarm(); stopDemo(); }
+        if (s === 'kept' && prev !== 'kept') startDemo();
       };
+
+      // ---- paper ruling, registered to the wordmark's plane ----
+      const isDark = () => prefs.scheme ? prefs.scheme === 'dark'
+        : (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : darkQuery.matches);
+      function applyPaper() {
+        const root = document.documentElement;
+        if (prefs.scheme) root.dataset.scheme = prefs.scheme; else delete root.dataset.scheme;
+        $('#paper-fill').setAttribute('fill', prefs.ruling === 'blank' ? 'none' : `url(#pat-${prefs.ruling})`);
+        pbtns.forEach((b) => {
+          if (b.dataset.ruling) b.setAttribute('aria-pressed', String(b.dataset.ruling === prefs.ruling));
+        });
+        const tg = papersBox.querySelector('[data-scheme-toggle]');
+        tg.setAttribute('aria-pressed', String(isDark()));
+        const paperColor = getComputedStyle(root).getPropertyValue('--paper').trim();
+        document.querySelectorAll('meta[name="theme-color"]').forEach((t) => { if (prefs.scheme) t.content = paperColor; });
+        alignPaper();
+      }
+      function alignPaper() {
+        const M = measure();
+        const o = M.P(447, 132);                    // G-T-P registration line x, "Not" baseline y
+        const s = M.s;
+        document.querySelectorAll('#paper pattern').forEach((pt) => pt.setAttribute('patternTransform', `translate(${o.x} ${o.y}) scale(${s})`));
+        document.querySelectorAll('#paper .rl').forEach((el) => el.setAttribute('stroke-width', String(1 / s)));
+        document.querySelectorAll('#paper .dot').forEach((el) => el.setAttribute('r', String(1.15 / s)));
+        const mx = M.safe.l + 56;
+        $('#paper-margin').setAttribute('d', prefs.ruling === 'ruled' ? `M ${mx} 0 V ${M.vh}` : '');
+      }
+      pbtns.forEach((b) => b.addEventListener('click', () => {
+        if (b.dataset.ruling) prefs.ruling = b.dataset.ruling;
+        else prefs.scheme = isDark() ? 'light' : 'dark';
+        savePrefs(); applyPaper(); pauseDemo();
+      }));
+      darkQuery.addEventListener('change', () => applyPaper());
+      applyPaper();
 
       // ---- geometry ----
       const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
@@ -355,7 +703,7 @@
         const x = Math.max(r.l, Math.min(c.x, r.r)), y = Math.max(r.t, Math.min(c.y, r.b));
         return (x - c.x) ** 2 + (y - c.y) ** 2 < c.rad * c.rad;
       };
-      const inside = (p, r) => p.x > r.l && p.x < r.r && p.y > r.t && p.y < r.b;
+      const underThumb = (r, thumb) => thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)));
 
       function measure() {
         const ps = getComputedStyle(probe);
@@ -367,71 +715,27 @@
         const ox = ar.left + (ar.width - 560 * s) / 2, oy = ar.top + (ar.height - 440 * s) / 2;
         const P = (x, y) => ({ x: ox + x * s, y: oy + y * s });
         const box = (x0, y0, x1, y1) => { const a = P(x0, y0), b = P(x1, y1); return { l: a.x, t: a.y, r: b.x, b: b.y }; };
-        const ink = box(138, 98, 462, 420);              // whole drawing
-        const inks = [box(143, 101, 306, 137),            // "Not"
-                      box(278, 163, 438, 212),            // "pad"
-                      box(404, 166, 453, 418)];           // G T P column + registration
+        const ink = box(138, 98, 462, 420);
+        const inks = [box(143, 101, 306, 137), box(278, 163, 438, 212), box(404, 166, 453, 418)];
         const g = Math.max(16, safe.l), gr = Math.max(16, safe.r);
-        const stripY = vh - safe.b - 46;            // top edge of the drawn input surface
-        const wide = ink.l - g >= 240;
-        return { vw, vh, safe, g, gr, P, ink, inks, stripY, wide };
+        const stripY = vh - safe.b - 46;
+        const wide = vw >= 720 && vh >= 520;
+        return { vw, vh, safe, g, gr, P, s, ink, inks, stripY, wide };
       }
 
-      // Each note: where it would like to be, and what its leader points at.
-      const NOTES = {
-        title: { w: (M) => Math.min(M.wide ? 300 : 340, M.vw - M.g - M.gr),
-                 ideal: (M, p, w, h) => M.wide ? { x: M.vw - M.gr - w / 2, y: M.stripY - 22 - h / 2 }
-                                               : { x: M.vw / 2, y: M.safe.t + 16 + h / 2 } },
-        hold:  { ideal: (M, p, w, h) => M.wide ? { x: p.x - 60 - w / 2, y: p.y - 70 - h / 2 }
-                                               : { x: p.x, y: p.y - 76 - h / 2 },
-                 target: (M, p) => p, ring: true },
-        what:  { ideal: (M, p, w, h) => M.wide ? { x: M.ink.l - 28 - w / 2, y: M.P(0, 112).y }
-                                               : { x: M.ink.l + w / 2, y: M.ink.t - 28 - h / 2 },
-                 target: (M) => M.P(222, 110) },
-        xray:  { ideal: (M, p, w, h) => M.wide ? { x: M.ink.r + 28 + w / 2, y: M.P(0, 330).y }
-                                               : { x: M.ink.r - w / 2, y: M.ink.b + 26 + h / 2 },
-                 target: (M) => M.wide ? M.P(447, 335) : M.P(447, 414) },
-        keys:  { ideal: (M, p, w, h) => ({ x: M.g + 8 + w / 2, y: M.stripY - 22 - h / 2 }),
-                 target: (M, p, r) => ({ x: r.l, y: M.stripY }) }
-      };
-      const ORDER = ['title', 'hold', 'what', 'xray', 'keys'];
-
-      // Leader: the note sits on a landing line; the pen draws the landing, then the leader to the target.
-      function leaderGeom(r, t) {
-        const left = t.x < (r.l + r.r) / 2;
-        const y = t.y < r.t ? r.t - 4 : r.b + 3;
-        const near = { x: left ? r.l : r.r, y }, far = { x: left ? r.r : r.l, y };
-        return { near, far };
-      }
-
-      function search(M, w, h, ideal, tfn, p, blockers, thumb) {
-        const xs = [];
-        const minX = M.g, maxX = M.vw - M.gr - w, stepX = M.wide ? 16 : 8;
-        if (maxX <= minX) xs.push(minX);
-        else { for (let x = minX; x < maxX; x += stepX) xs.push(x); xs.push(maxX); }
-        const minY = M.safe.t + 12, maxY = M.stripY - 10 - h;
+      function search(M, w, h, ideal, blockers, thumb) {
+        const xs = [], minX = M.g, maxX = M.vw - M.gr - w;
+        if (maxX <= minX) xs.push(minX); else { for (let x = minX; x < maxX; x += 8) xs.push(x); xs.push(maxX); }
         let best = null, bestScore = Infinity;
-        const crosses = (q) => M.inks.some((k) => inside(q, k));
-        for (let y = minY; y <= maxY; y += 6) {
+        for (let y = M.safe.t + 12; y <= M.stripY - 10 - h; y += 6) {
           for (const x of xs) {
             const r = { l: x, t: y, r: x + w, b: y + h };
-            if (blockers.some((b) => hit(r, b))) continue;
-            if (thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)))) continue;
-            let score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y);
-            if (tfn) {
-              const t = tfn(M, p, r), { near } = leaderGeom(r, t);
-              const len = Math.hypot(t.x - near.x, t.y - near.y);
-              let cross = 0;
-              for (let i = 1; i < 12; i++) {
-                const q = { x: near.x + (t.x - near.x) * i / 12, y: near.y + (t.y - near.y) * i / 12 };
-                if (len * (1 - i / 12) > 30 && crosses(q)) cross++;
-              }
-              score += cross * 120 + len * 0.15;
-            }
+            if (blockers.some((b) => hit(r, b)) || underThumb(r, thumb)) continue;
+            const score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y);
             if (score < bestScore) { bestScore = score; best = r; }
           }
         }
-        return best && { r: best, score: bestScore };
+        return best;
       }
 
       let lastPress = null;
@@ -450,10 +754,7 @@
           thumb.push({ x: p.x, y: p.y, rad: 26 });
         }
 
-        // press marker
         pressG.setAttribute('transform', `translate(${p.x} ${p.y})`);
-
-        // input surface: a proposed (dashed) edge where a phone keyboard would rise
         const x0 = M.g, x1 = M.vw - M.gr;
         $('#input-line').setAttribute('d', `M ${x0} ${M.stripY} H ${x1}`);
         $('#input-ticks').setAttribute('d', `M ${x0} ${M.stripY - 5} V ${M.stripY + 5} M ${x1} ${M.stripY - 5} V ${M.stripY + 5}`);
@@ -461,56 +762,60 @@
         wr.setAttribute('x', x0 - 2); wr.setAttribute('y', M.stripY - 8);
         wr.setAttribute('width', x1 - x0 + 4); wr.setAttribute('height', 16);
 
-        const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 24, t: p.y - 24, r: p.x + 24, b: p.y + 24 }];
-        leaders.textContent = '';
-        let i = 0;
-        for (const key of ORDER) {
-          const N = NOTES[key], el = xray.querySelector(`[data-note="${key}"]`);
-          // Try a few widths; a narrower note may fit beside the thumb. Wider is preferred.
-          const avail = M.vw - M.g - M.gr;
-          const widths = N.w ? [N.w(M)] : (M.wide ? [232, 196] : [204, 170, 142]).map((x) => Math.min(x, avail));
-          let r = null, bestScore = Infinity, bestW = widths[0];
-          for (const w of widths) {
-            el.style.width = w + 'px';
-            const h = el.offsetHeight;
-            const found = search(M, w, h, N.ideal(M, p, w, h), N.target, p, blockers, thumb);
-            const score = found && found.score + (widths[0] - w) * 0.9;
-            if (found && score < bestScore) { bestScore = score; r = found.r; bestW = w; }
-          }
-          el.style.width = bestW + 'px';
-          const d = 760 + i * 90;
-          el.style.setProperty('--d', (d + 120) + 'ms');
-          if (!r) { el.classList.add('stowed'); continue; }   // never under the thumb: stow instead
-          el.classList.remove('stowed');
-          el.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px)`;
-          blockers.push(grow(r, 10));
-          i++;
-          if (!N.target) continue;
-          let t = N.target(M, p, r);
-          const { near, far } = leaderGeom(r, t);
-          if (N.ring) {                                     // stop at the press ring
-            const dx = near.x - t.x, dy = near.y - t.y, L = Math.hypot(dx, dy) || 1;
-            t = { x: t.x + dx / L * 18, y: t.y + dy / L * 18 };
-          }
-          const path = document.createElementNS(NS, 'path');
-          path.setAttribute('class', 'leader pen');
-          path.setAttribute('pathLength', '1');
-          path.setAttribute('d', `M ${far.x} ${far.y} L ${near.x} ${near.y} L ${t.x} ${t.y}`);
-          path.style.setProperty('--d', d + 'ms');
-          path.style.setProperty('--dur', '300ms');
-          leaders.appendChild(path);
-          if (!N.ring) {
-            const node = document.createElementNS(NS, 'circle');
-            node.setAttribute('class', 'lnode');
-            node.setAttribute('r', '2.25');
-            node.setAttribute('cx', t.x); node.setAttribute('cy', t.y);
-            const g = document.createElementNS(NS, 'g');
-            g.setAttribute('class', 'pop');
-            g.style.setProperty('--d', (d + 260) + 'ms');
-            g.appendChild(node);
-            leaders.appendChild(g);
+        const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 26, t: p.y - 26, r: p.x + 26, b: p.y + 26 }];
+
+        // Links: top right, out of the way.
+        const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
+        const lr = search(M, lw, lh, { x: M.vw - M.gr - lw / 2, y: M.safe.t + 12 + lh / 2 }, blockers, thumb);
+        linksBox.classList.toggle('stowed', !lr);
+        linksBox.style.setProperty('--d', '1300ms');
+        if (lr) { linksBox.style.transform = `translate(${Math.round(lr.l)}px, ${Math.round(lr.t)}px)`; blockers.push(grow(lr, 10)); }
+
+        // Paper picker: top left, out of the way.
+        const pw = papersBox.offsetWidth, ph = papersBox.offsetHeight;
+        const pr = search(M, pw, ph, { x: M.g + pw / 2, y: M.safe.t + 12 + ph / 2 }, blockers, thumb);
+        papersBox.classList.toggle('stowed', !pr);
+        papersBox.style.setProperty('--d', '1380ms');
+        if (pr) { papersBox.style.transform = `translate(${Math.round(pr.l)}px, ${Math.round(pr.t)}px)`; blockers.push(grow(pr, 10)); }
+
+        // Tiles snap to the paper's grid (one cell = 16.25 plane units), nearest the wordmark first.
+        const cell = 16.25 * M.s;
+        const pitch = Math.max(4, Math.round((M.wide ? 88 : 74) / cell)) * cell, size = pitch - cell;
+        const c = { x: (M.ink.l + M.ink.r) / 2, y: (M.ink.t + M.ink.b) / 2 };
+        const o = M.P(447, 132);
+        const gx = o.x + cell / 2, gy = o.y + cell / 2;     // tiles sit inside grid cells, half a cell in
+        const minX = M.g, maxX = M.vw - M.gr - size, minY = M.safe.t + 10, maxY = M.stripY - 10 - size;
+        const cands = [];
+        for (let k = -40; k <= 40; k++) {
+          const x = gx + k * pitch;
+          if (x < minX || x > maxX) continue;
+          for (let j = -40; j <= 40; j++) {
+            const y = gy + j * pitch;
+            if (y < minY || y > maxY) continue;
+            const r = { l: x, t: y, r: x + size, b: y + size };
+            if (blockers.some((b) => hit(r, b)) || underThumb(r, thumb)) continue;
+            const cx = x + size / 2 - c.x, cy = y + size / 2 - c.y;
+            cands.push({ r, dist: Math.hypot(cx, cy * (M.wide ? 1.3 : 1)), ang: (Math.atan2(cy, cx) + Math.PI * 2.75) % (Math.PI * 2) });
           }
         }
+        cands.sort((a, b) => a.dist - b.dist);
+        const chosen = cands.slice(0, tiles.length).sort((a, b) => a.ang - b.ang);   // clockwise from top-left
+
+        order = [];
+        tiles.forEach((t, i) => {
+          const slot = chosen[i];
+          t.classList.toggle('stowed', !slot);     // never under the thumb: stow instead
+          t.tabIndex = slot ? 0 : -1;
+          if (!slot) return;
+          order.push(t);
+          t.style.width = t.style.height = size + 'px';
+          t.style.transform = `translate(${Math.round(slot.r.l)}px, ${Math.round(slot.r.t)}px)`;
+          const base = 720 + i * 75;
+          tileParts.get(t).forEach((el, j) => {
+            el.style.setProperty('--d', (base + j * 45) + 'ms');
+            if (el.classList.contains('pen')) el.style.setProperty('--dur', '200ms');
+          });
+        });
       }
 
       function reveal(press, next) {
@@ -522,15 +827,15 @@
         setState(next);
       }
 
-      // ---- follow a path: while holding, drag to a link and let go to open it ----
+      // ---- follow a path: while holding, drag to a tile or link and let go ----
       let armed = null;
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        for (const a of links) {
-          if (a.closest('.stowed')) continue;
-          const r = a.getBoundingClientRect();
-          if (x > r.left - 10 && x < r.right + 10 && y > r.top - 12 && y < r.bottom + 12) { found = a; break; }
+        for (const el of [...tiles, ...links, ...pbtns]) {
+          if (el.closest('.stowed')) continue;
+          const r = el.getBoundingClientRect();
+          if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
         }
         if (found !== armed) { disarm(); armed = found; if (armed) armed.classList.add('armed'); }
       }
@@ -538,7 +843,7 @@
         const dx = x - p.x, dy = y - p.y, L = Math.hypot(dx, dy);
         if (L < 22) { move.hidden = true; return; }
         const ux = dx / L, uy = dy / L, hx = x - ux * 12, hy = y - uy * 12;
-        const sx = p.x + ux * 20, sy = p.y + uy * 20;  // start at the press ring
+        const sx = p.x + ux * 20, sy = p.y + uy * 20;
         moveLine.setAttribute('d', `M ${sx} ${sy} L ${hx} ${hy}`);
         const wx = -uy * 4, wy = ux * 4, bx = x - ux * 7, by = y - uy * 7;
         moveHead.setAttribute('d', `M ${hx} ${hy} L ${x} ${y} M ${bx + wx} ${by + wy} L ${x} ${y} L ${bx - wx} ${by - wy}`);
@@ -550,7 +855,7 @@
       let press = null;
       app.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 || press) return;
-        if (state === 'kept' && e.target.closest('a')) return;  // links work normally when kept
+        if (state === 'kept' && e.target.closest('a, .tile, .pbtn')) return;   // tiles and links work normally when kept
         press = { id: e.pointerId, x: e.clientX, y: e.clientY, type: e.pointerType,
                   t: performance.now(), from: state, dist: 0 };
         try { app.setPointerCapture(e.pointerId); } catch (_) {}
@@ -571,7 +876,9 @@
         move.hidden = true;
         disarm();
         if (target && p.dist >= TAP_PX) {
-          if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
+          if (target.classList.contains('tile')) { setState('kept'); play(target); pauseDemo(); }
+          else if (target.classList.contains('pbtn')) { setState('kept'); target.click(); }
+          else if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
           else { target.click(); setState(p.from === 'kept' ? 'kept' : 'off'); }
         } else if (tap) {
           setState(p.from === 'off' ? 'kept' : 'off');
@@ -586,7 +893,7 @@
 
       // ---- keyboard: Enter/Space on the wordmark toggles keep; holding Alt peeks; Esc releases ----
       mark.addEventListener('click', (e) => {
-        if (e.detail !== 0) return;          // pointer taps are handled above
+        if (e.detail !== 0) return;
         if (state === 'off') reveal(null, 'kept'); else setState('off');
         used();
       });
@@ -597,6 +904,7 @@
           if (!e.repeat && state === 'off' && !press) { altPeek = true; reveal(null, 'peek'); }
         } else if (e.key === 'Escape' && state !== 'off') {
           setState('off');
+          mark.focus();
         }
       });
       addEventListener('keyup', (e) => {
@@ -606,7 +914,7 @@
       });
       addEventListener('blur', () => { altPeek = false; if (state === 'peek') setState('off'); });
 
-      // Tabbing to a link while the x-ray is off keeps it on, so focus is never invisible.
+      // Tabbing into the x-ray while it is off keeps it on, so focus is never invisible.
       xray.addEventListener('focusin', () => { if (state !== 'kept') reveal(null, 'kept'); });
 
       // ---- keep marks registered on resize / rotation ----
@@ -614,6 +922,7 @@
       addEventListener('resize', () => {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
+          alignPaper();
           if (state === 'off') return;
           app.classList.add('instant');
           layout(lastPress);
