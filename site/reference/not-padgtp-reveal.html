@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="description" content="Not-PadGTP — a wordmark that reveals its hidden layer when touched." />
+  <title>not-pad / x-ray</title>
+  <style>
+    :root { color-scheme: only light; --paper: #fff; --blue: #1978cf; --ink: #202027; }
+    * { box-sizing: border-box; }
+    html { width: 100%; height: 100%; background: var(--paper); }
+    body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--paper); }
+    #surface {
+      position: fixed; inset: 0; width: 100%;
+      height: 100%; height: 100dvh;
+      display: grid; place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right)
+               env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow: hidden; background: var(--paper);
+      cursor: pointer; touch-action: manipulation; user-select: none;
+      -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+    #surface:focus-visible::after {
+      content: ""; position: absolute; inset: 7px; border: 1px solid #9cbae3;
+      border-radius: 6px; pointer-events: none;
+    }
+    .art {
+      display: block;
+      width: min(96vw, 560px);
+      height: auto;
+      max-height: min(67dvh, 500px);
+      overflow: visible;
+      flex: none;
+    }
+    .brand-letter, .reveal-letter {
+      fill: none; stroke-width: 3.25;
+      stroke-linecap: round; stroke-linejoin: round;
+    }
+    .brand-letter { stroke: var(--blue); }
+    .reveal-letter { stroke: var(--ink); }
+    .xray-item { opacity: 0; transition: opacity 310ms ease; }
+    .reveal-letter { transform: translateY(4px); transition: transform 360ms cubic-bezier(.16,1,.3,1); }
+    #surface[data-xray="on"] .xray-item { opacity: 1; }
+    #surface[data-xray="on"] .reveal-letter { transform: translateY(0); }
+    .construction { color: var(--ink); transition-delay: 0ms; }
+    .construction path, .construction circle { stroke: currentColor; fill: none; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .construction .hidden { opacity: .24; stroke-dasharray: 3 5; }
+    .construction .witness { opacity: .17; }
+    .construction .node { opacity: .29; }
+    .g-letter { transition-delay: 70ms; }
+    .t-letter { transition-delay: 150ms; }
+    .p-letter { transition-delay: 230ms; }
+    #surface[data-xray="off"] .xray-item { transition-delay: 0ms; }
+    #surface[data-xray="off"] .reveal-letter { transition-delay: 0ms; }
+    @media (prefers-reduced-motion: reduce) {
+      .xray-item, .reveal-letter { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main id="surface" role="button" tabindex="0" aria-pressed="false" aria-label="Not-Pad. Tap to reveal X-Ray." data-xray="off">
+    <!-- A single 560x440 plane, per Plotter's construction grammar.
+         Relationship: the black G, T, and P occupy the vertical registration beneath the blue d.
+         The faint line and witnesses appear only in X-Ray to explain that alignment.
+         Brand ink deliberately retains the handwritten blue / black colors of the supplied reference. -->
+    <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
+      <title id="mark-title">Not-PadGTP interactive wordmark</title>
+      <desc id="mark-desc">Blue handwritten Not above pad. In X-Ray, black G, T, P appear in a vertical column beneath the d.</desc>
+      <g class="brand-letter" aria-label="Not Pad">
+        <!-- NOT -->
+        <g transform="translate(160 121) rotate(-5)">
+          <path d="M -11 11 C -10 0 -8 -12 -5 -13 C -2 -14 -3 7 0 8 C 4 8 8 -8 11 -13" />
+        </g>
+        <g transform="translate(225 121) rotate(3)">
+          <path d="M 6 -6 C 10 -5 12 0 9 5 C 6 10 -5 10 -9 5 C -13 -1 -6 -8 1 -8 C 3 -8 5 -7 6 -6 Z" />
+        </g>
+        <g transform="translate(290 121) rotate(-4)">
+          <path d="M 1 -15 C 1 -5 1 3 2 8 C 3 13 7 10 10 7 M -8 -4 C -2 -5 5 -5 10 -6" />
+        </g>
+        <!-- PAD -->
+        <g transform="translate(290 186) rotate(3)">
+          <path d="M -6 -5 C -6 2 -7 13 -5 20 M -5 -4 C -2 -10 9 -7 10 0 C 11 7 0 10 -5 3" />
+        </g>
+        <g transform="translate(355 186) rotate(-2)">
+          <path d="M 6 -5 C 2 -11 -8 -7 -10 0 C -13 11 -2 11 5 2 M 7 -7 C 5 0 6 5 9 8" />
+        </g>
+        <g transform="translate(420 186) rotate(4)">
+          <path d="M 8 -17 C 6 -9 3 -3 3 2 C -1 -7 -9 -5 -10 3 C -11 13 -1 12 4 3 M 6 -8 C 3 2 5 9 10 9" />
+        </g>
+      </g>
+      <!-- Plotter-style registration marks: a purposeful relationship, not ornament. -->
+      <g class="xray-item construction" aria-hidden="true">
+        <path class="hidden" d="M 447 172 L 447 412" />
+        <path class="witness" d="M 433 190 H 442 M 433 263 H 442 M 433 335 H 442 M 433 406 H 442" />
+        <circle class="node" cx="447" cy="190" r="2" />
+        <circle class="node" cx="447" cy="263" r="2" />
+        <circle class="node" cx="447" cy="335" r="2" />
+        <circle class="node" cx="447" cy="406" r="2" />
+      </g>
+      <!-- The spelling is intentionally G-T-P, never G-P-T. -->
+      <g transform="translate(420 260) rotate(-5)" aria-hidden="true"><g class="reveal-letter xray-item g-letter">
+        <path d="M 10 -11 C 3 -15 -8 -9 -10 0 C -11 10 0 13 8 7 C 9 5 9 1 9 -1 L -1 0" />
+      </g></g>
+      <g transform="translate(420 332) rotate(2)" aria-hidden="true"><g class="reveal-letter xray-item t-letter">
+        <path d="M -12 -10 Q 0 -12 12 -10 M 1 -10 Q -1 2 0 13" />
+      </g></g>
+      <g transform="translate(420 402) rotate(-3)" aria-hidden="true"><g class="reveal-letter xray-item p-letter">
+        <path d="M -7 12 C -6 3 -7 -7 -7 -12 C 0 -14 11 -12 11 -4 C 11 3 1 4 -6 2" />
+      </g></g>
+    </svg>
+  </main>
+  <script>
+    (() => {
+      const surface = document.getElementById('surface');
+      const toggle = () => {
+        const reveal = surface.dataset.xray !== 'on';
+        surface.dataset.xray = reveal ? 'on' : 'off';
+        surface.setAttribute('aria-pressed', String(reveal));
+        surface.setAttribute('aria-label', reveal
+          ? 'X-Ray is on. Not-PadGTP. Tap to hide X-Ray.'
+          : 'Not-Pad. Tap to reveal X-Ray.');
+      };
+      surface.addEventListener('click', toggle);
+      surface.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault(); toggle();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
