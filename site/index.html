@@ -437,7 +437,7 @@
 
     <!-- The x-ray. No visible words; screen readers get them from the labels. -->
     <section id="xray" class="xr" aria-label="X-ray">
-      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. These tasks are coming:</p>
+      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. Each reveal shows a few of the tasks to come: lists, calendar and meetings, daily notes, AI agents, meal plans, wedding plans, workouts, technical explanations, random stuff, budgeting, journaling, travel and vacation planning, date planning, pets, family, a calculator, recipes, a lab book, inventory, a phonebook and RSS. Any AI can plug in: OpenAI, Claude, Gemini, Meta Llama, Mistral, DeepSeek, Grok, Qwen, Hugging Face, OpenRouter, GitHub Copilot and Codex work today; Perplexity, Cursor, Claude Code, Ollama and your own AI are coming. This reveal shows:</p>
 
       <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
         <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
@@ -1025,7 +1025,10 @@
         return best;
       }
 
-      const SEED = (Math.random() * 2 ** 32) >>> 0;
+      let SEED = (Math.random() * 2 ** 32) >>> 0;
+      const mulberry = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+      const LAYOUTS = ['ring', 'column', 'bands', 'cluster'];
+      let layoutName = 'ring';
       const noise = (a, b, c) => {
         let h = SEED ^ Math.imul(a + 0x9e37, 0x85ebca6b) ^ Math.imul(b + 0x7f4a, 0xc2b2ae35) ^ Math.imul(c + 0x1656, 0x27d4eb2f);
         h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
@@ -1071,8 +1074,17 @@
         papersBox.style.setProperty('--d', '1380ms');
         if (pr) { papersBox.style.transform = `translate(${Math.round(pr.l)}px, ${Math.round(pr.t)}px)`; blockers.push(grow(pr, 10)); }
 
+        // This reveal's selection: a few tasks (always the AI hub) and a few AIs around it.
+        const rng = mulberry(SEED);
+        const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+        const nTiles = M.wide ? 9 : 6, nAis = M.wide ? 6 : 4;
+        const showTiles = shuffle([agentsTile, ...shuffle(tiles.filter((t) => t !== agentsTile)).slice(0, nTiles - 1)]);
+        const showAis = shuffle(ais).slice(0, nAis);
+        const anySoon = showAis.some((b) => b.classList.contains('soon'));
+
         // Footnote: bottom-left (in the margin), else bottom-right; never under the thumb.
-        {
+        if (!anySoon) soonNote.classList.add('stowed');
+        else {
           soonNote.style.transform = 'none';
           const nr = soonNote.getBoundingClientRect(), w = nr.width, h = nr.height;
           const spots = [{ l: M.safe.l + 22, t: M.stripY - 14 - h }, { l: M.vw - M.safe.r - 22 - w, t: M.stripY - 14 - h }];
@@ -1114,19 +1126,48 @@
           return best;
         };
 
-        const tileRing = Math.hypot(M.ink.r - M.ink.l, M.ink.b - M.ink.t) * .5 + size * .35;
+        // Each layout family gives every tile a target; tiles land on the nearest free grid spot.
+        const n = showTiles.length, top = M.safe.t + 80, bottom = M.stripY - 20;
+        const targets = [];
+        if (layoutName === 'ring') {
+          const a0 = rng() * Math.PI * 2;
+          const rx = (M.ink.r - M.ink.l) / 2 + size * .9, ry = (M.ink.b - M.ink.t) / 2 + size * .9;
+          for (let i = 0; i < n; i++) { const t = a0 + i * Math.PI * 2 / n; targets.push({ x: c.x + rx * Math.cos(t), y: c.y + ry * Math.sin(t) }); }
+        } else if (layoutName === 'column') {
+          const left = rng() < .5;
+          const x = left ? M.g + size / 2 + 4 : M.vw - M.gr - size / 2 - 4;
+          const x2 = left ? x + size * 1.2 : x - size * 1.2;      // a second, shorter column when it doesn't fit
+          const per = Math.max(1, Math.floor((bottom - top) / (size * 1.25)));
+          for (let i = 0; i < n; i++) {
+            const col = i < per ? x : x2, k = i < per ? i : i - per, m = i < per ? Math.min(n, per) : n - per;
+            targets.push({ x: col, y: top + (k + .5) * (bottom - top) / m });
+          }
+        } else if (layoutName === 'bands') {
+          const up = Math.ceil(n / 2), yA = (top + M.ink.t) / 2, yB = (M.ink.b + bottom) / 2;
+          for (let i = 0; i < n; i++) {
+            const row = i < up ? 0 : 1, k = row ? i - up : i, m = row ? n - up : up;
+            targets.push({ x: M.g + (k + .5) * (M.vw - M.g - M.gr) / m, y: row ? yB : yA });
+          }
+        } else {
+          const spots = [{ x: M.vw / 2, y: (top + M.ink.t) / 2 }, { x: M.vw / 2, y: (M.ink.b + bottom) / 2 }];
+          if (M.wide) spots.push({ x: (M.g + M.ink.l) / 2, y: c.y }, { x: (M.ink.r + M.vw - M.gr) / 2, y: c.y });
+          const at = spots[Math.floor(rng() * spots.length)];
+          for (let i = 0; i < n; i++) { const r = size * 1.05 * Math.sqrt(i), t = i * 2.4; targets.push({ x: at.x + r * Math.cos(t), y: at.y + r * Math.sin(t) }); }
+        }
+
         order = [];
-        tiles.forEach((t, i) => {
-          const r = place(size, size, c, tileRing, size * 1.8, i + 1, cell * .6);
+        tiles.forEach((t) => { if (!showTiles.includes(t)) { t.classList.add('stowed'); t.tabIndex = -1; t._r = null; } });
+        showTiles.forEach((t, i) => {
+          const r = place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
           t.classList.toggle('stowed', !r);     // never under the thumb: stow instead
           t.tabIndex = r ? 0 : -1;
+          t._r = r;
           if (!r) return;
           order.push(t);
-          const tilt = (noise(i + 1, 0, 0) - .5) * 9;
+          const tilt = (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
           t.style.width = t.style.height = size + 'px';
           t.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px) rotate(${tilt.toFixed(1)}deg)`;
-          t._r = r;
-          const base = 720 + i * 32;
+          const base = 720 + i * 60;
           tileParts.get(t).forEach((el, j) => {
             el.style.setProperty('--d', (base + j * 40) + 'ms');
             if (el.classList.contains('pen')) el.style.setProperty('--dur', '200ms');
@@ -1138,14 +1179,15 @@
           ? { x: (agentsTile._r.l + agentsTile._r.r) / 2, y: (agentsTile._r.t + agentsTile._r.b) / 2 } : c;
         aiLinks.textContent = '';
         plugOf.clear();
-        ais.forEach((b, i) => {
-          const r = place(badge, badge, hub, size * .75 + badge, badge * 2.4, 100 + i, cell * .35);
+        ais.forEach((b) => { if (!showAis.includes(b)) { b.classList.add('stowed'); b.tabIndex = -1; } });
+        showAis.forEach((b, i) => {
+          const r = place(badge, badge, hub, size * .7 + badge * .8, badge * 1.6, 100 + ais.indexOf(b), cell * .35);
           b.classList.toggle('stowed', !r);
           b.tabIndex = r ? 0 : -1;
           if (!r) return;
           b.style.width = b.style.height = badge + 'px';
           b.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px)`;
-          b.style.setProperty('--d', (1300 + i * 30) + 'ms');
+          b.style.setProperty('--d', (1250 + i * 60) + 'ms');
           if (hub === c) return;
           const bx = (r.l + r.r) / 2, by = (r.t + r.b) / 2;
           const line = document.createElementNS(NS, 'path');
@@ -1153,7 +1195,7 @@
           line.setAttribute('d', `M ${hub.x} ${hub.y} L ${bx} ${by}`);
           const g = document.createElementNS(NS, 'g');
           g.setAttribute('class', 'pop');
-          g.style.setProperty('--d', (1400 + i * 30) + 'ms');
+          g.style.setProperty('--d', (1350 + i * 60) + 'ms');
           g.appendChild(line);
           aiLinks.appendChild(g);
           plugOf.set(b, line);
@@ -1161,6 +1203,11 @@
       }
 
       function reveal(press, next) {
+        // Every reveal: a new selection and a different layout from last time.
+        SEED = (Math.random() * 2 ** 32) >>> 0;
+        const pick = LAYOUTS.filter((n) => n !== layoutName);
+        layoutName = pick[Math.floor(Math.random() * pick.length)];
+        app.dataset.layout = layoutName;
         app.classList.add('instant');
         layout(press);
         void app.offsetWidth;                 // commit hidden start state before drawing in
