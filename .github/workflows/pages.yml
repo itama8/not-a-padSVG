@@ -1,8 +1,12 @@
-name: Deploy site to GitHub Pages
+name: Build and deploy site
+
+# prod -> https://itama8.github.io/not-padgtp/
+# dev  -> https://itama8.github.io/not-padgtp/dev/  (not indexed by search engines)
+# A push to either branch rebuilds both, so neither overwrites the other.
 
 on:
   push:
-    branches: [main]
+    branches: [prod, dev]
     paths: ["site/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
@@ -16,16 +20,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out prod
+        uses: actions/checkout@v7
+        with:
+          ref: prod
+          path: prod
+      - name: Check out dev
+        id: dev
+        continue-on-error: true
+        uses: actions/checkout@v7
+        with:
+          ref: dev
+          path: dev
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp -R prod/site/. _site/
+          if [ -d dev/site ]; then
+            mkdir -p _site/dev
+            cp -R dev/site/. _site/dev/
+            # keep work in progress out of search results
+            find _site/dev -name '*.html' -exec sed -i 's#<head>#<head>\n  <meta name="robots" content="noindex" />#' {} +
+          fi
+          echo "prod: $(git -C prod rev-parse --short HEAD)" > _site/version.txt
+          [ -d dev ] && echo "dev: $(git -C dev rev-parse --short HEAD)" >> _site/version.txt
+          cat _site/version.txt
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
-        with:
-          path: site
       - id: deployment
         uses: actions/deploy-pages@v5
