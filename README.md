@@ -4,6 +4,37 @@ A supercharged notepad: plain text, a tiny UI, and an x-ray you hold to see.
 
 The website lives in [`site/`](site/). It is plain HTML with no build step yet.
 
+## Phone keyboard artwork
+
+Use the [keyboard lab](site/lab/keyboard.html) to try the home-screen keyboard
+at desktop and phone sizes and check the clipboard.
+
+The [phone keyboard SVG](site/reference/phone-keyboard.svg) stores each key as
+a named group. Export any key as a standalone SVG from the repository root
+with Python 3.9 or later.
+
+```sh
+python3 scripts/export-phone-key.py --list
+python3 scripts/export-phone-key.py KeyQ > q-key.svg
+python3 scripts/export-phone-key.py Enter > enter-key.svg
+```
+
+Export the interactive keyboard, including the launcher, SVG, typing rules,
+and motion, as a single ES module.
+
+```sh
+python3 scripts/export-phone-keyboard.py > phone-keyboard.mjs
+```
+
+Import `mountPhoneKeyboard(host, { copyText, onReserve })` from that module.
+Place the host in the area where the launcher and keyboard should appear.
+The component mounts its own DOM and stylesheet. It calls `onReserve(rect)`
+on open and resize, and `onReserve(null)` on close. The host owns surrounding
+layout and can supply an async `copyText` handler. The default uses the browser
+clipboard. Set `--keyboard-ink`, `--keyboard-paper`, and `--keyboard-accent`
+on the host to match its theme. The exported module embeds the SVG, so a
+renderer bundler such as Omakase's can import it without copying extra assets.
+
 ## Branches
 
 | Branch | What it is | Where it's live |

@@ -64,6 +64,23 @@
       display: block; width: min(96vw, 560px); height: auto;
       max-height: min(67dvh, 500px); overflow: visible;
     }
+    #app[data-composing] { touch-action: auto; }
+    #app[data-composing] .stage { bottom: var(--keyboard-space); }
+    #app[data-composing] .art { width: min(96vw, 560px, calc(var(--keyboard-room) * 560 / 440)); }
+    #app[data-composing] #hint { visibility: hidden; }
+    #phone-keyboard {
+      position: absolute; z-index: 4;
+      inset: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+             max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+      --keyboard-ink: var(--ink);
+      --keyboard-paper: var(--paper);
+      --keyboard-accent: #136e65;
+    }
+    :root[data-scheme="dark"] #phone-keyboard,
+    :root[data-theme="dark"]:not([data-scheme="light"]) #phone-keyboard { --keyboard-accent: #8dd8d0; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]):not([data-scheme="light"]) #phone-keyboard { --keyboard-accent: #8dd8d0; }
+    }
     .brand-letter, .reveal-letter {
       fill: none; stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round;
     }
@@ -881,6 +898,7 @@
         <rect class="h-tile s" x="55" y="6" width="18" height="18" rx="2.5" />
       </svg>
     </div>
+    <div id="phone-keyboard"></div>
   </div>
 
   <script src="./want-config.js" defer></script>
@@ -905,6 +923,8 @@
       const savePrefs = () => { try { localStorage.setItem('npg.paper', JSON.stringify(prefs)); } catch (_) {} };
 
       const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
+      const stage = $('.stage'), keyboardHost = $('#phone-keyboard');
+      let keyboard, keyboardSpace = null;
       const pressG = $('#press'), move = $('#move');
       const moveLine = move.children[0], moveHead = move.children[1];
       const xray = $('#xray'), linksBox = $('#links');
@@ -1123,13 +1143,16 @@
         return (x - c.x) ** 2 + (y - c.y) ** 2 < c.rad * c.rad;
       };
       const underThumb = (r, thumb) => thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)));
+      const bounds = (r) => ({ l: r.left, t: r.top, r: r.right, b: r.bottom });
 
       function measure() {
         const ps = getComputedStyle(probe);
         const safe = { t: parseFloat(ps.paddingTop) || 0, r: parseFloat(ps.paddingRight) || 0,
                        b: parseFloat(ps.paddingBottom) || 0, l: parseFloat(ps.paddingLeft) || 0 };
         const vw = app.clientWidth, vh = app.clientHeight;
-        const ar = art.getBoundingClientRect();
+        // Measure the layout slot even while its contents are animating.
+        const ar = { width: art.clientWidth, height: art.clientHeight,
+                     left: mark.offsetLeft, top: mark.offsetTop };
         const s = Math.min(ar.width / 560, ar.height / 440);
         const ox = ar.left + (ar.width - 560 * s) / 2, oy = ar.top + (ar.height - 440 * s) / 2;
         const P = (x, y) => ({ x: ox + x * s, y: oy + y * s });
@@ -1137,7 +1160,7 @@
         const ink = box(138, 98, 462, 420);
         const inks = [box(143, 101, 306, 137), box(278, 163, 438, 212), box(404, 166, 453, 418)];
         const g = Math.max(16, safe.l), gr = Math.max(16, safe.r);
-        const stripY = vh - safe.b - 46;
+        const stripY = keyboardSpace ? keyboardSpace.top - 10 : vh - safe.b - 46;
         const wide = vw >= 720 && vh >= 520;
         return { vw, vh, safe, g, gr, P, s, ink, inks, stripY, wide };
       }
@@ -1216,6 +1239,7 @@
         wr.setAttribute('width', x1 - x0 + 4); wr.setAttribute('height', 16);
 
         const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 26, t: p.y - 26, r: p.x + 26, b: p.y + 26 }];
+        if (keyboard) blockers.push(grow(bounds(keyboard.launcherRect()), 6));
 
         // Links: top right, out of the way.
         const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
@@ -1285,7 +1309,7 @@
         const o = M.P(447, 132);
         const c = { x: (M.ink.l + M.ink.r) / 2, y: (M.ink.t + M.ink.b) / 2 };
         let scatter;
-        if (M.wide && !press) {
+        if (M.wide && !press && !keyboardSpace) {
           const area = { l: M.g, t: M.safe.t + 10, r: M.vw - M.gr, b: M.stripY - 10 };
           // Keep tile sampling work bounded on ultrawide screens. Badges still use every ruling.
           const stride = Math.ceil(Math.max(1, Math.sqrt(M.vw * M.stripY / (cell ** 2 * 5000))));
@@ -1296,7 +1320,7 @@
             tileCount: showTiles.length, badgeCount: showAis.length
           }, { ...ScatterLayout.MOODS[desktopMood], mood: desktopMood }, SEED);
         }
-        app.dataset.layout = scatter ? desktopMood : compactLayout;
+        app.dataset.layout = keyboardSpace ? 'composing' : scatter ? desktopMood : compactLayout;
         const placed = [];
         const place = (w, h, anchor, ring, spread, key, gap) => {
           let best = null, bestScore = Infinity;
@@ -1323,6 +1347,13 @@
         if (scatter) {
           const hubFirst = [agentsTile, ...showTiles.filter((tile) => tile !== agentsTile)];
           for (const [i, tile] of hubFirst.entries()) targets[showTiles.indexOf(tile)] = scatter.points[i];
+        } else if (keyboardSpace) {
+          const columns = Math.max(1, Math.min(n, Math.floor((M.vw - M.g - M.gr) / (size + cell))));
+          for (let i = 0; i < n; i++) {
+            const x = M.g + (i % columns + .5) * (M.vw - M.g - M.gr) / columns;
+            const y = M.safe.t + size / 2 + 12 + Math.floor(i / columns) * (size + cell);
+            targets.push({ x, y });
+          }
         } else if (compactLayout === 'ring') {
           const a0 = rng() * Math.PI * 2;
           const rx = (M.ink.r - M.ink.l) / 2 + size * .9, ry = (M.ink.b - M.ink.t) / 2 + size * .9;
@@ -1359,7 +1390,7 @@
           t._r = r;
           if (!r) return;
           order.push(t);
-          const tilt = (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
+          const tilt = keyboardSpace ? 0 : (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
           t.style.width = t.style.height = size + 'px';
           const x = scatter ? r.l : Math.round(r.l), y = scatter ? r.t : Math.round(r.t);
           t.style.transform = `translate(${x}px, ${y}px) rotate(${tilt.toFixed(1)}deg)`;
@@ -1443,6 +1474,7 @@
       let press = null, nextHold = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
+        if (e.target === keyboardHost) return;
         // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
         if (e.pointerType === 'mouse' || e.button !== 0) return;
         const control = e.target.closest(controlSelector);
@@ -1526,9 +1558,10 @@
         if (e.target === app) end(e, true);
       });
       app.addEventListener('click', (e) => {
+        if (e.target === keyboardHost) return;
         if (state === 'off' && e.detail > 0 && (!e.pointerType || e.pointerType === 'mouse')) flashAltHint();
       });
-      app.addEventListener('contextmenu', (e) => e.preventDefault());
+      app.addEventListener('contextmenu', (e) => { if (e.target !== keyboardHost) e.preventDefault(); });
 
       // ---- keyboard: Enter/Space on the wordmark toggles keep; holding Alt peeks; Esc releases ----
       mark.addEventListener('click', (e) => {
@@ -1541,11 +1574,14 @@
       let altPeek = false, altDown = null;
       addEventListener('keydown', (e) => {
         if (e.key !== 'Alt' && altDown) altDown.alone = false;   // Alt+Tab and friends aren't taps
+        if (keyboardSpace && e.target === keyboardHost) return;
         if (e.key === 'Alt') {
           e.preventDefault();
           if (e.repeat || press) return;
           altDown = { t: e.timeStamp, from: state, alone: true };
           if (state === 'off') { altPeek = true; reveal(null, 'peek'); }
+        } else if (e.key === 'Escape' && keyboardSpace) {
+          keyboard.close();
         } else if (e.key === 'Escape' && state !== 'off') {
           setState('off');
           mark.focus();
@@ -1553,6 +1589,7 @@
       });
       addEventListener('keyup', (e) => {
         if (e.key !== 'Alt') return;
+        if (keyboardSpace && e.target === keyboardHost && !altDown) return;
         e.preventDefault();
         const d = altDown; altDown = null;
         const tap = d && d.alone && e.timeStamp - d.t < ALT_TAP_MS;
@@ -1563,6 +1600,51 @@
 
       // Tabbing into a hidden x-ray keeps it on. Focus during a held peek leaves it in place.
       xray.addEventListener('focusin', () => { if (state === 'off') reveal(null, 'kept'); });
+
+      // The keyboard supplies its measured space. The home screen keeps its own seed and rules.
+      const motion = new Map();
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      function reserveKeyboard(rect, timing) {
+        if (rect?.top === keyboardSpace?.top && rect?.height === keyboardSpace?.height) return;
+        const elements = state === 'off' ? [art] : [art, ...xray.querySelectorAll('.station, .tile, .ai'), soonNote];
+        const previous = new Map(elements.filter(el => !el.classList.contains('stowed'))
+          .map(el => [el, el.getBoundingClientRect()]));
+        motion.forEach(animation => animation.cancel());
+        motion.clear();
+        keyboardSpace = rect;
+        app.toggleAttribute('data-composing', Boolean(rect));
+        if (rect) {
+          app.style.setProperty('--keyboard-space', `${app.clientHeight - rect.top + 8}px`);
+          app.style.setProperty('--keyboard-room', `${Math.max(24, rect.top - stage.offsetTop - 16)}px`);
+        }
+        alignPaper();
+        if (state !== 'off') layout(lastPress);
+        if (reducedMotion.matches) return;
+        for (const [el, before] of previous) {
+          if (el.classList.contains('stowed')) continue;
+          const after = el.getBoundingClientRect();
+          if (!after.width || !after.height) continue;
+          const dx = before.left + before.width / 2 - after.left - after.width / 2;
+          const dy = before.top + before.height / 2 - after.top - after.height / 2;
+          const scale = el === art ? before.width / after.width : 1;
+          if (Math.abs(dx) + Math.abs(dy) < .5 && Math.abs(scale - 1) < .01) continue;
+          const animation = el.animate([
+            { translate: `${dx}px ${dy}px`, scale }, { translate: '0px 0px', scale: 1 },
+          ], timing);
+          motion.set(el, animation);
+          animation.onfinish = () => { if (motion.get(el) === animation) motion.delete(el); };
+        }
+      }
+
+      import('./ui/phone-keyboard/index.js')
+        .then(({ mountPhoneKeyboard, phoneKeyboardMotion }) => mountPhoneKeyboard(keyboardHost, {
+          onReserve: rect => reserveKeyboard(rect, phoneKeyboardMotion),
+        }))
+        .then(controller => {
+          keyboard = controller;
+          if (state !== 'off') layout(lastPress);
+        })
+        .catch(error => console.error(error));
 
       // ---- keep marks registered on resize / rotation ----
       let raf = 0;

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Keyboard lab · not-padgtp</title>
+  <style>
+    :root { color-scheme: light dark; font: 14px/1.5 ui-monospace, monospace; }
+    body { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+    h1 { margin: 0; font-size: 18px; }
+    .controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; margin: 16px 0; }
+    label { display: grid; }
+    select, input { min-height: 34px; font: inherit; }
+    .xray { display: flex; align-items: center; gap: 6px; }
+    .paste { flex: 1 1 220px; max-width: 360px; }
+    p { margin: 0 0 12px; }
+    iframe { display: block; box-sizing: border-box; width: 100%; margin: 0 auto;
+             height: clamp(540px, 74dvh, 800px); border: 1px solid GrayText; }
+    iframe[data-viewport="phone"] { width: min(100%, 392px); height: clamp(400px, calc(100dvh - 225px), 762px); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Keyboard lab</h1>
+    <a href="scatter.html">Scatter lab</a>
+  </header>
+  <div class="controls">
+    <label>Preview size
+      <select id="viewport">
+        <option value="desktop">Desktop</option>
+        <option value="phone">Phone</option>
+      </select>
+    </label>
+    <label class="xray"><input id="xray" type="checkbox" checked> Show X-Ray</label>
+    <label class="paste">Clipboard check
+      <input type="text" placeholder="Paste copied text here" autocomplete="off">
+    </label>
+  </div>
+  <p>Open the keyboard in the preview, type a line, then press the teal Return key. Paste above to check the result.</p>
+  <iframe id="preview" src="../index.html" title="Interactive not-padgtp home screen" allow="clipboard-write"></iframe>
+  <script>
+    const preview = document.querySelector('#preview');
+    const viewport = document.querySelector('#viewport');
+    const xray = document.querySelector('#xray');
+    if (window.innerWidth < 640) viewport.value = 'phone';
+    const resizePreview = () => { preview.dataset.viewport = viewport.value; };
+    viewport.addEventListener('change', resizePreview);
+    resizePreview();
+
+    const setXray = () => {
+      const page = preview.contentDocument;
+      const app = page?.querySelector('#app');
+      if (app && (app.dataset.xray === 'kept') !== xray.checked) {
+        page.querySelector('#mark').click();
+      }
+    };
+    xray.addEventListener('change', setXray);
+    preview.addEventListener('load', () => {
+      setXray();
+      const app = preview.contentDocument?.querySelector('#app');
+      if (app) {
+        new MutationObserver(() => {
+          if (app.dataset.xray !== 'peek') xray.checked = app.dataset.xray === 'kept';
+        }).observe(app, { attributeFilter: ['data-xray'] });
+      }
+    });
+  </script>
+</body>
+</html>
