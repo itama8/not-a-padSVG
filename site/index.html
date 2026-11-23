@@ -125,12 +125,19 @@
     }
     #want[aria-disabled="true"] { cursor: default; }
     #want:focus-visible { outline: 1px dashed var(--ink); outline-offset: 3px; }
-    #want svg { display: block; width: 100%; height: 100%; pointer-events: none; }
-    #want text { fill: currentColor; font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 900; }
-    #want-label, #want-count { transform-box: view-box; transform-origin: center; }
-    #want-label { font-size: 34px; letter-spacing: -.045em; }
-    #want-count { font-size: 100px; font-variant-numeric: tabular-nums; fill-opacity: .24; }
-    #want:hover:not([aria-disabled="true"]) #want-count, #want.armed #want-count { fill-opacity: .34; }
+    #want svg {
+      display: block; width: 100%; height: 100%; pointer-events: none; transform-origin: center;
+      font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 900;
+    }
+    #want-label {
+      font-size: 34px; letter-spacing: -.045em;
+      stroke: var(--paper); stroke-width: 2; stroke-linejoin: round; paint-order: stroke fill;
+    }
+    #want-count { font-size: 136px; font-variant-numeric: tabular-nums; opacity: .36; }
+    #want:not([aria-disabled="true"]):is(:focus-visible, .armed) #want-count { opacity: .62; }
+    @media (hover: hover) {
+      #want:hover:not([aria-disabled="true"]) #want-count { opacity: .62; }
+    }
 
     /* Shared icon ink: graphite for the app's structure, blue for what you put in. */
     .ic { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -845,8 +852,10 @@
       </nav>
       <button id="want" class="xi station" type="button" aria-label="I WANT THIS" aria-disabled="true" aria-describedby="want-total want-status">
         <svg viewBox="0 0 160 118" aria-hidden="true">
-          <text id="want-count" x="80" y="59" text-anchor="middle" dominant-baseline="central">—</text>
-          <text id="want-label" text-anchor="middle">
+          <text id="want-count" x="80" y="59" text-anchor="middle" dominant-baseline="central"
+                fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"
+                lengthAdjust="spacingAndGlyphs">—</text>
+          <text id="want-label" fill="currentColor" text-anchor="middle">
             <tspan x="80" y="33">I</tspan>
             <tspan x="80" y="67">WANT</tspan>
             <tspan x="80" y="101">THIS</tspan>
