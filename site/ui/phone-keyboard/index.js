@@ -7,6 +7,14 @@ const easing = 'cubic-bezier(.2,.7,.2,1)';
 const letters = 'qwertyuiopasdfghjklzxcvbnm';
 const symbols = Array.from('1234567890@#$%&-+()!?/:;₹=');
 const emoji = Array.from('😀😃😄😁😅😂🙂🙃😉😊😍😎🤔😮😢😴😬😐🙄😇👍👎👏🙌🎉🔥');
+const releaseDuration = 240;
+const releaseFrames = Array.from({ length: 17 }, (_, index) => {
+  if (index === 16) return { transform: 'none' };
+  const t = releaseDuration / 1000 * index / 16;
+  // Displacement of an underdamped spring released from rest.
+  const displacement = Math.exp(-17 * t) * (Math.cos(30 * t) + 17 / 30 * Math.sin(30 * t));
+  return { transform: `translateY(${2 * displacement}px) scale(${1 - .12 * displacement})` };
+});
 let artworkRequest;
 
 const styles = `
@@ -34,15 +42,37 @@ const styles = `
   .board svg { display: block; width: 100%; height: auto; pointer-events: none; }
   .hit { position: absolute; background: transparent; color: inherit; border: 0; padding: 0;
     border-radius: 5px; cursor: pointer; touch-action: manipulation; }
-  .hit:hover, .hit[aria-pressed="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
-  .hit:active { background: color-mix(in srgb, currentColor 16%, transparent); }
+  .hit[aria-pressed="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
+  @media (hover: hover) and (pointer: fine) {
+    .hit:hover { background: color-mix(in srgb, currentColor 5%, transparent); }
+  }
+  .board svg [data-key] { transform-box: fill-box; transform-origin: center; }
+  .board svg [data-key][data-down] { transform: translateY(2px) scale(.88); transition: transform 55ms ease-out; }
+  .board svg [data-key][data-down] .key-outline {
+    fill: var(--keyboard-accent, currentColor); fill-opacity: .23;
+    stroke: var(--keyboard-accent, currentColor); stroke-opacity: .9;
+  }
+  .key-preview {
+    position: absolute; z-index: 1; transform: translate(-50%, calc(-100% - 5px));
+    display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 6px;
+    box-sizing: border-box; pointer-events: none; border-radius: 9px;
+    color: var(--keyboard-paper, Canvas); background: var(--keyboard-accent, CanvasText);
+    font-size: 24px; line-height: 1; box-shadow: 0 3px 9px #0003;
+  }
+  .key-preview::after {
+    content: ''; position: absolute; inset-block-end: -4px; width: 9px; height: 9px;
+    border-radius: 1px; background: inherit; transform: rotate(45deg);
+  }
   .error { margin: 0; padding: 3px 12px; font-size: 12px; }
   [hidden] { display: none; }
-  @media (prefers-reduced-motion: reduce) { .surface, .panel[data-open] .surface { transition: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .surface, .panel[data-open] .surface { transition: none; }
+    .board svg [data-key][data-down] { transform: none; transition: none; }
+  }
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.0.0';
+export const phoneKeyboardVersion = '1.1.0';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -91,7 +121,7 @@ export async function mountPhoneKeyboard(host, {
       <div class="surface">
         <textarea aria-label="Text to copy" inputmode="none"></textarea>
         <p class="error" role="status" hidden></p>
-        <div class="board"></div>
+        <div class="board"><div class="key-preview" aria-hidden="true" hidden></div></div>
       </div>
     </section>`;
   const launcher = root.querySelector('.launcher');
@@ -99,6 +129,8 @@ export async function mountPhoneKeyboard(host, {
   const input = root.querySelector('textarea');
   const error = root.querySelector('.error');
   const board = root.querySelector('.board');
+  const preview = root.querySelector('.key-preview');
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   launcher.append(makeLauncher(artwork));
 
   artwork.querySelector('.suggestions').remove();
@@ -124,11 +156,13 @@ export async function mountPhoneKeyboard(host, {
     });
     const legend = cap.querySelector('.key-legend');
     const altLegend = cap.querySelector('.alternate');
-    keys.set(key, { button, legend, altLegend, alt: altLegend?.textContent });
+    keys.set(key, { button, cap, legend, altLegend, alt: altLegend?.textContent,
+      previewX: `${(x + width / 2) / 4}%`, previewY: `${(y - cropTop) / (282 - cropTop) * 100}%` });
     board.append(button);
   }
 
   let open = false, saving = false, shift = false, mode = 'letters';
+  let previewKey, previewTimer;
   const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
   function updateKeys() {
@@ -153,6 +187,10 @@ export async function mountPhoneKeyboard(host, {
   function setOpen(next) {
     if (open === next || (saving && !next)) return;
     open = next;
+    if (!open) {
+      for (const key of keys.values()) key.clearPress();
+      hidePreview();
+    }
     panel.toggleAttribute('data-open', open);
     panel.inert = !open;
     launcher.setAttribute('aria-expanded', String(open));
@@ -205,20 +243,74 @@ export async function mountPhoneKeyboard(host, {
     input.focus({ preventScroll: true });
   }
 
-  for (const [id, { button, alt }] of keys) {
-    let timer, held = false;
-    button.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      event.preventDefault(); // Keep the text selection while using a drawn key.
+  function hidePreview() {
+    clearTimeout(previewTimer);
+    previewKey = null;
+    preview.hidden = true;
+  }
+
+  function showPreview(key, glyph) {
+    hidePreview();
+    if (!glyph) return;
+    previewKey = key;
+    preview.textContent = glyph;
+    preview.style.left = key.previewX;
+    preview.style.top = key.previewY;
+    preview.hidden = false;
+  }
+
+  for (const [id, key] of keys) {
+    const { button, cap, alt } = key;
+    let pointer, timer, rebound, held = false;
+    const glyph = () => key.value ?? (id === 'Comma' || id === 'Period' ? key.legend.textContent : '');
+    function pressKey() {
+      rebound?.cancel();
+      cap.setAttribute('data-down', '');
+      showPreview(key, glyph());
+    }
+    function releaseKey(cancelled = false) {
+      cap.removeAttribute('data-down');
+      if (!reducedMotion.matches && !cancelled) {
+        rebound = cap.animate(releaseFrames, { duration: releaseDuration });
+      }
+      if (previewKey !== key) return;
+      if (cancelled) hidePreview();
+      else previewTimer = setTimeout(hidePreview, 135);
+    }
+    key.clearPress = () => {
+      clearTimeout(timer);
+      rebound?.cancel();
+      cap.removeAttribute('data-down');
+      pointer = null;
       held = false;
+    };
+    button.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || saving || pointer != null) return;
+      event.preventDefault(); // Keep the text selection while using a drawn key.
+      pointer = event.pointerId;
+      held = false;
+      pressKey();
       if (id === 'Enter' || (alt && mode === 'letters')) {
-        timer = setTimeout(() => { held = true; activate(id, true); }, 450);
+        timer = setTimeout(() => {
+          held = true;
+          if (previewKey === key) showPreview(key, alt);
+          activate(id, true);
+        }, 450);
       }
     });
-    for (const name of ['pointerup', 'pointerleave', 'pointercancel']) {
-      button.addEventListener(name, () => clearTimeout(timer));
+    for (const name of ['pointerup', 'pointerleave', 'pointercancel', 'lostpointercapture']) {
+      button.addEventListener(name, event => {
+        if (event.pointerId !== pointer) return;
+        clearTimeout(timer);
+        pointer = null;
+        releaseKey(name !== 'pointerup');
+      });
     }
     button.addEventListener('click', event => {
+      if (event.detail === 0 && !saving) {
+        pressKey();
+        releaseKey();
+      }
       if (!held || event.detail === 0) activate(id);
       held = false;
     });
@@ -249,6 +341,8 @@ export async function mountPhoneKeyboard(host, {
     launcherRect: () => launcher.getBoundingClientRect(),
     destroy() {
       observer.disconnect();
+      for (const key of keys.values()) key.clearPress();
+      hidePreview();
       if (open) onReserve(null);
       root.replaceChildren();
     },

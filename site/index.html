@@ -1636,7 +1636,7 @@
         }
       }
 
-      import('./ui/phone-keyboard/index.js')
+      import('./ui/phone-keyboard/index.js?v=1.1.0')
         .then(({ mountPhoneKeyboard, phoneKeyboardMotion }) => mountPhoneKeyboard(keyboardHost, {
           onReserve: rect => reserveKeyboard(rect, phoneKeyboardMotion),
         }))
