@@ -183,6 +183,8 @@
     /* hidden-until-played parts */
     .fx { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; }
     .steam, .spark, .rep, .drop, .bub, .wave { opacity: 0; }
+    /* paw prints placed by their own transform: keep it in icon units, not the print's ink box */
+    .ic .step { transform-box: view-box; transform-origin: 0 0; opacity: min(1, calc(.3 * var(--kl))); }
 
     /* ---------- the little demos, one per task ---------- */
     @keyframes draw-hold { 0% { stroke-dashoffset: 1.02 } 22%, 82% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 1.02 } }
@@ -209,6 +211,7 @@
     @keyframes press { 0%, 100% { transform: none } 50% { transform: scale(.5) } }
     @keyframes whisk { 0%, 100% { transform: none } 25% { transform: rotate(-14deg) } 75% { transform: rotate(14deg) } }
     @keyframes slide { 0% { opacity: 0; transform: translateX(10px) } 30%, 100% { opacity: 1; transform: none } }
+    @keyframes step { 0% { opacity: min(1, calc(.3 * var(--kl))) } 12%, 80% { opacity: 1 } 100% { opacity: min(1, calc(.3 * var(--kl))) } }
     @keyframes nope { 20% { transform: translateX(-3px) } 40% { transform: translateX(3px) } 60% { transform: translateX(-2px) } 80% { transform: translateX(2px) } }
 
     .play .tick { animation: draw-hold 2s ease both; animation-delay: var(--ad, 0s); }
@@ -235,8 +238,7 @@
     .play .clink-a { animation: clink-a 1.6s ease both; transform-origin: 50% 100%; }
     .play .clink-b { animation: clink-b 1.6s ease both; transform-origin: 50% 100%; }
     .play .heart { animation: pulse .5s ease .55s both; }
-    .play .toe { animation: pulse .4s ease both; animation-delay: var(--ad, 0s); }
-    .play .pad { animation: pulse .5s ease .75s both; }
+    .play .step { animation: step 1.2s ease both; animation-delay: var(--ad, 0s); }
     .play .hop { animation: hop .6s ease both; animation-delay: var(--ad, 0s); }
     .play .key { animation: press .3s ease both; animation-delay: var(--ad, 0s); }
     .play .whisk { animation: whisk .9s ease-in-out 2 both; transform-origin: 50% 100%; }
@@ -395,12 +397,44 @@
     .play .n-step { animation: n-step 1.2s ease both; animation-delay: var(--ad, 0s); }
     .play .n-swing { animation: n-swing 1.9s ease-in-out both; transform-origin: 50% 0; }
     .ic .n-step { transform-box: view-box; transform-origin: 0 0; }
+    /* ---------- round 2 ---------- */
+    .ic .g.door { fill: var(--paper); opacity: 1; stroke: color-mix(in srgb, var(--ink) 82%, var(--paper)); }
+    .ic .cur-s { stroke-width: 1.5; }
+    .n-plug, .n-item { opacity: 0; }
+    @keyframes n-bar { 0% { transform: scaleX(.35) } 40%, 88% { transform: none } 100% { transform: scaleX(.35) } }
+    @keyframes n-note { 0%, 100% { transform: none } 12% { transform: translateY(-2px) } 26% { transform: scale(.92) } 36% { transform: none } }
+    @keyframes n-look { 0%, 12% { transform: none } 22% { transform: translate(-2.5px, 2.5px) } 48% { transform: translate(2.5px, 2.5px) } 60%, 100% { transform: none } }
+    @keyframes n-run { 0% { stroke-dashoffset: 1.02 } 45%, 86% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 1.02 } }
+    @keyframes n-cur { 0% { transform: none; opacity: 1 } 45%, 70% { transform: translateX(var(--go)); opacity: 1 } 76%, 82% { transform: translateX(var(--go)); opacity: 0 } 88%, 100% { transform: none; opacity: 1 } }
+    @keyframes n-plug { 0%, 15% { opacity: 0; transform: scale(.4) } 30%, 86% { opacity: 1; transform: none } 100% { opacity: 0; transform: none } }
+    @keyframes n-beam { 0%, 100% { opacity: 0; transform: none } 8% { opacity: 1 } 30% { transform: translateY(12px) } 50% { transform: none; opacity: 1 } 58% { opacity: 0 } }
+    @keyframes n-flapl { 0%, 100% { transform: none } 20%, 80% { transform: rotate(-115deg) } }
+    @keyframes n-flapr { 0%, 100% { transform: none } 20%, 80% { transform: rotate(115deg) } }
+    @keyframes n-item { 0% { opacity: 0; transform: none } 25% { opacity: 1; transform: translateY(-12px) } 50% { opacity: 1; transform: translate(14px, -14px) } 62%, 100% { opacity: 0; transform: translate(14px, -14px) } }
+    @keyframes n-door { 0%, 8% { transform: none } 28%, 78% { transform: scaleX(.12) } 92%, 100% { transform: none } }
+    .play .n-bar { animation: n-bar 1.8s cubic-bezier(.3, 0, .2, 1) both; animation-delay: var(--ad, 0s); transform-origin: 0 50%; }
+    .play .n-note { animation: n-note 2s ease both; }
+    .play .n-look { animation: n-look 2s ease-in-out both; }
+    .play .n-ant { animation: pulse .4s ease 1.1s both; }
+    .play .n-smile { animation: pulse .4s ease 1.25s both; }
+    .play .n-run { animation: n-run 2s ease-out both; animation-delay: var(--ad, 0s); }
+    .play .n-cur { animation: n-cur 2s ease-out both; animation-delay: var(--ad, 0s); }
+    .play .n-plug { animation: n-plug 2s ease both; }
+    .play .n-beam { animation: n-beam 2s ease-in-out both; }
+    .play .n-flapl { animation: n-flapl 2s ease both; transform-origin: 0 100%; }
+    .play .n-flapr { animation: n-flapr 2s ease both; transform-origin: 100% 100%; }
+    .play .n-item { animation: n-item 1.5s ease both; animation-delay: var(--ad, 0s); }
+    .play .n-use { animation: pulse .45s ease 1.05s both; }
+    .play .n-door { animation: n-door 2s ease-in-out both; transform-origin: 0 50%; }
+    .cur-pick { display: flex; gap: 6px; align-items: center; margin: 0 0 12px; font-size: 12px; }
+    .cur-pick button { font: 15px var(--mono); color: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-radius: 4px; min-width: 40px; min-height: 36px; cursor: pointer; }
+    .cur-pick button[aria-pressed="true"] { border-color: var(--blue); color: var(--blue); border-width: 1.5px; }
   </style>
 </head>
 <body>
   <div class="lab-head">
     <div>
-      <h1>Tile lab: four tiles, new concepts</h1>
+      <h1>Tile lab: round 2</h1>
       <p>Each tile plays on a loop, big (2x) and at real phone size (54px). Blue is what you write or own, graphite is the app. Tap any tile to replay it. Pick a letter per tile, or say what idea you meant.</p>
     </div>
     <div class="lab-tools">
@@ -408,7 +442,7 @@
       <button type="button" id="scheme">Dark</button>
     </div>
   </div>
-<section><h2>Budgeting</h2><div class="row">
+<section><h2>Budgeting</h2><p class="note">Round 2: with a currency sign. Pick one to see it in all three.</p><div class="cur-pick" role="group" aria-label="Currency">Currency <button type="button" data-c="inr">₹</button><button type="button" data-c="usd">$</button><button type="button" data-c="eur">€</button><button type="button" data-c="gbp">£</button></div><div class="row">
 <div class="card now"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Budgeting, current"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
           <circle class="g pen" cx="18" cy="26" r="11" />
@@ -426,83 +460,87 @@
         </svg></button></div></div><h3>Now</h3><p>A ring chart with a blue share, and a coin stack.</p></div>
 <div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Budgeting, concept A: Tally"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="8" y="5" width="32" height="38" rx="2" />
-  <path class="b pen" d="M 12 12 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
-  <path class="b pen" d="M 31 12 H 36" />
-  <path class="b pen" d="M 12 19 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
-  <path class="b pen" d="M 29 19 H 36" />
-  <path class="b fx n-add" pathLength="1" style="--ad:.1s" d="M 12 26 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 6 0" />
-  <path class="b fx n-add" pathLength="1" style="--ad:.5s" d="M 32 26 H 36" />
-  <path class="g pen" d="M 12 31.5 H 36" />
-  <path class="g pen n-total" style="--from:.25" d="M 36 37 H 20" />
+  <rect class="g pen" x="8" y="4" width="32" height="40" rx="2" />
+  <path class="b pen" d="M 12 11 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
+  <path class="b pen" d="M 31 11 H 36" />
+  <path class="b pen" d="M 12 18 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
+  <path class="b pen" d="M 29 18 H 36" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.1s" d="M 12 25 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 6 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.5s" d="M 32 25 H 36" />
+  <path class="g pen" d="M 12 30 H 36" />
+  <path class="g pen" data-cur="16 37 .62" />
+  <path class="g pen n-total" style="--from:.25" d="M 36 37 H 22" />
 </svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Budgeting, concept A: Tally"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="8" y="5" width="32" height="38" rx="2" />
-  <path class="b pen" d="M 12 12 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
-  <path class="b pen" d="M 31 12 H 36" />
-  <path class="b pen" d="M 12 19 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
-  <path class="b pen" d="M 29 19 H 36" />
-  <path class="b fx n-add" pathLength="1" style="--ad:.1s" d="M 12 26 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 6 0" />
-  <path class="b fx n-add" pathLength="1" style="--ad:.5s" d="M 32 26 H 36" />
-  <path class="g pen" d="M 12 31.5 H 36" />
-  <path class="g pen n-total" style="--from:.25" d="M 36 37 H 20" />
+  <rect class="g pen" x="8" y="4" width="32" height="40" rx="2" />
+  <path class="b pen" d="M 12 11 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
+  <path class="b pen" d="M 31 11 H 36" />
+  <path class="b pen" d="M 12 18 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
+  <path class="b pen" d="M 29 18 H 36" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.1s" d="M 12 25 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 6 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.5s" d="M 32 25 H 36" />
+  <path class="g pen" d="M 12 30 H 36" />
+  <path class="g pen" data-cur="16 37 .62" />
+  <path class="g pen n-total" style="--from:.25" d="M 36 37 H 22" />
 </svg></button></div></div><h3>A · Tally</h3><p>You jot a spend; it rules the line and the total grows to match.</p></div>
 <div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Budgeting, concept B: Jars"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen faint" d="M 3 42 H 45" />
+  <path class="g pen faint" d="M 3 43 H 45" />
   <g class="pop">
-    <rect class="bfill" x="7.5" y="29" width="7" height="10.5" rx="1" />
-    <rect class="bfill n-rise" x="20.5" y="35" width="7" height="4.5" rx="1" />
-    <rect class="bfill" x="33.5" y="24" width="7" height="15.5" rx="1" />
+    <rect class="bfill" x="7.5" y="31" width="7" height="9.5" rx="1" />
+    <rect class="bfill n-rise" x="20.5" y="36" width="7" height="4.5" rx="1" />
+    <rect class="bfill" x="33.5" y="26" width="7" height="14.5" rx="1" />
   </g>
-  <rect class="g pen" x="6" y="18" width="10" height="23" rx="2.5" />
-  <rect class="g pen" x="19" y="18" width="10" height="23" rx="2.5" />
-  <rect class="g pen" x="32" y="18" width="10" height="23" rx="2.5" />
-  <path class="g pen" d="M 7.5 15 H 14.5 M 20.5 15 H 27.5 M 33.5 15 H 40.5" />
-  <g class="n-coin"><circle class="b" cx="24" cy="6" r="3.2" /><path class="b" d="M 24 4.6 V 7.4" /></g>
+  <rect class="g pen" x="6" y="20" width="10" height="22" rx="2.5" />
+  <rect class="g pen" x="19" y="20" width="10" height="22" rx="2.5" />
+  <rect class="g pen" x="32" y="20" width="10" height="22" rx="2.5" />
+  <path class="g pen" d="M 7.5 17 H 14.5 M 20.5 17 H 27.5 M 33.5 17 H 40.5" />
+  <g class="n-coin"><circle class="b" cx="24" cy="6" r="5.6" /><path class="b cur-s" data-cur="24 6 .55" /></g>
 </svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Budgeting, concept B: Jars"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen faint" d="M 3 42 H 45" />
+  <path class="g pen faint" d="M 3 43 H 45" />
   <g class="pop">
-    <rect class="bfill" x="7.5" y="29" width="7" height="10.5" rx="1" />
-    <rect class="bfill n-rise" x="20.5" y="35" width="7" height="4.5" rx="1" />
-    <rect class="bfill" x="33.5" y="24" width="7" height="15.5" rx="1" />
+    <rect class="bfill" x="7.5" y="31" width="7" height="9.5" rx="1" />
+    <rect class="bfill n-rise" x="20.5" y="36" width="7" height="4.5" rx="1" />
+    <rect class="bfill" x="33.5" y="26" width="7" height="14.5" rx="1" />
   </g>
-  <rect class="g pen" x="6" y="18" width="10" height="23" rx="2.5" />
-  <rect class="g pen" x="19" y="18" width="10" height="23" rx="2.5" />
-  <rect class="g pen" x="32" y="18" width="10" height="23" rx="2.5" />
-  <path class="g pen" d="M 7.5 15 H 14.5 M 20.5 15 H 27.5 M 33.5 15 H 40.5" />
-  <g class="n-coin"><circle class="b" cx="24" cy="6" r="3.2" /><path class="b" d="M 24 4.6 V 7.4" /></g>
+  <rect class="g pen" x="6" y="20" width="10" height="22" rx="2.5" />
+  <rect class="g pen" x="19" y="20" width="10" height="22" rx="2.5" />
+  <rect class="g pen" x="32" y="20" width="10" height="22" rx="2.5" />
+  <path class="g pen" d="M 7.5 17 H 14.5 M 20.5 17 H 27.5 M 33.5 17 H 40.5" />
+  <g class="n-coin"><circle class="b" cx="24" cy="6" r="5.6" /><path class="b cur-s" data-cur="24 6 .55" /></g>
 </svg></button></div></div><h3>B · Jars</h3><p>Money goes into named jars; a coin drops in and that jar fills.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Budgeting, concept C: Left to spend"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Budgeting, concept D: Payday split"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="5" y="20" width="38" height="9" rx="2" />
-  <g class="pop">
-    <rect class="bf" x="6.5" y="21.5" width="7.5" height="6" rx="1" />
-    <rect class="bf" x="15" y="21.5" width="6.5" height="6" rx="1" />
-    <path class="g lim" d="M 38 17 V 32" />
+  <g class="n-note">
+    <rect class="g pen" x="7" y="3" width="34" height="18" rx="2" />
+    <circle class="g pen faint" cx="24" cy="12" r="6" />
+    <path class="b pen" data-cur="24 12 .62" />
   </g>
-  <rect class="bf n-seg" x="22.5" y="21.5" width="6.5" height="6" rx="1" />
-  <path class="b fx n-add" pathLength="1" style="--ad:0s" d="M 9 37 c 2 -1.6 4 1.6 7 0 s 4 -1.6 7 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 29.5 14 H 37.5" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 29.5 11.5 V 16.5" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 37.5 11.5 V 16.5" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Budgeting, concept C: Left to spend"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="b pen" d="M 6 29 c 1.6 -1.4 2.8 1.4 4.6 0 s 2.4 -1.2 3.6 0" />
+  <path class="b pen" d="M 6 36 c 1.6 -1.4 2.8 1.4 4.6 0" />
+  <path class="b pen" d="M 6 43 c 1.6 -1.4 2.8 1.4 4.6 0 s 1.6 -1 2.6 0" />
+  <path class="g pen faint" d="M 19 29 H 42 M 19 36 H 42 M 19 43 H 42" />
+  <path class="g pen n-bar" style="--ad:.35s" d="M 19 29 H 36" />
+  <path class="g pen n-bar" style="--ad:.55s" d="M 19 36 H 28" />
+  <path class="g pen n-bar" style="--ad:.75s" d="M 19 43 H 40" />
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Budgeting, concept D: Payday split"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="5" y="20" width="38" height="9" rx="2" />
-  <g class="pop">
-    <rect class="bf" x="6.5" y="21.5" width="7.5" height="6" rx="1" />
-    <rect class="bf" x="15" y="21.5" width="6.5" height="6" rx="1" />
-    <path class="g lim" d="M 38 17 V 32" />
+  <g class="n-note">
+    <rect class="g pen" x="7" y="3" width="34" height="18" rx="2" />
+    <circle class="g pen faint" cx="24" cy="12" r="6" />
+    <path class="b pen" data-cur="24 12 .62" />
   </g>
-  <rect class="bf n-seg" x="22.5" y="21.5" width="6.5" height="6" rx="1" />
-  <path class="b fx n-add" pathLength="1" style="--ad:0s" d="M 9 37 c 2 -1.6 4 1.6 7 0 s 4 -1.6 7 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 29.5 14 H 37.5" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 29.5 11.5 V 16.5" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 37.5 11.5 V 16.5" />
-</svg></button></div></div><h3>C · Left to spend</h3><p>You log a spend; the bar fills and it measures what&#x27;s left before your limit.</p></div>
+  <path class="b pen" d="M 6 29 c 1.6 -1.4 2.8 1.4 4.6 0 s 2.4 -1.2 3.6 0" />
+  <path class="b pen" d="M 6 36 c 1.6 -1.4 2.8 1.4 4.6 0" />
+  <path class="b pen" d="M 6 43 c 1.6 -1.4 2.8 1.4 4.6 0 s 1.6 -1 2.6 0" />
+  <path class="g pen faint" d="M 19 29 H 42 M 19 36 H 42 M 19 43 H 42" />
+  <path class="g pen n-bar" style="--ad:.35s" d="M 19 29 H 36" />
+  <path class="g pen n-bar" style="--ad:.55s" d="M 19 36 H 28" />
+  <path class="g pen n-bar" style="--ad:.75s" d="M 19 43 H 40" />
+</svg></button></div></div><h3>D · Payday split</h3><p>Your pay comes in and splits into what each part of your budget gets.</p></div>
 </div></section>
-<section><h2>AI agents (the hub the AI badges plug into)</h2><div class="row">
+<section><h2>AI agents (the hub the AI badges plug into)</h2><p class="note">Round 2: new ideas, none of round 1. All three keep working as the hub the AI badges plug into.</p><div class="row">
 <div class="card now"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), current"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
           <path class="g pen edge" d="M20.6 27.4 L12.3 35.7" />
@@ -524,77 +562,69 @@
           <circle class="g pen kid" style="--ad:1.24s" cx="38" cy="10" r="3.2" />
           <g class="pop"><circle class="bf req" cx="11" cy="11" r="2.6" /></g>
         </svg></button></div></div><h3>Now</h3><p>A network graph: a blue dot comes in, edges flow out.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept A: Ask, it answers"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept D: Helper"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="6" y="5" width="36" height="38" rx="2" />
-  <path class="b pen" d="M 10 12 c 3 -2 5 2 8 0 s 5 -2 8 0 s 3 -1.5 5 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.45s" d="M 10 20 H 32" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 10 26 H 29" />
-  <path class="g fx n-add" pathLength="1" style="--ad:1.2s" d="M 10 32 H 24" />
-  <g class="pop"><g class="n-hop"><path class="gf" d="M 36.5 8.5 L 37.6 11.4 L 40.5 12.5 L 37.6 13.6 L 36.5 16.5 L 35.4 13.6 L 32.5 12.5 L 35.4 11.4 Z" /></g></g>
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept A: Ask, it answers"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="g pen" d="M 24 10 V 5.5" />
+  <circle class="g pen n-ant" cx="24" cy="3.6" r="1.9" />
+  <rect class="g pen" x="11" y="10" width="26" height="21" rx="6" />
+  <g class="pop"><g class="n-look"><circle class="gf" cx="19" cy="19" r="2.1" /><circle class="gf" cx="29" cy="19" r="2.1" /></g></g>
+  <path class="g pen n-smile" d="M 20.5 25 Q 24 27.5 27.5 25" />
+  <path class="b pen" d="M 7 40 c 3 -2 5 2 8 0 s 5 -2 8 0 s 4 -1.6 7 0" />
+  <path class="g fx n-add" pathLength="1" style="--ad:1.05s" d="M 34 40 l 1.8 1.9 l 4 -4.6" />
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept D: Helper"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="6" y="5" width="36" height="38" rx="2" />
-  <path class="b pen" d="M 10 12 c 3 -2 5 2 8 0 s 5 -2 8 0 s 3 -1.5 5 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.45s" d="M 10 20 H 32" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 10 26 H 29" />
-  <path class="g fx n-add" pathLength="1" style="--ad:1.2s" d="M 10 32 H 24" />
-  <g class="pop"><g class="n-hop"><path class="gf" d="M 36.5 8.5 L 37.6 11.4 L 40.5 12.5 L 37.6 13.6 L 36.5 16.5 L 35.4 13.6 L 32.5 12.5 L 35.4 11.4 Z" /></g></g>
-</svg></button></div></div><h3>A · Ask, it answers</h3><p>You write a request; the agent writes the answer under it, line by line.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept B: Hand it off"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="g pen" d="M 24 10 V 5.5" />
+  <circle class="g pen n-ant" cx="24" cy="3.6" r="1.9" />
+  <rect class="g pen" x="11" y="10" width="26" height="21" rx="6" />
+  <g class="pop"><g class="n-look"><circle class="gf" cx="19" cy="19" r="2.1" /><circle class="gf" cx="29" cy="19" r="2.1" /></g></g>
+  <path class="g pen n-smile" d="M 20.5 25 Q 24 27.5 27.5 25" />
+  <path class="b pen" d="M 7 40 c 3 -2 5 2 8 0 s 5 -2 8 0 s 4 -1.6 7 0" />
+  <path class="g fx n-add" pathLength="1" style="--ad:1.05s" d="M 34 40 l 1.8 1.9 l 4 -4.6" />
+</svg></button></div></div><h3>D · Helper</h3><p>A little helper reads your note, left to right, then ticks it done.</p></div>
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept E: Many at once"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="b pen" d="M 6 9 c 3 -2 5 2 8 0 s 5 -2 8 0 s 4 -1.6 7 0" />
-  <g class="pop"><g class="n-spin"><path class="gf" d="M 38 4.5 L 39.1 7.4 L 42 8.5 L 39.1 9.6 L 38 12.5 L 36.9 9.6 L 34 8.5 L 36.9 7.4 Z" /></g></g>
-  <path class="g pen n-branch" d="M 10 14 V 39 M 10 21 H 14 M 10 30 H 14 M 10 39 H 14" />
-  <rect class="g pen" x="15" y="18.5" width="5" height="5" rx="1" />
-  <rect class="g pen" x="15" y="27.5" width="5" height="5" rx="1" />
-  <rect class="g pen" x="15" y="36.5" width="5" height="5" rx="1" />
-  <path class="g pen faint" d="M 24 21 H 40 M 24 30 H 37 M 24 39 H 39" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.45s" d="M 16 21 l 1.5 1.6 l 3.4 -4.2" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 16 30 l 1.5 1.6 l 3.4 -4.2" />
-  <path class="g fx n-add" pathLength="1" style="--ad:1.25s" d="M 16 39 l 1.5 1.6 l 3.4 -4.2" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept B: Hand it off"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="b pen" d="M 4 10 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
+  <path class="b pen" d="M 4 24 c 2 -1.6 3.5 1.6 6 0" />
+  <path class="b pen" d="M 4 38 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.15s" d="M 17 10 H 36" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.3s" d="M 12 24 H 40" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.05s" d="M 15 38 H 32" />
+  <g class="pop">
+    <g class="n-cur" style="--ad:.15s;--go:19px"><path class="g" d="M 17 6 V 14" /></g>
+    <g class="n-cur" style="--ad:.3s;--go:28px"><path class="g" d="M 12 20 V 28" /></g>
+    <g class="n-cur" style="--ad:.05s;--go:17px"><path class="g" d="M 15 34 V 42" /></g>
+  </g>
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept E: Many at once"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="b pen" d="M 6 9 c 3 -2 5 2 8 0 s 5 -2 8 0 s 4 -1.6 7 0" />
-  <g class="pop"><g class="n-spin"><path class="gf" d="M 38 4.5 L 39.1 7.4 L 42 8.5 L 39.1 9.6 L 38 12.5 L 36.9 9.6 L 34 8.5 L 36.9 7.4 Z" /></g></g>
-  <path class="g pen n-branch" d="M 10 14 V 39 M 10 21 H 14 M 10 30 H 14 M 10 39 H 14" />
-  <rect class="g pen" x="15" y="18.5" width="5" height="5" rx="1" />
-  <rect class="g pen" x="15" y="27.5" width="5" height="5" rx="1" />
-  <rect class="g pen" x="15" y="36.5" width="5" height="5" rx="1" />
-  <path class="g pen faint" d="M 24 21 H 40 M 24 30 H 37 M 24 39 H 39" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.45s" d="M 16 21 l 1.5 1.6 l 3.4 -4.2" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s" d="M 16 30 l 1.5 1.6 l 3.4 -4.2" />
-  <path class="g fx n-add" pathLength="1" style="--ad:1.25s" d="M 16 39 l 1.5 1.6 l 3.4 -4.2" />
-</svg></button></div></div><h3>B · Hand it off</h3><p>You write one task; the agent splits it into steps and ticks them off.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept C: Switchboard"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="b pen" d="M 4 10 c 2 -1.6 3.5 1.6 6 0 s 3 -1.6 5 0" />
+  <path class="b pen" d="M 4 24 c 2 -1.6 3.5 1.6 6 0" />
+  <path class="b pen" d="M 4 38 c 2 -1.6 3.5 1.6 6 0 s 2 -1.2 3 0" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.15s" d="M 17 10 H 36" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.3s" d="M 12 24 H 40" />
+  <path class="g fx n-run" pathLength="1" style="--ad:.05s" d="M 15 38 H 32" />
+  <g class="pop">
+    <g class="n-cur" style="--ad:.15s;--go:19px"><path class="g" d="M 17 6 V 14" /></g>
+    <g class="n-cur" style="--ad:.3s;--go:28px"><path class="g" d="M 12 20 V 28" /></g>
+    <g class="n-cur" style="--ad:.05s;--go:17px"><path class="g" d="M 15 34 V 42" /></g>
+  </g>
+</svg></button></div></div><h3>E · Many at once</h3><p>Several agents, each on its own note, all writing at the same time.</p></div>
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept F: Mention it"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="15" y="15" width="18" height="18" rx="3" />
-  <path class="g pen n-pin" style="--ad:.7s" d="M 20 15 V 9" />
-  <path class="g pen n-pin" style="--ad:.78s" d="M 28 15 V 9" />
-  <path class="g pen n-pin" style="--ad:.86s" d="M 33 20 H 39" />
-  <path class="g pen n-pin" style="--ad:.94s" d="M 33 28 H 39" />
-  <path class="g pen n-pin" style="--ad:1.02s" d="M 28 33 V 39" />
-  <path class="g pen n-pin" style="--ad:1.1s" d="M 20 33 V 39" />
-  <path class="g pen n-pin" style="--ad:1.18s" d="M 15 28 H 9" />
-  <path class="g pen faint" d="M 15 20 H 9" />
-  <g class="pop"><g class="n-core"><path class="gf" d="M 24 19.5 L 25.3 22.7 L 28.5 24 L 25.3 25.3 L 24 28.5 L 22.7 25.3 L 19.5 24 L 22.7 22.7 Z" /></g></g>
-  <g class="pop"><circle class="bf n-req" cx="4" cy="20" r="2.5" /></g>
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept C: Switchboard"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="b pen" d="M 13 16 m -2.6 0 a 2.6 2.6 0 1 0 5.2 0 a 2.6 2.6 0 1 0 -5.2 0 M 15.6 14 V 17.4 C 15.6 19.6 19 19.6 19 16 C 19 12 16.3 10 13 10 C 9.7 10 7 12.7 7 16 C 7 19.3 9.7 22 13 22 C 14.5 22 15.6 21.6 16.6 21" />
+  <path class="b pen" d="M 22 16 c 3 -2 5 2 8 0 s 4 -1.6 7 0" />
+  <g class="n-plug"><circle class="g" cx="40" cy="8" r="5" /><path class="gf" d="M 40 5 L 40.8 7.2 L 43 8 L 40.8 8.8 L 40 11 L 39.2 8.8 L 37 8 L 39.2 7.2 Z" /></g>
+  <path class="g fx n-add" pathLength="1" style="--ad:.7s" d="M 7 30 H 38" />
+  <path class="g fx n-add" pathLength="1" style="--ad:1s" d="M 7 37 H 31" />
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="AI agents (the hub the AI badges plug into), concept F: Mention it"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="15" y="15" width="18" height="18" rx="3" />
-  <path class="g pen n-pin" style="--ad:.7s" d="M 20 15 V 9" />
-  <path class="g pen n-pin" style="--ad:.78s" d="M 28 15 V 9" />
-  <path class="g pen n-pin" style="--ad:.86s" d="M 33 20 H 39" />
-  <path class="g pen n-pin" style="--ad:.94s" d="M 33 28 H 39" />
-  <path class="g pen n-pin" style="--ad:1.02s" d="M 28 33 V 39" />
-  <path class="g pen n-pin" style="--ad:1.1s" d="M 20 33 V 39" />
-  <path class="g pen n-pin" style="--ad:1.18s" d="M 15 28 H 9" />
-  <path class="g pen faint" d="M 15 20 H 9" />
-  <g class="pop"><g class="n-core"><path class="gf" d="M 24 19.5 L 25.3 22.7 L 28.5 24 L 25.3 25.3 L 24 28.5 L 22.7 25.3 L 19.5 24 L 22.7 22.7 Z" /></g></g>
-  <g class="pop"><circle class="bf n-req" cx="4" cy="20" r="2.5" /></g>
-</svg></button></div></div><h3>C · Switchboard</h3><p>Your request goes in; any AI can plug into a pin, and they light up in turn.</p></div>
+  <path class="b pen" d="M 13 16 m -2.6 0 a 2.6 2.6 0 1 0 5.2 0 a 2.6 2.6 0 1 0 -5.2 0 M 15.6 14 V 17.4 C 15.6 19.6 19 19.6 19 16 C 19 12 16.3 10 13 10 C 9.7 10 7 12.7 7 16 C 7 19.3 9.7 22 13 22 C 14.5 22 15.6 21.6 16.6 21" />
+  <path class="b pen" d="M 22 16 c 3 -2 5 2 8 0 s 4 -1.6 7 0" />
+  <g class="n-plug"><circle class="g" cx="40" cy="8" r="5" /><path class="gf" d="M 40 5 L 40.8 7.2 L 43 8 L 40.8 8.8 L 40 11 L 39.2 8.8 L 37 8 L 39.2 7.2 Z" /></g>
+  <path class="g fx n-add" pathLength="1" style="--ad:.7s" d="M 7 30 H 38" />
+  <path class="g fx n-add" pathLength="1" style="--ad:1s" d="M 7 37 H 31" />
+</svg></button></div></div><h3>F · Mention it</h3><p>Write @ and a task; an AI plugs in beside it and writes back.</p></div>
 </div></section>
-<section><h2>Inventory</h2><div class="row">
+<section><h2>Inventory</h2><p class="note">Round 2: new ideas, none of round 1.</p><div class="row">
 <div class="card now"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, current"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
           <rect class="g pen" x="5" y="25" width="18" height="16" rx="1.5" />
@@ -616,159 +646,96 @@
             <path class="b pen" d="M 18 18 h 7" />
           </g>
         </svg></button></div></div><h3>Now</h3><p>Stacked boxes with a blue label; the top box lands.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept A: Count"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept D: Scan it in"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen" d="M 3 30 H 45" />
-  <path class="g pen faint" d="M 7 30 V 34 M 41 30 V 34" />
-  <rect class="g pen" x="7" y="16" width="9" height="14" rx="1.5" />
-  <rect class="g pen" x="19" y="16" width="9" height="14" rx="1.5" />
-  <path class="g pen faint" d="M 7 21 H 16 M 19 21 H 28" />
-  <g class="n-take"><rect class="g pen" x="31" y="16" width="9" height="14" rx="1.5" /><path class="g pen faint" d="M 31 21 H 40" /></g>
-  <path class="b pen" d="M 12 37 V 43" />
-  <path class="b pen" d="M 17 37 V 43" />
-  <path class="b pen n-erase" d="M 22 37 V 43" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept A: Count"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <rect class="g pen" x="5" y="12" width="26" height="28" rx="1.5" />
+  <path class="g pen" d="M 5 18 H 31 M 18 12 V 18" />
+  <g class="pop"><path class="gf" d="M 10 24 h 1.4 v 10 h -1.4 Z M 12.6 24 h .8 v 10 h -.8 Z M 14.6 24 h 2 v 10 h -2 Z M 17.8 24 h .8 v 10 h -.8 Z M 19.8 24 h 1.4 v 10 h -1.4 Z M 22.4 24 h .8 v 10 h -.8 Z M 24.4 24 h 1.6 v 10 h -1.6 Z" /></g>
+  <g class="n-beam"><path class="b" style="stroke-width:1.4" d="M 7 23 H 29" /></g>
+  <path class="b pen" d="M 37 14 V 21 M 40 14 V 21 M 43 14 V 21" />
+  <path class="b fx n-add" pathLength="1" style="--ad:1s" d="M 37 27 V 34" />
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept D: Scan it in"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen" d="M 3 30 H 45" />
-  <path class="g pen faint" d="M 7 30 V 34 M 41 30 V 34" />
-  <rect class="g pen" x="7" y="16" width="9" height="14" rx="1.5" />
-  <rect class="g pen" x="19" y="16" width="9" height="14" rx="1.5" />
-  <path class="g pen faint" d="M 7 21 H 16 M 19 21 H 28" />
-  <g class="n-take"><rect class="g pen" x="31" y="16" width="9" height="14" rx="1.5" /><path class="g pen faint" d="M 31 21 H 40" /></g>
-  <path class="b pen" d="M 12 37 V 43" />
-  <path class="b pen" d="M 17 37 V 43" />
-  <path class="b pen n-erase" d="M 22 37 V 43" />
-</svg></button></div></div><h3>A · Count</h3><p>Take one off the shelf and your count goes down with it.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept B: Find it"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <rect class="g pen" x="5" y="12" width="26" height="28" rx="1.5" />
+  <path class="g pen" d="M 5 18 H 31 M 18 12 V 18" />
+  <g class="pop"><path class="gf" d="M 10 24 h 1.4 v 10 h -1.4 Z M 12.6 24 h .8 v 10 h -.8 Z M 14.6 24 h 2 v 10 h -2 Z M 17.8 24 h .8 v 10 h -.8 Z M 19.8 24 h 1.4 v 10 h -1.4 Z M 22.4 24 h .8 v 10 h -.8 Z M 24.4 24 h 1.6 v 10 h -1.6 Z" /></g>
+  <g class="n-beam"><path class="b" style="stroke-width:1.4" d="M 7 23 H 29" /></g>
+  <path class="b pen" d="M 37 14 V 21 M 40 14 V 21 M 43 14 V 21" />
+  <path class="b fx n-add" pathLength="1" style="--ad:1s" d="M 37 27 V 34" />
+</svg></button></div></div><h3>D · Scan it in</h3><p>Scan a box&#x27;s code and it&#x27;s counted onto your list.</p></div>
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept E: What&#x27;s in the box"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <g class="pop"><g class="n-item" style="--ad:.35s"><circle class="g" cx="11" cy="28" r="3" /></g><g class="n-item" style="--ad:.5s"><rect class="g" x="15" y="25" width="5" height="6" rx="1" /></g></g>
+  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" style="fill:none" /></g>
+  <rect class="g pen n-boxbody" x="4" y="24" width="20" height="18" rx="1.5" />
+  <path class="g pen n-flapl" d="M 4 24 L 13.6 21.5" />
+  <path class="g pen n-flapr" d="M 24 24 L 14.4 21.5" />
+  <path class="g pen faint" d="M 4 30 H 24" />
+  <path class="b pen" d="M 30 12 c 2 -1.4 3.2 1.4 5 0 s 3 -1.4 5 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.75s" d="M 30 20 c 2 -1.4 3.2 1.4 5 0 s 2 -1 4 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:1s" d="M 30 28 c 2 -1.4 3.2 1.4 5 0 s 3 -1.4 6 0" />
+  <path class="g pen faint" d="M 27 7 V 33" />
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept E: What&#x27;s in the box"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <g class="pop"><g class="n-item" style="--ad:.35s"><circle class="g" cx="11" cy="28" r="3" /></g><g class="n-item" style="--ad:.5s"><rect class="g" x="15" y="25" width="5" height="6" rx="1" /></g></g>
+  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" style="fill:none" /></g>
+  <rect class="g pen n-boxbody" x="4" y="24" width="20" height="18" rx="1.5" />
+  <path class="g pen n-flapl" d="M 4 24 L 13.6 21.5" />
+  <path class="g pen n-flapr" d="M 24 24 L 14.4 21.5" />
+  <path class="g pen faint" d="M 4 30 H 24" />
+  <path class="b pen" d="M 30 12 c 2 -1.4 3.2 1.4 5 0 s 3 -1.4 5 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:.75s" d="M 30 20 c 2 -1.4 3.2 1.4 5 0 s 2 -1 4 0" />
+  <path class="b fx n-add" pathLength="1" style="--ad:1s" d="M 30 28 c 2 -1.4 3.2 1.4 5 0 s 3 -1.4 6 0" />
+  <path class="g pen faint" d="M 27 7 V 33" />
+</svg></button></div></div><h3>E · What&#x27;s in the box</h3><p>Open a box and what&#x27;s inside becomes a list you can search.</p></div>
+<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept F: The fridge"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="7" y="5" width="34" height="38" rx="2" />
-  <path class="g pen" d="M 24 5 V 43 M 7 17.7 H 41 M 7 30.3 H 41" />
-  <path class="g pen faint n-scan" style="--ad:0s" d="M 13.5 11.4 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.15s" d="M 30.5 11.4 H 34.5" />
-  <path class="g pen faint n-scan" style="--ad:.3s" d="M 13.5 24 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.45s" d="M 13.5 36.6 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.6s" d="M 30.5 36.6 H 34.5" />
-  <path class="g pen faint" d="M 30.5 26.5 H 34.5" />
-  <path class="b pen n-label" d="M 28 22 c 1.6 -1.4 2.6 1.4 4.2 0 s 2.6 -1.4 4.2 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s;stroke-width:2.2" d="M 24 17.7 H 41 V 30.3 H 24 Z" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept B: Find it"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+  <path class="g pen faint" d="M 14 27 H 34 M 14 35 H 34" />
+  <g class="pop">
+    <rect class="g" x="16" y="21" width="5" height="6" rx="1" />
+    <circle class="g" cx="27" cy="24.5" r="2.5" />
+    <rect class="g" x="16" y="30" width="6" height="5" rx="1" />
+    <g class="n-use"><rect class="g" x="26" y="29" width="5" height="6" rx="1" /><path class="b" d="M 25 31.5 H 32" /></g>
+  </g>
+  <rect class="g pen" x="12" y="4" width="24" height="40" rx="3" />
+  <path class="g pen" d="M 12 16 H 36 M 15.5 8 V 12.5" />
+  <g class="n-door"><rect class="g door" x="12" y="16" width="24" height="28" rx="2" /><path class="g" d="M 15.5 20 V 28" /></g>
+</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept F: The fridge"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
   <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <rect class="g pen" x="7" y="5" width="34" height="38" rx="2" />
-  <path class="g pen" d="M 24 5 V 43 M 7 17.7 H 41 M 7 30.3 H 41" />
-  <path class="g pen faint n-scan" style="--ad:0s" d="M 13.5 11.4 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.15s" d="M 30.5 11.4 H 34.5" />
-  <path class="g pen faint n-scan" style="--ad:.3s" d="M 13.5 24 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.45s" d="M 13.5 36.6 H 17.5" />
-  <path class="g pen faint n-scan" style="--ad:.6s" d="M 30.5 36.6 H 34.5" />
-  <path class="g pen faint" d="M 30.5 26.5 H 34.5" />
-  <path class="b pen n-label" d="M 28 22 c 1.6 -1.4 2.6 1.4 4.2 0 s 2.6 -1.4 4.2 0" />
-  <path class="g fx n-add" pathLength="1" style="--ad:.85s;stroke-width:2.2" d="M 24 17.7 H 41 V 30.3 H 24 Z" />
-</svg></button></div></div><h3>B · Find it</h3><p>You wrote where it went; it checks each drawer and finds the one you labelled.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Inventory, concept C: Running low"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <g class="pop"><rect class="gfill n-drain" x="8.5" y="20" width="11" height="20.5" rx="1" /></g>
-  <path class="g pen" d="M 7 15 H 21 V 40 Q 21 42 19 42 H 9 Q 7 42 7 40 Z" />
-  <rect class="g pen" x="6" y="10" width="16" height="5" rx="1.2" />
-  <g class="pop"><path class="b lim" d="M 4 34 H 24" /></g>
-  <rect class="g pen" x="28" y="11" width="5" height="5" rx="1" />
-  <path class="b pen" d="M 36 13.5 c 1.6 -1.4 2.6 1.4 4.2 0 s 1.6 -1 2.8 0" />
-  <rect class="g pen" x="28" y="20" width="5" height="5" rx="1" />
-  <path class="b pen" d="M 36 22.5 c 1.6 -1.4 2.6 1.4 4.2 0" />
-  <g class="n-slide2"><path class="g" d="M 29 29 H 32 Q 33 29 33 30 V 33 Q 33 34 32 34 H 29 Q 28 34 28 33 V 30 Q 28 29 29 29 Z" /><path class="g" d="M 36 31.5 c 1.6 -1.4 2.6 1.4 4.2 0 s 2 -1.2 3.4 0" /></g>
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Inventory, concept C: Running low"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <g class="pop"><rect class="gfill n-drain" x="8.5" y="20" width="11" height="20.5" rx="1" /></g>
-  <path class="g pen" d="M 7 15 H 21 V 40 Q 21 42 19 42 H 9 Q 7 42 7 40 Z" />
-  <rect class="g pen" x="6" y="10" width="16" height="5" rx="1.2" />
-  <g class="pop"><path class="b lim" d="M 4 34 H 24" /></g>
-  <rect class="g pen" x="28" y="11" width="5" height="5" rx="1" />
-  <path class="b pen" d="M 36 13.5 c 1.6 -1.4 2.6 1.4 4.2 0 s 1.6 -1 2.8 0" />
-  <rect class="g pen" x="28" y="20" width="5" height="5" rx="1" />
-  <path class="b pen" d="M 36 22.5 c 1.6 -1.4 2.6 1.4 4.2 0" />
-  <g class="n-slide2"><path class="g" d="M 29 29 H 32 Q 33 29 33 30 V 33 Q 33 34 32 34 H 29 Q 28 34 28 33 V 30 Q 28 29 29 29 Z" /><path class="g" d="M 36 31.5 c 1.6 -1.4 2.6 1.4 4.2 0 s 2 -1.2 3.4 0" /></g>
-</svg></button></div></div><h3>C · Running low</h3><p>When the jar drops below your line, it goes onto the shopping list.</p></div>
+  <path class="g pen faint" d="M 14 27 H 34 M 14 35 H 34" />
+  <g class="pop">
+    <rect class="g" x="16" y="21" width="5" height="6" rx="1" />
+    <circle class="g" cx="27" cy="24.5" r="2.5" />
+    <rect class="g" x="16" y="30" width="6" height="5" rx="1" />
+    <g class="n-use"><rect class="g" x="26" y="29" width="5" height="6" rx="1" /><path class="b" d="M 25 31.5 H 32" /></g>
+  </g>
+  <rect class="g pen" x="12" y="4" width="24" height="40" rx="3" />
+  <path class="g pen" d="M 12 16 H 36 M 15.5 8 V 12.5" />
+  <g class="n-door"><rect class="g door" x="12" y="16" width="24" height="28" rx="2" /><path class="g" d="M 15.5 20 V 28" /></g>
+</svg></button></div></div><h3>F · The fridge</h3><p>Open the door: what&#x27;s in there, and the one to use first.</p></div>
 </div></section>
-<section><h2>Pets</h2><div class="row">
+<section><h2>Pets</h2><p class="note">Chosen: B. Swapped into the home page.</p><div class="row">
 <div class="card now"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Pets, current"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-          <path class="g pen pad" d="M 24 25 c -5 0 -9 5 -9 9 c 0 3 3 4 5 3.5 c 2 -0.5 2.5 -1 4 -1 s 2 0.5 4 1 c 2 0.5 5 -0.5 5 -3.5 c 0 -4 -4 -9 -9 -9 z" />
-          <circle class="g pen toe" style="--ad:0s" cx="13.5" cy="20" r="3.2" />
-          <circle class="g pen toe" style="--ad:.12s" cx="20" cy="12.5" r="3.2" />
-          <circle class="g pen toe" style="--ad:.24s" cx="28" cy="12.5" r="3.2" />
-          <circle class="g pen toe" style="--ad:.36s" cx="34.5" cy="20" r="3.2" />
-          <circle class="b pen" cx="40" cy="38" r="3" />
+          <path class="b pen" d="M 6 41 C 14 34 8 26 18 23 S 32 20 36 8" />
+          <circle class="b pen" cx="36" cy="8" r="2.6" />
+          <g class="pop">
+            <g class="step" style="--ad:.1s" transform="translate(10.5 36.5) rotate(40)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:.4s" transform="translate(16 28) rotate(10)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:.7s" transform="translate(25 17.5) rotate(60)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:1s" transform="translate(35 17) rotate(25)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+          </g>
+          <path class="g fx tick" pathLength="1" style="--ad:1.3s" d="M 40 4 l 1.6 1.7 l 3.4 -4" />
         </svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Pets, current"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-          <path class="g pen pad" d="M 24 25 c -5 0 -9 5 -9 9 c 0 3 3 4 5 3.5 c 2 -0.5 2.5 -1 4 -1 s 2 0.5 4 1 c 2 0.5 5 -0.5 5 -3.5 c 0 -4 -4 -9 -9 -9 z" />
-          <circle class="g pen toe" style="--ad:0s" cx="13.5" cy="20" r="3.2" />
-          <circle class="g pen toe" style="--ad:.12s" cx="20" cy="12.5" r="3.2" />
-          <circle class="g pen toe" style="--ad:.24s" cx="28" cy="12.5" r="3.2" />
-          <circle class="g pen toe" style="--ad:.36s" cx="34.5" cy="20" r="3.2" />
-          <circle class="b pen" cx="40" cy="38" r="3" />
-        </svg></button></div></div><h3>Now</h3><p>A paw print with a blue tag; the toes pulse.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Pets, concept A: Fed today"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen faint" d="M 6 16 H 12 M 16 16 H 22 M 26 16 H 32 M 36 16 H 42" />
-  <path class="b pen" d="M 7 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b pen" d="M 17 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b pen" d="M 27 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b fx n-add" pathLength="1" style="--ad:1.05s" d="M 37 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <circle class="gf n-kib" style="--ad:.1s" cx="20" cy="22" r="1.7" />
-  <circle class="gf n-kib" style="--ad:.25s" cx="27" cy="21" r="1.7" />
-  <circle class="gf n-kib" style="--ad:.4s" cx="23.5" cy="24" r="1.7" />
-  <path class="g pen" d="M 8 30 H 40 Q 38 41 24 41 Q 10 41 8 30 Z" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Pets, concept A: Fed today"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen faint" d="M 6 16 H 12 M 16 16 H 22 M 26 16 H 32 M 36 16 H 42" />
-  <path class="b pen" d="M 7 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b pen" d="M 17 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b pen" d="M 27 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <path class="b fx n-add" pathLength="1" style="--ad:1.05s" d="M 37 10.5 l 1.8 1.8 l 3.4 -4.2" />
-  <circle class="gf n-kib" style="--ad:.1s" cx="20" cy="22" r="1.7" />
-  <circle class="gf n-kib" style="--ad:.25s" cx="27" cy="21" r="1.7" />
-  <circle class="gf n-kib" style="--ad:.4s" cx="23.5" cy="24" r="1.7" />
-  <path class="g pen" d="M 8 30 H 40 Q 38 41 24 41 Q 10 41 8 30 Z" />
-</svg></button></div></div><h3>A · Fed today</h3><p>Food in the bowl, and today gets its tick, so nobody feeds them twice.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Pets, concept B: Walks"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="b pen" d="M 6 41 C 14 34 8 26 18 23 S 32 20 36 8" />
-  <circle class="b pen" cx="36" cy="8" r="2.6" />
-  <g class="n-step" style="--ad:.1s" transform="translate(10.5 36.5) rotate(40)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:.4s" transform="translate(16 28) rotate(10)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:.7s" transform="translate(25 17.5) rotate(60)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:1s" transform="translate(35 17) rotate(25)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <path class="g fx n-add" pathLength="1" style="--ad:1.3s" d="M 40 4 l 1.6 1.7 l 3.4 -4" />
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Pets, concept B: Walks"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="b pen" d="M 6 41 C 14 34 8 26 18 23 S 32 20 36 8" />
-  <circle class="b pen" cx="36" cy="8" r="2.6" />
-  <g class="n-step" style="--ad:.1s" transform="translate(10.5 36.5) rotate(40)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:.4s" transform="translate(16 28) rotate(10)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:.7s" transform="translate(25 17.5) rotate(60)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <g class="n-step" style="--ad:1s" transform="translate(35 17) rotate(25)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
-  <path class="g fx n-add" pathLength="1" style="--ad:1.3s" d="M 40 4 l 1.6 1.7 l 3.4 -4" />
-</svg></button></div></div><h3>B · Walks</h3><p>Each walk, step by step along the route you planned.</p></div>
-<div class="card"><div class="views"><div class="lab-tile s108"><button class="tile" type="button" aria-label="Pets, concept C: Their tag"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen" d="M 5 8 Q 24 20 43 8" />
-  <path class="g pen" d="M 5 12.5 Q 24 24.5 43 12.5" />
-  <g class="n-swing">
-    <circle class="g pen" cx="24" cy="20.5" r="2.3" />
-    <circle class="g pen" cx="24" cy="32.5" r="9" />
-    <path class="b pen ln" d="M 18.5 31 c 2 -2 3.5 2 5.5 0 s 3.5 -2 5.5 0" />
-    <path class="g pen faint" d="M 20.5 36 H 27.5" />
-  </g>
-</svg></button></div><div class="lab-tile s54"><button class="tile" type="button" aria-label="Pets, concept C: Their tag"><svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
-  <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
-  <path class="g pen" d="M 5 8 Q 24 20 43 8" />
-  <path class="g pen" d="M 5 12.5 Q 24 24.5 43 12.5" />
-  <g class="n-swing">
-    <circle class="g pen" cx="24" cy="20.5" r="2.3" />
-    <circle class="g pen" cx="24" cy="32.5" r="9" />
-    <path class="b pen ln" d="M 18.5 31 c 2 -2 3.5 2 5.5 0 s 3.5 -2 5.5 0" />
-    <path class="g pen faint" d="M 20.5 36 H 27.5" />
-  </g>
-</svg></button></div></div><h3>C · Their tag</h3><p>Everything about them on one tag: their name in your hand, and it swings.</p></div>
+          <path class="b pen" d="M 6 41 C 14 34 8 26 18 23 S 32 20 36 8" />
+          <circle class="b pen" cx="36" cy="8" r="2.6" />
+          <g class="pop">
+            <g class="step" style="--ad:.1s" transform="translate(10.5 36.5) rotate(40)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:.4s" transform="translate(16 28) rotate(10)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:.7s" transform="translate(25 17.5) rotate(60)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+            <g class="step" style="--ad:1s" transform="translate(35 17) rotate(25)"><ellipse class="gf" cx="0" cy="1" rx="2.1" ry="1.7" /><circle class="gf" cx="-1.6" cy="-1.8" r=".9" /><circle class="gf" cx="0" cy="-2.5" r=".9" /><circle class="gf" cx="1.6" cy="-1.8" r=".9" /></g>
+          </g>
+          <path class="g fx tick" pathLength="1" style="--ad:1.3s" d="M 40 4 l 1.6 1.7 l 3.4 -4" />
+        </svg></button></div></div><h3>Now</h3><p>B · Walks, now live on dev: paw prints step along the route you planned.</p></div>
 </div></section>
   <script>
     (() => {
@@ -789,6 +756,30 @@
         p.setAttribute('d', d);
         el.replaceWith(p);
       };
+      // Currency glyphs, drawn about 0,0 at unit size; data-cur="x y scale" places them.
+      const CUR = {
+        inr: 'M -4 -6 H 4 M -4 -2.5 H 4 M -1 -6 C 3 -6 3 1 -1 1 H -4 L 3 6.5',
+        usd: 'M 3.5 -3.8 C 2.6 -5.8 -3.6 -5.8 -3.6 -2.4 C -3.6 .6 3.6 -.4 3.6 2.8 C 3.6 6 -2.6 6.2 -3.9 3.6 M 0 -7.5 V 7.5',
+        eur: 'M 4.2 -4.6 C 1.2 -7.6 -4.4 -5.6 -4.4 0 C -4.4 5.6 1.2 7.6 4.2 4.6 M -6.2 -1.6 H 1.8 M -6.2 1.6 H 1.8',
+        gbp: 'M 3.8 -4 C 3.2 -7.2 -2 -7.2 -2 -3 V 3 C -2 5 -3 6 -4.6 6.5 H 4 M -4.6 0 H 2'
+      };
+      const place = (d, X, Y, k) => {
+        let c = '', i = 0;
+        return d.trim().split(/\s+/).map((t) => {
+          if (/^[A-Za-z]$/.test(t)) { c = t; i = 0; return t; }
+          const v = parseFloat(t), axis = c === 'H' ? 0 : c === 'V' ? 1 : i++ % 2;
+          return +(axis ? Y + v * k : X + v * k).toFixed(2);
+        }).join(' ');
+      };
+      let cur = 'inr';
+      try { cur = localStorage.getItem('lab.cur') || 'inr'; } catch (_) {}
+      const setCur = (c) => {
+        cur = CUR[c] ? c : 'inr';
+        document.querySelectorAll('[data-cur]').forEach((el) => { const [x, y, k] = el.dataset.cur.split(' ').map(Number); el.setAttribute('d', place(CUR[cur], x, y, k)); });
+        document.querySelectorAll('.cur-pick button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.c === cur)));
+      };
+      setCur(cur);
+      document.querySelectorAll('.cur-pick button').forEach((b) => b.addEventListener('click', () => { setCur(b.dataset.c); try { localStorage.setItem('lab.cur', cur); } catch (_) {} }));
       document.querySelectorAll('circle.pen, rect.pen').forEach(toPath);
       document.querySelectorAll('.pen').forEach((p) => p.setAttribute('pathLength', '1'));
       const tiles = [...document.querySelectorAll('.tile')];
