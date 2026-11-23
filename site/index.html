@@ -4,19 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>not-padgtp</title>
-  <meta name="theme-color" content="#ffffff" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)" />
   <meta name="description" content="not-padgtp: a supercharged notepad. Plain text, a tiny UI, and an x-ray you hold to see." />
   <style>
-    /* Layout: one sheet of white paper. The wordmark sits on the prototype's 560x440 plane, centred.
-       Everything else is x-ray: notes placed around it at reveal time, clear of the thumb.
-       Light-only on purpose, like the prototype: blue = the user's ink, graphite = the app's ink. */
+    /* Layout: one sheet of paper. The wordmark sits on the prototype's 560x440 plane, centred.
+       No visible words. The x-ray shows the tasks to come as icon tiles snapped to a canvas grid,
+       placed at reveal time clear of the wordmark and the thumb.
+       Blue = the user's ink, graphite = the app's ink, on every paper.
+       Two inks only: light and dark, following the device unless the viewer picks one (data-scheme).
+       Customisation is the paper ruling, drawn as SVG patterns registered to the wordmark. */
+    :root { --paper: #ffffff; --blue: #1978cf; --ink: #202027; --kl: 1; --kt: 1; color-scheme: light; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-scheme="light"]) { --paper: #16181c; --blue: #5ea9f4; --ink: #e7e9ed; --kl: 1.55; --kt: 1.15; color-scheme: dark; } }
+    :root[data-theme="dark"]:not([data-scheme="light"]), :root[data-scheme="dark"] { --paper: #16181c; --blue: #5ea9f4; --ink: #e7e9ed; --kl: 1.55; --kt: 1.15; color-scheme: dark; }
     :root {
-      color-scheme: only light;
-      --paper: #fff;
-      --blue: #1978cf;          /* the user's ink */
-      --ink: #202027;           /* the app's ink (graphite) */
-      --rule: rgba(32, 32, 39, .32);
-      --rule-faint: rgba(32, 32, 39, .14);
+      --rule: color-mix(in srgb, var(--ink) calc(32% * var(--kl)), transparent);
+      --rule-faint: color-mix(in srgb, var(--ink) calc(14% * var(--kl)), transparent);
       --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "Liberation Mono", monospace;
     }
     * { box-sizing: border-box; }
@@ -35,7 +39,7 @@
     #app {
       position: fixed; inset: 0; width: 100%;
       height: 100%; height: 100dvh;
-      overflow: hidden; background: var(--paper);
+      overflow: hidden; background-color: var(--paper);
       font-family: var(--mono); color: var(--ink);
       cursor: pointer; touch-action: none;
       user-select: none; -webkit-user-select: none;
@@ -69,9 +73,9 @@
     .construction path, .construction circle {
       stroke: currentColor; fill: none; stroke-width: 1; vector-effect: non-scaling-stroke;
     }
-    .construction .hidden { opacity: .24; stroke-dasharray: 3 5; }
-    .construction .witness { opacity: .17; }
-    .construction .node { opacity: .29; }
+    .construction .hidden { opacity: min(1, calc(.24 * var(--kl))); stroke-dasharray: 3 5; }
+    .construction .witness { opacity: min(1, calc(.17 * var(--kl))); }
+    .construction .node { opacity: min(1, calc(.29 * var(--kl))); }
 
     /* ---------- x-ray visibility ---------- */
     .xr { opacity: 0; transition: opacity 150ms ease-out; }
@@ -84,7 +88,6 @@
       stroke-dashoffset: 0;
       transition: stroke-dashoffset var(--dur, 220ms) cubic-bezier(.55, .05, .35, 1) var(--d, 0ms);
     }
-    /* Dashed construction lines are drawn in by a wiping mask, so their dash pattern stays put. */
     .wipe-y, .wipe-x { transform-box: fill-box; transition: transform 0s linear 170ms; }
     .wipe-y { transform-origin: 50% 0; transform: scaleY(0); }
     .wipe-x { transform-origin: 0 50%; transform: scaleX(0); }
@@ -93,83 +96,230 @@
     }
     .pop { opacity: 0; transition: opacity 0s linear 170ms; }
     .is-on .pop { opacity: 1; transition: opacity 160ms ease var(--d, 0ms); }
+    .xi { opacity: 0; transition: opacity 90ms linear; }
+    .is-on .xi { opacity: 1; transition: opacity 240ms ease var(--d, 0ms); }
+    .is-on .xi.stowed { opacity: 0; }
     .instant, .instant * { transition: none !important; }
 
-    /* ---------- overlay marks (leaders, press point, movement, input surface) ---------- */
+    /* ---------- overlay marks (press point, movement, input surface) ---------- */
     #marks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 2; }
     #marks path, #marks circle { fill: none; stroke: var(--ink); stroke-width: 1; stroke-linecap: round; }
-    #marks .leader { opacity: .36; }
-    #marks .lnode { fill: var(--paper); opacity: .55; }
-    #marks .proposed { stroke-dasharray: 3 5; opacity: .3; }
-    #marks .witness { opacity: .22; }
-    #marks .press-ring { opacity: .3; }
-    #marks .press-node { fill: var(--ink); stroke: none; opacity: .45; }
-    #marks .movement { stroke-dasharray: 4 6; opacity: .5; }
-    #marks .movement-head { opacity: .7; stroke-width: 1.25; }
+    #marks .proposed { stroke-dasharray: 3 5; opacity: min(1, calc(.3 * var(--kl))); }
+    #marks .witness { opacity: min(1, calc(.22 * var(--kl))); }
+    #marks .press-ring { opacity: min(1, calc(.3 * var(--kl))); }
+    #marks .press-node { fill: var(--ink); stroke: none; opacity: min(1, calc(.45 * var(--kl))); }
+    #marks .movement { stroke-dasharray: 4 6; opacity: min(1, calc(.5 * var(--kl))); }
+    #marks .movement-head { opacity: min(1, calc(.7 * var(--kl))); stroke-width: 1.25; }
     #move[hidden] { display: none; }
 
-    /* ---------- x-ray notes ---------- */
+    /* ---------- x-ray layer ---------- */
     #xray { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-    .note {
-      position: absolute; left: 0; top: 0; margin: 0;
-      font-size: 11px; line-height: 1.5; letter-spacing: .01em;
+
+    /* Shared icon ink: graphite for the app's structure, blue for what you put in. */
+    .ic { display: block; width: 100%; height: 100%; overflow: visible; }
+    .ic * { transform-box: fill-box; transform-origin: center; }
+    /* The SVG transform attribute is a CSS transform too, so the rule above would pivot a logo's
+       scale on its own ink. Logos scale about the icon's 24x24 box instead. */
+    .ic .logo-g { transform-box: view-box; transform-origin: 0 0; }
+    .ic .g { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: min(1, calc(.82 * var(--kt))); }
+    .ic .g.faint { opacity: min(1, calc(.4 * var(--kl))); }
+    .ic .b { fill: none; stroke: var(--blue); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .ic .gf { fill: var(--ink); stroke: none; opacity: min(1, calc(.6 * var(--kt))); }
+    .ic .bf { fill: var(--blue); stroke: none; }
+
+    /* Task tiles: dashed = proposed, i.e. coming. */
+    .tile {
+      position: absolute; left: 0; top: 0; transform-origin: 50% 50%; margin: 0; padding: 0;
+      border: 0; background: none; color: inherit; font: inherit; border-radius: 6px;
+      cursor: pointer; pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    #app[data-xray="kept"] .tile, #app[data-xray="kept"] .ilink { pointer-events: auto; }
+    .tile.stowed, .ai.stowed { visibility: hidden; }
+
+    /* AI badges: any model or agent can plug into the agents hub. Dashed = proposed. */
+    .ai {
+      position: absolute; left: 0; top: 0; margin: 0; padding: 0; border: 0; background: none;
+      color: inherit; border-radius: 50%; cursor: pointer; pointer-events: none; outline: none;
+      -webkit-tap-highlight-color: transparent;
       opacity: 0; transition: opacity 90ms linear;
     }
-    .is-on .note { opacity: 1; transition: opacity 240ms ease var(--d, 0ms); }
-    .is-on .note.stowed { opacity: 0; }
-    .note .lead { opacity: .92; }
-    .note .rest { opacity: .58; }
+    .is-on .ai { opacity: 1; transition: opacity 260ms ease var(--d, 0ms); }
+    #app[data-xray="kept"] .ai { pointer-events: auto; }
+    .ai .ic { width: 100%; height: 100%; }
+    .ai .ring { fill: var(--paper); stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl))); }
+    .ai .ast-bg { fill: var(--paper); stroke: none; }
+    .ast { fill: none; stroke: var(--ink); stroke-width: 1.3; stroke-linecap: round; opacity: min(1, calc(.85 * var(--kt))); }
+    .ai.soon .logo, .ai.soon .logo-s { opacity: min(1, calc(.55 * var(--kt))); }
 
-    /* Drafting title block: the links live here. */
-    .tb { border: 1px solid var(--rule); background: var(--paper); font-size: 10.5px; line-height: 1.45; }
-    .tb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 7px 9px 6px; }
-    .tb-name { font-size: 12.5px; font-weight: 600; letter-spacing: 0; }
-    .tb-rev { opacity: .5; }
-    .tb-row { display: grid; grid-template-columns: 6.2em 1fr; border-top: 1px solid var(--rule-faint); }
-    .tb-row > * { padding: 5px 9px; min-width: 0; }
-    .tb-k {
-      border-right: 1px solid var(--rule-faint); opacity: .55;
-      text-transform: uppercase; font-size: 9px; letter-spacing: .1em; padding-top: 6.5px;
+    /* The footnote: vertical, in a bottom corner, the one word on the page. */
+    #soon {
+      position: absolute; left: 0; top: 0; margin: 0; display: flex; align-items: center; gap: 5px;
+      writing-mode: vertical-rl; transform-origin: 0 0;
+      font-size: 10px; letter-spacing: .14em; line-height: 1; white-space: nowrap;
+      opacity: 0; pointer-events: none;
     }
-    .sw { display: inline-block; width: 14px; height: 0; vertical-align: middle; border-top: 2px solid; margin-right: 5px; border-radius: 2px; }
-    .sw.blue { border-color: var(--blue); }
-    .sw.graphite { border-color: var(--ink); }
-    .tb a {
-      color: var(--ink); white-space: nowrap; pointer-events: none;
-      display: inline-block; padding-block: 3px; margin-block: -3px;
-      text-decoration: underline; text-decoration-thickness: 1px;
-      text-underline-offset: 3px; text-decoration-color: var(--rule);
-      outline: none; -webkit-tap-highlight-color: transparent;
+    .is-on #soon { opacity: min(1, calc(.6 * var(--kt))); transition: opacity 260ms ease var(--d, 0ms); }
+    .is-on #soon.stowed { opacity: 0; }
+    #soon svg { width: 9px; height: 9px; overflow: visible; }
+    .ai .logo { fill: var(--ink); opacity: min(1, calc(.78 * var(--kt))); }
+    .ai .logo-s { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: min(1, calc(.78 * var(--kt))); }
+    .ai:hover .ring, .ai.armed .ring, .ai:focus-visible .ring, .ai.play .ring { stroke-width: 1.5; opacity: min(1, calc(.7 * var(--kl))); }
+    .ai.play .ic { animation: pulse .45s ease both; }
+    #marks .plug { stroke-dasharray: 2 4; opacity: min(1, calc(.2 * var(--kl))); }
+    #marks .plug.out { animation: plug-out .5s linear 3; opacity: min(1, calc(.45 * var(--kl))); }
+    #marks .plug.in { animation: plug-in .4s linear 2; opacity: min(1, calc(.5 * var(--kl))); }
+    @keyframes plug-out { to { stroke-dashoffset: -12; } }
+    @keyframes plug-in { to { stroke-dashoffset: 12; } }
+    .tile .frame {
+      fill: var(--paper); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 5;
+      vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl)));
+      transition: opacity 120ms;
     }
-    #app[data-xray="kept"] .tb a { pointer-events: auto; cursor: pointer; }
-    .tb a:hover, .tb a.armed { text-decoration-thickness: 2px; text-decoration-color: var(--ink); }
-    .tb a:focus-visible { outline: 1px dashed var(--ink); outline-offset: 2px; }
+    .tile:hover .frame, .tile.armed .frame, .tile:focus-visible .frame, .tile.play .frame {
+      stroke-dasharray: none; opacity: min(1, calc(.6 * var(--kl)));
+    }
+    .tile:focus-visible .frame { stroke-width: 1.5; }
 
-    /* ---------- the quiet hint ---------- */
+    /* hidden-until-played parts */
+    .fx { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; }
+    .steam, .spark, .rep, .drop, .bub, .wave { opacity: 0; }
+
+    /* ---------- the little demos, one per task ---------- */
+    @keyframes draw-hold { 0% { stroke-dashoffset: 1.02 } 22%, 82% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 1.02 } }
+    @keyframes rewrite { 0%, 16% { stroke-dashoffset: 0 } 18%, 36% { stroke-dashoffset: 1.02 } 100% { stroke-dashoffset: 0 } }
+    @keyframes flow { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -.36 } }
+    @keyframes pulse { 0%, 100% { transform: none } 50% { transform: scale(1.4) } }
+    @keyframes meet { 0% { transform: none } 28%, 44% { transform: translate(14px, 6px) } 66%, 82% { transform: translate(21px, 12px) } 100% { transform: none } }
+    @keyframes flip { 0% { transform: none } 22% { transform: scaleX(.06) } 44%, 100% { transform: none } }
+    @keyframes req { 0% { transform: none; opacity: 1 } 38% { transform: translate(11px, 11px); opacity: 1 } 46%, 100% { transform: translate(11px, 11px); opacity: 0 } }
+    @keyframes steam { 0% { opacity: 0; transform: translateY(4px) } 45% { opacity: .75 } 100% { opacity: 0; transform: translateY(-5px) } }
+    @keyframes ring-a { 0% { transform: none } 22% { transform: translateX(-7px) } 60%, 100% { transform: none } }
+    @keyframes ring-b { 0% { transform: none } 22% { transform: translateX(7px) } 60%, 100% { transform: none } }
+    @keyframes spark { 0%, 52% { transform: scale(0) rotate(0); opacity: 0 } 66% { transform: scale(1.2) rotate(45deg); opacity: 1 } 100% { transform: scale(0) rotate(90deg); opacity: 0 } }
+    @keyframes lift { 0%, 100% { transform: none } 18% { transform: translateY(-8px) } 38% { transform: none } 58% { transform: translateY(-8px) } 78% { transform: none } }
+    @keyframes rep { 0% { opacity: 0 } 8%, 86% { opacity: 1 } 100% { opacity: 0 } }
+    @keyframes shuffle { 0%, 100% { transform: none } 32%, 66% { transform: translate(var(--tx), var(--ty)) rotate(var(--rot)) } }
+    @keyframes drop { 0% { opacity: 0; transform: translateY(-12px) } 30% { opacity: 1; transform: none } 40% { transform: translateY(-2px) } 50%, 85% { opacity: 1; transform: none } 100% { opacity: 0; transform: none } }
+    @keyframes land { 0% { opacity: 0; transform: translateY(-10px) } 28% { opacity: 1; transform: none } 38% { transform: translateY(-3px) } 48%, 100% { opacity: 1; transform: none } }
+    @keyframes spin { to { transform: rotate(90deg) } }
+    @keyframes sway { 0%, 100% { transform: none } 25% { transform: rotate(-7deg) } 70% { transform: rotate(6deg) } }
+    @keyframes clink-a { 0%, 100% { transform: none } 35%, 55% { transform: rotate(13deg) } }
+    @keyframes clink-b { 0%, 100% { transform: none } 35%, 55% { transform: rotate(-13deg) } }
+    @keyframes hop { 0%, 100% { transform: none } 50% { transform: translateY(-4px) } }
+    @keyframes press { 0%, 100% { transform: none } 50% { transform: scale(.5) } }
+    @keyframes whisk { 0%, 100% { transform: none } 25% { transform: rotate(-14deg) } 75% { transform: rotate(14deg) } }
+    @keyframes slide { 0% { opacity: 0; transform: translateX(10px) } 30%, 100% { opacity: 1; transform: none } }
+    @keyframes nope { 20% { transform: translateX(-3px) } 40% { transform: translateX(3px) } 60% { transform: translateX(-2px) } 80% { transform: translateX(2px) } }
+
+    .play .tick { animation: draw-hold 2s ease both; animation-delay: var(--ad, 0s); }
+    .play .meet { animation: meet 2s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .page { animation: flip 1.9s ease both; transform-origin: 0 50%; }
+    .play .ln { animation: rewrite 1.9s ease both; animation-delay: var(--ad, 0s); }
+    .play .req { animation: req 1.9s ease both; }
+    .play .edge { stroke-dasharray: .1 .08; animation: flow .5s linear .55s 3 both; }
+    .play .core { animation: pulse .4s ease .62s both; }
+    .play .kid { animation: pulse .45s ease both; animation-delay: var(--ad, 0s); }
+    .play .steam { animation: steam 1s ease-out 2 both; animation-delay: var(--ad, 0s); }
+    .play .ring-a { animation: ring-a 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .ring-b { animation: ring-b 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .spark { animation: spark 1.8s ease both; }
+    .play .bell { animation: lift 1.9s ease-in-out both; }
+    .play .rep { animation: rep 1.9s ease both; animation-delay: var(--ad, 0s); }
+    .play .arrow { stroke-dasharray: .14 .1; animation: flow .5s linear 4 both; }
+    .play .circ { animation: rewrite 1.9s ease both; }
+    .play .rnd { animation: shuffle 1.8s cubic-bezier(.5, 0, .3, 1) both; }
+    .play .drop { animation: drop 1.9s ease both; animation-delay: .5s; }
+    .play .land { animation: land 1.6s ease both; }
+    .play .rays { animation: spin 1.9s ease-in-out both; }
+    .play .sway { animation: sway 1.9s ease-in-out both; transform-origin: 50% 100%; }
+    .play .clink-a { animation: clink-a 1.6s ease both; transform-origin: 50% 100%; }
+    .play .clink-b { animation: clink-b 1.6s ease both; transform-origin: 50% 100%; }
+    .play .heart { animation: pulse .5s ease .55s both; }
+    .play .toe { animation: pulse .4s ease both; animation-delay: var(--ad, 0s); }
+    .play .pad { animation: pulse .5s ease .75s both; }
+    .play .hop { animation: hop .6s ease both; animation-delay: var(--ad, 0s); }
+    .play .key { animation: press .3s ease both; animation-delay: var(--ad, 0s); }
+    .play .whisk { animation: whisk .9s ease-in-out 2 both; transform-origin: 50% 100%; }
+    .play .bub { animation: steam 1s ease-out 2 both; animation-delay: var(--ad, 0s); }
+    .play .ring-card { animation: nope .4s ease 3; }
+    .play .wave { animation: rep 1.6s ease both; animation-delay: var(--ad, 0s); }
+    .play .slide { animation: slide 1.9s ease both; }
+
+    /* ---------- paper rulings (app's ink, faint) ---------- */
+    #paper { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    #paper .rl { fill: none; stroke: var(--ink); opacity: min(1, calc(.11 * var(--kl))); }
+    #paper .rl.major { opacity: min(1, calc(.2 * var(--kl))); }
+    #paper .rl.minor { opacity: min(1, calc(.065 * var(--kl))); }
+    #paper .dot { fill: var(--ink); stroke: none; opacity: min(1, calc(.3 * var(--kl))); }
+    #paper .margin { fill: none; stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.22 * var(--kl))); }
+
+    /* Paper picker: swatches drawn with the same ruling, plus light/dark. */
+    #papers {
+      position: absolute; left: 0; top: 0; display: flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--rule); background: var(--paper); border-radius: 4px;
+    }
+    .pbtn {
+      width: 38px; height: 44px; display: grid; place-items: center; margin: 0; padding: 0;
+      border: 0; background: none; color: var(--ink); border-radius: 3px; cursor: pointer;
+      pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    #app[data-xray="kept"] .pbtn { pointer-events: auto; }
+    .pbtn .ic { width: 26px; height: 26px; }
+    .pbtn .sw-frame { fill: var(--paper); stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.4 * var(--kl))); }
+    .pbtn .sw-l { fill: none; stroke: var(--ink); stroke-width: .8; opacity: min(1, calc(.45 * var(--kl))); }
+    .pbtn .sw-d { fill: var(--ink); opacity: min(1, calc(.55 * var(--kl))); }
+    .pbtn[aria-pressed="true"] .sw-frame { stroke-width: 1.6; opacity: min(1, calc(.85 * var(--kt))); }
+    .pbtn.sep { margin-left: 5px; }
+    .pbtn:hover, .pbtn.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
+    .pbtn:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
+
+    /* Links: a small solid title block, icons only. Solid = exists. */
+    #links {
+      position: absolute; left: 0; top: 0; display: flex; gap: 2px; padding: 3px;
+      border: 1px solid var(--rule); background: var(--paper); border-radius: 4px;
+    }
+    .ilink {
+      width: 44px; height: 44px; display: grid; place-items: center; border-radius: 3px;
+      color: var(--ink); pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
+    }
+    .ilink .ic { width: 22px; height: 22px; overflow: visible; }
+    .ilink .logo-gh { fill: var(--ink); opacity: min(1, calc(.8 * var(--kt))); }
+    .ilink .star { fill: var(--paper); stroke: var(--ink); stroke-width: 1.1; stroke-linejoin: round; transition: fill 160ms; }
+    .ilink:hover .star, .ilink.armed .star, .ilink:focus-visible .star { fill: var(--blue); stroke: var(--blue); }
+    .ilink:hover, .ilink.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
+    .ilink:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
+    .ilink.nope { animation: nope .42s ease; }
+
+    /* ---------- the quiet hint: press, hold, follow a path to a tile ---------- */
     #hint {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; margin: 0;
-      padding-left: max(16px, env(safe-area-inset-left, 0px));
-      padding-right: max(16px, env(safe-area-inset-right, 0px));
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
-      text-align: center; font-size: 11px; letter-spacing: .06em;
-      opacity: .5; transition: opacity 700ms ease; pointer-events: none;
+      position: absolute; left: 50%; z-index: 1; width: 76px; height: 30px; margin: 0;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 9px); transform: translateX(-50%);
+      opacity: min(1, calc(.62 * var(--kt))); transition: opacity 700ms ease; pointer-events: none;
     }
-    #hint .sub { opacity: .6; }
-    #hint .fine { display: none; }
-    @media (hover: hover) and (pointer: fine) {
-      #hint .fine { display: inline; }
-      #hint .coarse { display: none; }
-    }
-    #app[data-hint="1"] #hint { opacity: .28; }
+    #hint svg { display: block; width: 100%; height: 100%; overflow: visible; }
+    #hint .s { fill: none; stroke: var(--ink); stroke-width: 1.25; stroke-linecap: round; stroke-linejoin: round; }
+    #hint .h-dot { fill: var(--ink); transform-box: fill-box; transform-origin: center; animation: h-dot 3.8s ease-in-out infinite; }
+    #hint .h-ring { transform-box: fill-box; transform-origin: center; animation: h-ring 3.8s ease-in-out infinite; }
+    #hint .h-path { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; animation: h-path 3.8s ease-in-out infinite; }
+    #hint .h-head { animation: h-head 3.8s ease-in-out infinite; }
+    #hint .h-tile { stroke-dasharray: 2 2.5; transform-box: fill-box; transform-origin: center; animation: h-tile 3.8s ease-in-out infinite; }
+    @keyframes h-dot { 0%, 100% { transform: none } 8%, 72% { transform: scale(.75) } 84% { transform: none } }
+    @keyframes h-ring { 0%, 6% { transform: scale(.3); opacity: 0 } 30%, 72% { transform: none; opacity: 1 } 86%, 100% { transform: none; opacity: 0 } }
+    @keyframes h-path { 0%, 30% { stroke-dashoffset: 1.02; opacity: 1 } 54%, 72% { stroke-dashoffset: 0; opacity: 1 } 86%, 100% { stroke-dashoffset: 0; opacity: 0 } }
+    @keyframes h-head { 0%, 52% { opacity: 0 } 56%, 72% { opacity: 1 } 86%, 100% { opacity: 0 } }
+    @keyframes h-tile { 0%, 54% { opacity: 0; transform: scale(.6) } 62%, 74% { opacity: 1; transform: none } 88%, 100% { opacity: 0; transform: none } }
+    #app[data-hint="1"] #hint { opacity: min(1, calc(.3 * var(--kt))); }
     #app[data-hint="2"] #hint { opacity: 0; }
     #app.is-on #hint { opacity: 0; transition-duration: 120ms; }
 
     @media (prefers-reduced-motion: reduce) {
       .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
       .wipe-y, .wipe-x, .is-on .wipe-y, .is-on .wipe-x { transform: none; transition: none !important; }
-      .pop, .is-on .pop { transition: none !important; }
-      .note, .is-on .note { transition: opacity 120ms linear !important; }
+      .pop, .is-on .pop, .xi, .is-on .xi { transition: none !important; }
       .xr, .is-on .xr { transition: opacity 120ms linear; }
+      .play * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+      #hint * { animation: none !important; }
+      #hint .h-path { stroke-dashoffset: 0; }
     }
   </style>
 </head>
@@ -178,10 +328,34 @@
   <div id="app" data-xray="off" data-hint="0">
     <h1 class="sr-only">not-padgtp</h1>
 
+    <!-- Paper ruling. Pattern units are the wordmark's plane: one rule = the 32.5-unit half-step between
+         the Not and pad baselines; the grid's origin sits on the G-T-P registration line. -->
+    <svg id="paper" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="pat-ruled" patternUnits="userSpaceOnUse" width="65" height="32.5">
+          <path class="rl" d="M -1 0 H 66 M -1 32.5 H 66" />
+        </pattern>
+        <pattern id="pat-grid" patternUnits="userSpaceOnUse" width="16.25" height="16.25">
+          <path class="rl" d="M 0 0 V 16.25 M 16.25 0 V 16.25 M 0 0 H 16.25 M 0 16.25 H 16.25" />
+        </pattern>
+        <pattern id="pat-graph" patternUnits="userSpaceOnUse" width="32.5" height="32.5">
+          <path class="rl minor" d="M 8.125 0 V 32.5 M 16.25 0 V 32.5 M 24.375 0 V 32.5 M 0 8.125 H 32.5 M 0 16.25 H 32.5 M 0 24.375 H 32.5" />
+          <path class="rl major" d="M 0 0 V 32.5 M 32.5 0 V 32.5 M 0 0 H 32.5 M 0 32.5 H 32.5" />
+        </pattern>
+        <pattern id="pat-dots" patternUnits="userSpaceOnUse" width="16.25" height="16.25">
+          <circle class="dot" cx="0" cy="0" r="1" /><circle class="dot" cx="16.25" cy="0" r="1" />
+          <circle class="dot" cx="0" cy="16.25" r="1" /><circle class="dot" cx="16.25" cy="16.25" r="1" />
+        </pattern>
+        <pattern id="pat-iso" patternUnits="userSpaceOnUse" width="28.146" height="16.25">
+          <path class="rl" d="M 0 0 L 28.146 16.25 M 0 16.25 L 28.146 0 M 0 0 V 16.25 M 14.073 0 V 16.25 M 28.146 0 V 16.25" />
+        </pattern>
+      </defs>
+      <rect id="paper-fill" x="0" y="0" width="100%" height="100%" fill="none" />
+      <path id="paper-margin" class="margin" d="" />
+    </svg>
+
     <div class="stage">
-      <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint">
-        <!-- The prototype's single 560x440 plane. Letterforms are the user's, unchanged.
-             Only change: multi-stroke paths are split into one path per pen stroke so they can be written in. -->
+      <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint-desc">
         <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
           <title id="mark-title">not-padgtp wordmark</title>
           <desc id="mark-desc">Blue handwritten "Not" above "pad". In the x-ray, black handwritten G, T, P appear in a column beneath the d.</desc>
@@ -242,13 +416,13 @@
       </button>
     </div>
 
-    <!-- Plotter marks drawn in screen space; positions are set by the script at reveal time. -->
     <svg id="marks" class="xr" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <mask id="input-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
           <rect id="input-wipe-rect" class="wipe-x" style="--d:820ms;--dur:420ms" x="0" y="0" width="0" height="20" fill="#fff" />
         </mask>
       </defs>
+      <!-- a proposed edge where a phone keyboard would rise: the app draws its own input surface -->
       <g id="input-surface">
         <path id="input-line" class="proposed" mask="url(#input-wipe)" d="" />
         <path id="input-ticks" class="witness pen" pathLength="1" style="--d:1150ms;--dur:120ms" d="" />
@@ -257,76 +431,505 @@
         <circle class="press-ring pen" pathLength="1" style="--d:0ms;--dur:200ms" r="18" cx="0" cy="0" />
         <circle class="press-node" r="2" cx="0" cy="0" />
       </g>
-      <g id="leaders"></g>
+      <g id="ai-links"></g>
       <g id="move" hidden>
         <path class="movement" d="" />
         <path class="movement-head" d="" />
       </g>
     </svg>
 
-    <!-- The website itself lives in the x-ray. Always in the document, so screen readers get it at rest. -->
+    <!-- The x-ray. No visible words; screen readers get them from the labels. -->
     <section id="xray" class="xr" aria-label="X-ray">
-      <p class="note" data-note="what">
-        <span class="lead">a supercharged notepad.</span>
-        <span class="rest">plain text, and a UI so small it's hard-coded.</span>
-      </p>
-      <p class="note" data-note="xray">
-        <span class="lead">the rest lives in the x-ray.</span>
-        <span class="rest">it draws when you hesitate and gets out of your way when you write.</span>
-      </p>
-      <p class="note" data-note="hold">
-        <span class="lead">hold to peek, then follow a path to an action.</span>
-        <span class="rest">tap to keep it on. tap again to let go.</span>
-      </p>
-      <p class="note" data-note="keys">
-        <span class="lead">no keyboard pops up on your phone.</span>
-        <span class="rest">not-padgtp draws its own input surface.</span>
-      </p>
-      <div class="note tb" data-note="title">
-        <div class="tb-head"><span class="tb-name">not-padgtp</span><span class="tb-rev">rev 0 · 2026</span></div>
-        <div class="tb-row"><span class="tb-k">desktop</span><span>open source · <a data-link="source" href="#">source code ↗</a></span></div>
-        <div class="tb-row"><span class="tb-k">phone</span><span>in progress · <a data-link="progress" href="#">follow progress ↗</a> · <a data-link="waitlist" href="#">waitlist ↗</a></span></div>
-        <div class="tb-row"><span class="tb-k">canvas</span><span>infinite, tiled like a window manager</span></div>
-        <div class="tb-row"><span class="tb-k">ink</span><span><i class="sw blue" aria-hidden="true"></i>yours · <i class="sw graphite" aria-hidden="true"></i>the app's</span></div>
+      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. Each reveal shows a few of the tasks to come: lists, calendar and meetings, daily notes, AI agents, meal plans, wedding plans, workouts, technical explanations, random stuff, budgeting, journaling, travel and vacation planning, date planning, pets, family, a calculator, recipes, a lab book, inventory, a phonebook and RSS. Any AI can plug in: OpenAI, Claude, Gemini, Meta Llama, Mistral, DeepSeek, Grok, Qwen, Hugging Face, OpenRouter, GitHub Copilot and Codex work today; Perplexity, Cursor, Claude Code, Ollama and your own AI are coming. This reveal shows:</p>
+
+      <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="7" y="9" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 13 c3 -2.5 5 2.5 8 0 s5 -2.5 9 0" />
+          <rect class="g pen" x="7" y="20" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 24 c3 -2.5 5 2.5 8 0 s4 -2 6 0" />
+          <rect class="g pen" x="7" y="31" width="8" height="8" rx="1.5" />
+          <path class="b pen" d="M20 35 c3 -2.5 5 2.5 8 0 s6 -2.5 11 0" />
+          <path class="g fx tick" pathLength="1" style="--ad:.1s" d="M8.8 13 l2.2 2.3 l4.2 -5" />
+          <path class="g fx tick" pathLength="1" style="--ad:.45s" d="M8.8 24 l2.2 2.3 l4.2 -5" />
+          <path class="g fx tick" pathLength="1" style="--ad:.8s" d="M8.8 35 l2.2 2.3 l4.2 -5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="calendar" aria-label="Calendar and meetings. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="6" y="10" width="36" height="32" rx="3" />
+          <path class="g pen" d="M6 18 H42" />
+          <path class="g pen" d="M15 6 V13" />
+          <path class="g pen" d="M33 6 V13" />
+          <g class="pop">
+            <circle class="gf" cx="31" cy="24" r="1" /><circle class="gf" cx="37" cy="24" r="1" />
+            <circle class="gf" cx="12" cy="30.5" r="1" /><circle class="gf" cx="19" cy="30.5" r="1" /><circle class="gf" cx="26" cy="30.5" r="1" /><circle class="gf" cx="33" cy="30.5" r="1" />
+            <circle class="gf" cx="12" cy="37" r="1" /><circle class="gf" cx="19" cy="37" r="1" /><circle class="gf" cx="26" cy="37" r="1" /><circle class="gf" cx="33" cy="37" r="1" />
+          </g>
+          <rect class="b pen meet" x="10" y="21.8" width="13" height="4.6" rx="1.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="daily" aria-label="Daily notes. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="page">
+            <path class="g pen" d="M11 6 H30 L38 14 V42 H11 Z" />
+            <path class="g pen" d="M30 6 V14 H38" />
+            <path class="b pen ln" d="M16 21 c3 -2 5 2 8 0 s5 -2 9 0" />
+            <path class="b pen ln" style="--ad:.12s" d="M16 28 c3 -2 5 2 8 0 s4 -2 7 0" />
+            <path class="b pen ln" style="--ad:.24s" d="M16 35 c3 -2 4 2 6 0" />
+          </g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="agents" aria-label="AI agents. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen edge" d="M20.6 27.4 L12.3 35.7" />
+          <path class="g pen edge" d="M27.4 27.4 L35.7 35.7" />
+          <path class="g pen edge" d="M27.4 20.6 L35.7 12.3" />
+          <circle class="g pen core" cx="24" cy="24" r="4.8" />
+          <circle class="g pen kid" style="--ad:1s" cx="10" cy="38" r="3.2" />
+          <circle class="g pen kid" style="--ad:1.12s" cx="38" cy="38" r="3.2" />
+          <circle class="g pen kid" style="--ad:1.24s" cx="38" cy="10" r="3.2" />
+          <g class="pop"><circle class="bf req" cx="11" cy="11" r="2.6" /></g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="meals" aria-label="Meal plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <circle class="g pen" cx="24" cy="28" r="11" />
+          <circle class="g pen faint" cx="24" cy="28" r="7" />
+          <path class="b pen" d="M20.5 28 c1.5 -3 5.5 -3 7 0 c-1.5 3 -5.5 3 -7 0 z" />
+          <path class="g pen" d="M5.5 16 V21 Q8 25 10.5 21 V16" />
+          <path class="g pen" d="M8 23 V40" />
+          <path class="g pen" d="M41 40 V16 Q37 19 37.5 28 H41" />
+          <path class="g steam" style="--ad:0s" d="M20 13 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+          <path class="g steam" style="--ad:.2s" d="M24 12 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+          <path class="g steam" style="--ad:.4s" d="M28 13 c-1.6 -1.6 1.6 -3.2 0 -4.8" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="wedding" aria-label="Wedding plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="ring-a"><circle class="g pen" cx="18" cy="29" r="9" /></g>
+          <g class="ring-b">
+            <circle class="g pen" cx="30" cy="29" r="9" />
+            <path class="b pen" d="M27 16 L30 12 L33 16 L30 20 Z" />
+          </g>
+          <path class="g spark" d="M41 6 V13 M37.5 9.5 H44.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="workout" aria-label="Workout plans. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="bell">
+            <path class="g pen" d="M12 22 H36" />
+            <rect class="g pen" x="8" y="14" width="5" height="16" rx="1.5" />
+            <rect class="g pen" x="35" y="14" width="5" height="16" rx="1.5" />
+            <rect class="g pen" x="4.5" y="17" width="3.5" height="10" rx="1" />
+            <rect class="g pen" x="40" y="17" width="3.5" height="10" rx="1" />
+          </g>
+          <path class="g pen faint" d="M6 41 H42" />
+          <path class="b rep" style="--ad:.3s" d="M21 37 V32.5" />
+          <path class="b rep" style="--ad:1.05s" d="M27 37 V32.5" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="explain" aria-label="Technical explanations. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="4" y="8" width="15" height="10" rx="1.5" />
+          <rect class="g pen" x="29" y="8" width="15" height="10" rx="1.5" />
+          <rect class="g pen" x="16.5" y="32" width="15" height="10" rx="1.5" />
+          <path class="g pen arrow" d="M19.5 13 H28" />
+          <path class="g pen" d="M25.5 10.5 L28.3 13 L25.5 15.5" />
+          <path class="g pen arrow" d="M36.5 18.5 L28 31" />
+          <path class="g pen" d="M28.1 26.8 L28 31 L31.9 29.4" />
+          <path class="b pen circ" d="M2.5 12.5 C2 5 21 4.5 21 12.5 C21 20 4 20.5 3.5 14" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="random" aria-label="Random stuff. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen rnd" style="--tx:16px;--ty:-14px;--rot:120deg" d="M8 36 L14 26 L20 36 Z" />
+          <circle class="g pen rnd" style="--tx:-18px;--ty:16px;--rot:0deg" cx="34" cy="13" r="5" />
+          <path class="b pen rnd" style="--tx:6px;--ty:22px;--rot:-30deg" d="M7 12 c3 -4 6 4 9 0 s6 4 9 0" />
+          <rect class="g pen rnd" style="--tx:-14px;--ty:-18px;--rot:45deg" x="29" y="29" width="10" height="10" rx="1.5" />
+          <g class="pop"><circle class="gf rnd" style="--tx:10px;--ty:-8px;--rot:0deg" cx="24" cy="24" r="1.8" /></g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="budget" aria-label="Budgeting. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <circle class="g pen" cx="18" cy="26" r="11" />
+          <path class="b pen ln" d="M 18 15 A 11 11 0 0 1 28.6 29" />
+          <rect class="g pen" x="31" y="35" width="12" height="4.5" rx="2" />
+          <rect class="g pen" x="31" y="29.5" width="12" height="4.5" rx="2" />
+          <rect class="g drop" x="31" y="24" width="12" height="4.5" rx="2" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="journal" aria-label="Journaling. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen" d="M 24 12 C 18 9 10 9 6 11 V 38 C 10 36 18 36 24 39 C 30 36 38 36 42 38 V 11 C 38 9 30 9 24 12 Z" />
+          <path class="g pen" d="M 24 12 V 39" />
+          <path class="b pen ln" d="M 10 18 c 3 -1.5 6 1.5 10 0" />
+          <path class="b pen ln" style="--ad:.12s" d="M 10 24 c 3 -1.5 6 1.5 10 0" />
+          <path class="b pen ln" style="--ad:.24s" d="M 10 30 c 3 -1.5 4 1.5 7 0" />
+          <path class="g pen land" d="M 33 10 V 22 L 35.5 19.5 L 38 22 V 10" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="travel" aria-label="Travel planning. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen" d="M 6 12 L 17 8 L 31 12 L 42 8 V 36 L 31 40 L 17 36 L 6 40 Z" />
+          <path class="g pen faint" d="M 17 8 V 36" />
+          <path class="g pen faint" d="M 31 12 V 40" />
+          <path class="b pen ln" d="M 10 34 C 14 27 20 31 24 23 S 33 20 36 17" />
+          <path class="g pen land" d="M 37 5 c -2.6 0 -4.5 2 -4.5 4.4 c 0 3.2 4.5 7.6 4.5 7.6 s 4.5 -4.4 4.5 -7.6 c 0 -2.4 -1.9 -4.4 -4.5 -4.4 z" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="vacation" aria-label="Vacation planning. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="rays"><circle class="g pen" cx="39" cy="9" r="3.6" /><path class="g pen" d="M 39 1.5 V 3.5 M 39 14.5 V 16.5 M 31.5 9 H 33.5 M 44.5 9 H 46.5 M 33.7 3.7 L 35.1 5.1 M 42.9 12.9 L 44.3 14.3 M 33.7 14.3 L 35.1 12.9 M 42.9 5.1 L 44.3 3.7" /></g>
+          <g class="sway">
+            <path class="g pen" d="M 8 25 A 14 14 0 0 1 36 25 Q 31.3 22 26.7 25 Q 22 22 17.3 25 Q 12.7 22 8 25 Z" />
+            <path class="g pen" d="M 22 25 V 41" />
+          </g>
+          <path class="b pen" d="M 4 43 c 3 -2 5 2 8 0 s 5 -2 8 0 s 5 2 8 0 s 5 -2 8 0 s 5 2 8 0" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="date" aria-label="Date planning. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="clink-a">
+            <path class="g pen" d="M 12 16 H 21 Q 21 27 16.5 29 Q 12 27 12 16 Z" />
+            <path class="g pen" d="M 16.5 29 V 39 M 12.5 39.5 H 20.5" />
+          </g>
+          <g class="clink-b">
+            <path class="g pen" d="M 27 16 H 36 Q 36 27 31.5 29 Q 27 27 27 16 Z" />
+            <path class="g pen" d="M 31.5 29 V 39 M 27.5 39.5 H 35.5" />
+          </g>
+          <path class="b pen heart" d="M 24 8 c -1.5 -2.4 -5 -1.3 -5 1 c 0 2.2 5 5 5 5 s 5 -2.8 5 -5 c 0 -2.3 -3.5 -3.4 -5 -1 z" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="pets" aria-label="Keeping track of your pets. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen pad" d="M 24 25 c -5 0 -9 5 -9 9 c 0 3 3 4 5 3.5 c 2 -0.5 2.5 -1 4 -1 s 2 0.5 4 1 c 2 0.5 5 -0.5 5 -3.5 c 0 -4 -4 -9 -9 -9 z" />
+          <circle class="g pen toe" style="--ad:0s" cx="13.5" cy="20" r="3.2" />
+          <circle class="g pen toe" style="--ad:.12s" cx="20" cy="12.5" r="3.2" />
+          <circle class="g pen toe" style="--ad:.24s" cx="28" cy="12.5" r="3.2" />
+          <circle class="g pen toe" style="--ad:.36s" cx="34.5" cy="20" r="3.2" />
+          <circle class="b pen" cx="40" cy="38" r="3" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="family" aria-label="Keeping track of your family. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="b pen ln" d="M 15 10 Q 24 2 33 10" />
+          <path class="b pen ln" style="--ad:.15s" d="M 24 6.5 V 19" />
+          <g class="hop" style="--ad:.2s"><circle class="g pen" cx="15" cy="15" r="4.5" /><path class="g pen" d="M 7 35 c 0 -7 4 -11 8 -11 s 8 4 8 11" /></g>
+          <g class="hop" style="--ad:.35s"><circle class="g pen" cx="33" cy="15" r="4.5" /><path class="g pen" d="M 25 35 c 0 -7 4 -11 8 -11 s 8 4 8 11" /></g>
+          <g class="hop" style="--ad:.5s"><circle class="g pen" cx="24" cy="25" r="3.3" /><path class="g pen" d="M 18.5 41 c 0 -5 2.5 -8 5.5 -8 s 5.5 3 5.5 8" /></g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="calc" aria-label="Using it as a calculator. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="10" y="5" width="28" height="38" rx="3" />
+          <rect class="g pen" x="14" y="9" width="20" height="9" rx="1.5" />
+          <path class="b pen ln" d="M 22 13.5 h 9" />
+          <g class="pop">
+            <circle class="gf key" style="--ad:0s" cx="17" cy="25" r="1.8" /><circle class="gf key" style="--ad:.2s" cx="24" cy="25" r="1.8" /><circle class="gf key" cx="31" cy="25" r="1.8" />
+            <circle class="gf key" cx="17" cy="31" r="1.8" /><circle class="gf key" style="--ad:.4s" cx="24" cy="31" r="1.8" /><circle class="gf key" cx="31" cy="31" r="1.8" />
+            <circle class="gf key" cx="17" cy="37" r="1.8" /><circle class="gf key" cx="24" cy="37" r="1.8" /><circle class="bf key" style="--ad:.6s" cx="31" cy="37" r="1.8" />
+          </g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="recipe" aria-label="Using it as a recipe book. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="6" y="7" width="25" height="34" rx="2" />
+          <path class="g pen" d="M 10 13 h 9" />
+          <path class="b pen ln" d="M 10 20 c 3 -1.5 6 1.5 10 0 s 4 -1 5 0" />
+          <path class="b pen ln" style="--ad:.12s" d="M 10 26 c 3 -1.5 6 1.5 10 0" />
+          <path class="b pen ln" style="--ad:.24s" d="M 10 32 c 3 -1.5 5 1.5 8 0" />
+          <g class="whisk">
+            <path class="g pen" d="M 39 42 V 27" />
+            <path class="g pen" d="M 39 27 C 34 21 35 10 39 7 C 43 10 44 21 39 27" />
+            <path class="g pen" d="M 39 27 C 37 21 37.5 12 39 8.5 C 40.5 12 41 21 39 27" />
+          </g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="lab" aria-label="Using it as a lab book. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <path class="g pen" d="M 18 6 H 30" />
+          <path class="g pen" d="M 21 6 V 18 L 11 38 Q 10 41 13 41 H 35 Q 38 41 37 38 L 27 18 V 6" />
+          <path class="b pen ln" d="M 14.6 31 Q 19 29 24 31 T 33.4 31" />
+          <circle class="g bub" style="--ad:0s" cx="21" cy="27" r="1.5" />
+          <circle class="g bub" style="--ad:.25s" cx="26" cy="23" r="1.2" />
+          <circle class="g bub" style="--ad:.5s" cx="24" cy="14" r="1" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="inventory" aria-label="Using it as an inventory. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <rect class="g pen" x="5" y="25" width="18" height="16" rx="1.5" />
+          <rect class="g pen" x="25" y="25" width="18" height="16" rx="1.5" />
+          <path class="g pen faint" d="M 14 25 V 30 M 34 25 V 30" />
+          <g class="land">
+            <rect class="g pen" x="14" y="8" width="20" height="16" rx="1.5" />
+            <path class="g pen faint" d="M 24 8 V 13" />
+            <path class="b pen" d="M 18 18 h 7" />
+          </g>
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="phonebook" aria-label="Using it as a phonebook. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <g class="ring-card">
+            <rect class="g pen" x="5" y="10" width="34" height="28" rx="3" />
+            <circle class="g pen" cx="15" cy="20" r="4" />
+            <path class="g pen" d="M 8 32 c 0 -5 3 -7.5 7 -7.5 s 7 2.5 7 7.5" />
+            <path class="b pen ln" d="M 25 19 h 10" />
+            <path class="b pen ln" style="--ad:.12s" d="M 25 25 h 8" />
+            <path class="b pen ln" style="--ad:.24s" d="M 25 31 h 10" />
+          </g>
+          <path class="g pen" d="M 39 15 h 3 v 6 h -3 M 39 25 h 3 v 6 h -3" />
+          <path class="g wave" style="--ad:.1s" d="M 41 4 a 5 5 0 0 1 4 4" />
+          <path class="g wave" style="--ad:.3s" d="M 42 0 a 9 9 0 0 1 6 6" />
+        </svg>
+      </button>
+
+      <button class="tile" type="button" data-task="rss" aria-label="RSS feeds. Coming soon. Play a preview.">
+        <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
+          <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
+          <circle class="gf" cx="11" cy="37" r="3" />
+          <path class="g pen ln" style="--ad:.1s" d="M 9 25 A 14 14 0 0 1 23 39" />
+          <path class="g pen ln" style="--ad:.3s" d="M 9 13 A 26 26 0 0 1 35 39" />
+          <rect class="b pen slide" x="31" y="5" width="12" height="8" rx="1.5" />
+          <path class="b pen slide" d="M 34 9 h 6" />
+        </svg>
+      </button>
+
+      <p id="soon" aria-hidden="true"><svg viewBox="-4 -4 8 8"><g id="soon-mark"></g></svg>coming soon</p>
+      <div id="ais" role="group" aria-label="AI that can plug in. Marked ones are coming soon."></div>
+
+      <div id="papers" class="xi" role="group" aria-label="Paper">
+        <button class="pbtn" type="button" data-ruling="blank" aria-label="Blank paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="ruled" aria-label="Ruled paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" d="M 3.5 7.5 H 20.5 M 3.5 12 H 20.5 M 3.5 16.5 H 20.5 M 7.5 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="grid" aria-label="Squared paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" d="M 3.5 7 H 20.5 M 3.5 12 H 20.5 M 3.5 17 H 20.5 M 7.5 2.5 V 21.5 M 12 2.5 V 21.5 M 16.5 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="graph" aria-label="Graph paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" style="opacity:.25" d="M 3.5 5 H 20.5 M 3.5 8 H 20.5 M 3.5 14 H 20.5 M 3.5 17 H 20.5 M 6 2.5 V 21.5 M 9 2.5 V 21.5 M 15 2.5 V 21.5 M 18 2.5 V 21.5" /><path class="sw-l" d="M 3.5 11 H 20.5 M 12 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="dots" aria-label="Dotted paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><g class="sw-d"><circle cx="7.5" cy="7" r=".9" /><circle cx="12" cy="7" r=".9" /><circle cx="16.5" cy="7" r=".9" /><circle cx="7.5" cy="12" r=".9" /><circle cx="12" cy="12" r=".9" /><circle cx="16.5" cy="12" r=".9" /><circle cx="7.5" cy="17" r=".9" /><circle cx="12" cy="17" r=".9" /><circle cx="16.5" cy="17" r=".9" /></g></svg>
+        </button>
+        <button class="pbtn" type="button" data-ruling="iso" aria-label="Isometric paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="sw-clip"><rect x="3" y="2" width="18" height="20" rx="2" /></clipPath></defs><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /><path class="sw-l" clip-path="url(#sw-clip)" d="M 3 4 L 21 14.4 M 3 11 L 21 21.4 M 3 18 L 10 22 M 3 14.4 L 21 4 M 3 21.4 L 21 11 M 14 2 L 21 6 M 3 8 L 13 2 M 12 2.5 V 21.5" /></svg>
+        </button>
+        <button class="pbtn sep" type="button" data-scheme-toggle aria-label="Dark paper" aria-pressed="false">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle class="sw-frame" cx="12" cy="12" r="7.5" /><path class="sw-d" d="M 12 4.5 A 7.5 7.5 0 0 1 12 19.5 Z" /></svg>
+        </button>
       </div>
+
+      <nav id="links" class="xi" aria-label="Links">
+        <a class="ilink" data-link="github" href="https://github.com/itama8/not-padgtp" aria-label="Star not-padgtp on GitHub">
+          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="logo-gh" d="M12 0c6.63 0 12 5.276 12 11.79-.001 5.067-3.29 9.567-8.175 11.187-.6.118-.825-.25-.825-.56 0-.398.015-1.665.015-3.242 0-1.105-.375-1.813-.81-2.181 2.67-.295 5.475-1.297 5.475-5.822 0-1.297-.465-2.344-1.23-3.169.12-.295.54-1.503-.12-3.125 0 0-1.005-.324-3.3 1.209a11.32 11.32 0 00-3-.398c-1.02 0-2.04.133-3 .398-2.295-1.518-3.3-1.209-3.3-1.209-.66 1.622-.24 2.83-.12 3.125-.765.825-1.23 1.887-1.23 3.169 0 4.51 2.79 5.527 5.46 5.822-.345.294-.66.81-.765 1.577-.69.31-2.415.81-3.495-.973-.225-.354-.9-1.223-1.845-1.209-1.005.015-.405.56.015.781.51.28 1.095 1.327 1.23 1.666.24.663 1.02 1.93 4.035 1.385 0 .988.015 1.916.015 2.196 0 .31-.225.664-.825.56C3.303 21.374-.003 16.867 0 11.791 0 5.276 5.37 0 12 0z" /><path class="star" d="M 20.5 -1.2 L 21.6 1.1 L 24.1 1.4 L 22.3 3.1 L 22.7 5.6 L 20.5 4.4 L 18.3 5.6 L 18.7 3.1 L 16.9 1.4 L 19.4 1.1 Z" /></svg>
+        </a>
+      </nav>
     </section>
 
-    <p id="hint">
-      hold to x-ray<span class="sub"> · tap to keep<span class="fine"> · or hold alt</span></span>
-    </p>
+    <div id="hint">
+      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, hold Alt, or press Enter on the wordmark.</span>
+      <svg viewBox="0 0 76 30" aria-hidden="true">
+        <circle class="h-ring s" cx="10" cy="15" r="8" />
+        <circle class="h-dot" cx="10" cy="15" r="3" />
+        <path class="h-path s" pathLength="1" d="M21 15 H49" />
+        <path class="h-head s" d="M45.5 11.5 L49 15 L45.5 18.5" />
+        <rect class="h-tile s" x="55" y="6" width="18" height="18" rx="2.5" />
+      </svg>
+    </div>
   </div>
 
   <script>
     (() => {
-      // ---- Links. Fill these in; empty ones show "link coming soon" when followed. ----
+      // ---- Links. Empty ones give a small "not yet" shake when followed. ----
       const LINKS = {
-        source: '',   // TODO: desktop source code repository URL
-        progress: '', // TODO: where to follow progress (blog, newsletter, social)
-        waitlist: ''  // TODO: phone app waitlist URL
+        github: 'https://github.com/itama8/not-padgtp'
       };
 
       const $ = (s, r = document) => r.querySelector(s);
-      const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
-      const leaders = $('#leaders'), pressG = $('#press'), move = $('#move');
-      const moveLine = move.children[0], moveHead = move.children[1];
-      const xray = $('#xray');
-      const links = [...xray.querySelectorAll('a[data-link]')];
       const NS = 'http://www.w3.org/2000/svg';
+
+      // ---- paper: a ruling plus light/dark, remembered per viewer ----
+      const RULINGS = ['blank', 'ruled', 'grid', 'graph', 'dots', 'iso'];
+      const prefs = { ruling: 'blank', scheme: '' };
+      try { Object.assign(prefs, JSON.parse(localStorage.getItem('npg.paper') || '{}')); } catch (_) {}
+      if (!RULINGS.includes(prefs.ruling)) prefs.ruling = 'blank';
+      const savePrefs = () => { try { localStorage.setItem('npg.paper', JSON.stringify(prefs)); } catch (_) {} };
+
+      const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
+      const pressG = $('#press'), move = $('#move');
+      const moveLine = move.children[0], moveHead = move.children[1];
+      const xray = $('#xray'), linksBox = $('#links');
+      const tiles = [...xray.querySelectorAll('.tile')];
+      const papersBox = $('#papers');
+      const pbtns = [...papersBox.querySelectorAll('.pbtn')];
+      const darkQuery = matchMedia('(prefers-color-scheme: dark)');
+      const links = [...xray.querySelectorAll('a[data-link]')];
+      const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+      // Pen strokes need pathLength, which is most reliable on <path>: turn pen circles and rects into paths.
+      const toPath = (el) => {
+        const n = (a) => parseFloat(el.getAttribute(a) || '0');
+        let d;
+        if (el.tagName === 'circle') {
+          const cx = n('cx'), cy = n('cy'), r = n('r');
+          d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy}`;
+        } else {
+          const x = n('x'), y = n('y'), w = n('width'), h = n('height'), r = Math.min(n('rx'), w / 2, h / 2);
+          d = `M ${x + r} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w} ${y + r} V ${y + h - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x + r} A ${r} ${r} 0 0 1 ${x} ${y + h - r} V ${y + r} A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
+        }
+        const p = document.createElementNS(NS, 'path');
+        for (const a of el.attributes) if (!['cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'rx'].includes(a.name)) p.setAttribute(a.name, a.value);
+        p.setAttribute('d', d);
+        el.replaceWith(p);
+      };
+      xray.querySelectorAll('circle.pen, rect.pen').forEach(toPath);
+      xray.querySelectorAll('.pen').forEach((p) => p.setAttribute('pathLength', '1'));
+      // ---- AI that can plug in. Brand marks belong to their owners; monochrome glyphs from
+      //      @lobehub/icons-static-svg 1.102.0 (MIT), reduced to path data. 'any' is our own drawing.
+      //      o: an optical nudge in icon units, to the midpoint of each glyph's box centre and ink centroid. ----
+      const AIS = [
+        { id: 'any', soon: true, label: 'Any AI you bring', stroke: ['M 9 3.5 V 8.5', 'M 15 3.5 V 8.5', 'M 7 8.5 H 17 V 13 Q 17 17 12 17 Q 7 17 7 13 Z', 'M 12 17 V 21'] },
+        { id: "openai", label: "OpenAI", paths: [["M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z"]] },
+        { id: "claude", o: [-0.2, 0.2], label: "Claude", paths: [["M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z"]] },
+        { id: "gemini", label: "Gemini", paths: [["M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"]] },
+        { id: "meta", o: [0.1, 0], label: "Meta Llama", paths: [["M6.897 4c1.915 0 3.516.932 5.43 3.376l.282-.373c.19-.246.383-.484.58-.71l.313-.35C14.588 4.788 15.792 4 17.225 4c1.273 0 2.469.557 3.491 1.516l.218.213c1.73 1.765 2.917 4.71 3.053 8.026l.011.392.002.25c0 1.501-.28 2.759-.818 3.7l-.14.23-.108.153c-.301.42-.664.758-1.086 1.009l-.265.142-.087.04a3.493 3.493 0 01-.302.118 4.117 4.117 0 01-1.33.208c-.524 0-.996-.067-1.438-.215-.614-.204-1.163-.56-1.726-1.116l-.227-.235c-.753-.812-1.534-1.976-2.493-3.586l-1.43-2.41-.544-.895-1.766 3.13-.343.592C7.597 19.156 6.227 20 4.356 20c-1.21 0-2.205-.42-2.936-1.182l-.168-.184c-.484-.573-.837-1.311-1.043-2.189l-.067-.32a8.69 8.69 0 01-.136-1.288L0 14.468c.002-.745.06-1.49.174-2.23l.1-.573c.298-1.53.828-2.958 1.536-4.157l.209-.34c1.177-1.83 2.789-3.053 4.615-3.16L6.897 4zm-.033 2.615l-.201.01c-.83.083-1.606.673-2.252 1.577l-.138.199-.01.018c-.67 1.017-1.185 2.378-1.456 3.845l-.004.022a12.591 12.591 0 00-.207 2.254l.002.188c.004.18.017.36.04.54l.043.291c.092.503.257.908.486 1.208l.117.137c.303.323.698.492 1.17.492 1.1 0 1.796-.676 3.696-3.641l2.175-3.4.454-.701-.139-.198C9.11 7.3 8.084 6.616 6.864 6.616zm10.196-.552l-.176.007c-.635.048-1.223.359-1.82.933l-.196.198c-.439.462-.887 1.064-1.367 1.807l.266.398c.18.274.362.56.55.858l.293.475 1.396 2.335.695 1.114c.583.926 1.03 1.6 1.408 2.082l.213.262c.282.326.529.54.777.673l.102.05c.227.1.457.138.718.138.176.002.35-.023.518-.073.338-.104.61-.32.813-.637l.095-.163.077-.162c.194-.459.29-1.06.29-1.785l-.006-.449c-.08-2.871-.938-5.372-2.2-6.798l-.176-.189c-.67-.683-1.444-1.074-2.27-1.074z"]] },
+        { id: "mistral", o: [0, -0.55], label: "Mistral", paths: [["M3.428 3.4h3.429v3.428h3.429v3.429h-.002 3.431V6.828h3.427V3.4h3.43v13.714H24v3.429H13.714v-3.428h-3.428v-3.429h-3.43v3.428h3.43v3.429H0v-3.429h3.428V3.4zm10.286 13.715h3.428v-3.429h-3.427v3.429z"]] },
+        { id: "deepseek", o: [0.35, 0.45], label: "DeepSeek", paths: [["M23.748 4.482c-.254-.124-.364.113-.512.234-.051.039-.094.09-.137.136-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.156-.708-.311-.955-.65-.172-.241-.219-.51-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.093.172.187.129.323-.082.28-.18.552-.266.833-.055.179-.137.217-.329.14a5.526 5.526 0 01-1.736-1.18c-.857-.828-1.631-1.742-2.597-2.458a11.365 11.365 0 00-.689-.471c-.985-.957.13-1.743.388-1.836.27-.098.093-.432-.779-.428-.872.004-1.67.295-2.687.684a3.055 3.055 0 01-.465.137 9.597 9.597 0 00-2.883-.102c-1.885.21-3.39 1.102-4.497 2.623C.082 8.606-.231 10.684.152 12.85c.403 2.284 1.569 4.175 3.36 5.653 1.858 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.133-.284 4.994-1.86.47.234.962.327 1.78.397.63.059 1.236-.03 1.705-.128.735-.156.684-.837.419-.961-2.155-1.004-1.682-.595-2.113-.926 1.096-1.296 2.746-2.642 3.392-7.003.05-.347.007-.565 0-.845-.004-.17.035-.237.23-.256a4.173 4.173 0 001.545-.475c1.396-.763 1.96-2.015 2.093-3.517.02-.23-.004-.467-.247-.588zM11.581 18c-2.089-1.642-3.102-2.183-3.52-2.16-.392.024-.321.471-.235.763.09.288.207.486.371.739.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.167-1.361-.802-2.5-1.86-3.301-3.307-.774-1.393-1.224-2.887-1.298-4.482-.02-.386.093-.522.477-.592a4.696 4.696 0 011.529-.039c2.132.312 3.946 1.265 5.468 2.774.868.86 1.525 1.887 2.202 2.891.72 1.066 1.494 2.082 2.48 2.914.348.292.625.514.891.677-.802.09-2.14.11-3.054-.614zm1-6.44a.306.306 0 01.415-.287.302.302 0 01.2.288.306.306 0 01-.31.307.303.303 0 01-.304-.308zm3.11 1.596c-.2.081-.399.151-.59.16a1.245 1.245 0 01-.798-.254c-.274-.23-.47-.358-.552-.758a1.73 1.73 0 01.016-.588c.07-.327-.008-.537-.239-.727-.187-.156-.426-.199-.688-.199a.559.559 0 01-.254-.078c-.11-.054-.2-.19-.114-.358.028-.054.16-.186.192-.21.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.391.451.462.576.685.914.176.265.336.537.445.848.067.195-.019.354-.25.452z"]] },
+        { id: "grok", o: [-0.35, 0], label: "Grok", paths: [["M9.27 15.29l7.978-5.897c.391-.29.95-.177 1.137.272.98 2.369.542 5.215-1.41 7.169-1.951 1.954-4.667 2.382-7.149 1.406l-2.711 1.257c3.889 2.661 8.611 2.003 11.562-.953 2.341-2.344 3.066-5.539 2.388-8.42l.006.007c-.983-4.232.242-5.924 2.75-9.383.06-.082.12-.164.179-.248l-3.301 3.305v-.01L9.267 15.292M7.623 16.723c-2.792-2.67-2.31-6.801.071-9.184 1.761-1.763 4.647-2.483 7.166-1.425l2.705-1.25a7.808 7.808 0 00-1.829-1A8.975 8.975 0 005.984 5.83c-2.533 2.536-3.33 6.436-1.962 9.764 1.022 2.487-.653 4.246-2.34 6.022-.599.63-1.199 1.259-1.682 1.925l7.62-6.815"]] },
+        { id: "qwen", o: [0.1, 0], label: "Qwen", paths: [["M19.713 2.825h-5.907c0-.251-.066-.503-.196-.728L12.819.728A1.46 1.46 0 0 0 11.559 0h-1.58c-.52 0-1 .275-1.26.728l-2.42 4.19a1.45 1.45 0 0 0 0 1.453l.791 1.37c.26.448.74.727 1.26.727h11.36c.52 0 1-.275 1.26-.728l.79-1.37a1.45 1.45 0 0 0 0-1.451l-.79-1.37a1.46 1.46 0 0 0-1.26-.728zM.195 9.905l2.951 5.115a1.46 1.46 0 0 0-.531.531l-.791 1.37a1.45 1.45 0 0 0 0 1.452l.79 1.37c.26.448.74.727 1.26.727h4.84c.52 0 1-.275 1.26-.728l.79-1.37a1.45 1.45 0 0 0 0-1.451L5.086 7.083a1.46 1.46 0 0 0-1.26-.728h-1.58c-.52 0-1 .276-1.26.728l-.79 1.37a1.45 1.45 0 0 0 0 1.452m15.888 13.367 2.951-5.115c.217.125.469.196.728.196h1.582c.52 0 1-.275 1.26-.728l.79-1.37a1.45 1.45 0 0 0 0-1.451l-2.42-4.191a1.46 1.46 0 0 0-1.259-.728h-1.582c-.52 0-1 .276-1.259.728l-5.678 9.838a1.45 1.45 0 0 0 0 1.452l.79 1.37c.26.448.74.727 1.26.727h1.582c.52 0 1-.275 1.26-.728z"]] },
+        { id: "perplexity", soon: true, label: "Perplexity", paths: [["M19.785 0v7.272H22.5V17.62h-2.935V24l-7.037-6.194v6.145h-1.091v-6.152L4.392 24v-6.465H1.5V7.188h2.884V0l7.053 6.494V.19h1.09v6.49L19.786 0zm-7.257 9.044v7.319l5.946 5.234V14.44l-5.946-5.397zm-1.099-.08l-5.946 5.398v7.235l5.946-5.234V8.965zm8.136 7.58h1.844V8.349H13.46l6.105 5.54v2.655zm-8.982-8.28H2.59v8.195h1.8v-2.576l6.192-5.62zM5.475 2.476v4.71h5.115l-5.115-4.71zm13.219 0l-5.115 4.71h5.115v-4.71z"]] },
+        { id: "huggingface", o: [0, -0.85], label: "Hugging Face", paths: [["M16.781 3.277c2.997 1.704 4.844 4.851 4.844 8.258 0 .995-.155 1.955-.443 2.857a1.332 1.332 0 011.125.4 1.41 1.41 0 01.2 1.723c.204.165.352.385.428.632l.017.062c.06.222.12.69-.2 1.166.244.37.279.836.093 1.236-.255.57-.893 1.018-2.128 1.5l-.202.078-.131.048c-.478.173-.89.295-1.061.345l-.086.024c-.89.243-1.808.375-2.732.394-1.32 0-2.3-.36-2.923-1.067a9.852 9.852 0 01-3.18.018C9.778 21.647 8.802 22 7.494 22a11.249 11.249 0 01-2.541-.343l-.221-.06-.273-.08a16.574 16.574 0 01-1.175-.405c-1.237-.483-1.875-.93-2.13-1.501-.186-.4-.151-.867.093-1.236a1.42 1.42 0 01-.2-1.166c.069-.273.226-.516.447-.694a1.41 1.41 0 01.2-1.722c.233-.248.557-.391.917-.407l.078-.001a9.385 9.385 0 01-.44-2.85c0-3.407 1.847-6.554 4.844-8.258a9.822 9.822 0 019.687 0zM4.188 14.758c.125.687 2.357 2.35 2.14 2.707-.19.315-.796-.239-.948-.386l-.041-.04-.168-.147c-.561-.479-2.304-1.9-2.74-1.432-.43.46.119.859 1.055 1.42l.784.467.136.083c1.045.643 1.12.84.95 1.113-.188.295-3.07-2.1-3.34-1.083-.27 1.011 2.942 1.304 2.744 2.006-.2.7-2.265-1.324-2.685-.537-.425.79 2.913 1.718 2.94 1.725l.16.04.175.042c1.227.284 3.565.65 4.435-.604.673-.973.64-1.709-.248-2.61l-.057-.057c-.945-.928-1.495-2.288-1.495-2.288l-.017-.058-.025-.072c-.082-.22-.284-.639-.63-.584-.46.073-.798 1.21.12 1.933l.05.038c.977.721-.195 1.21-.573.534l-.058-.104-.143-.25c-.463-.799-1.282-2.111-1.739-2.397-.532-.332-.907-.148-.782.541zm14.842-.541c-.533.335-1.563 2.074-1.94 2.751a.613.613 0 01-.687.302.436.436 0 01-.176-.098.303.303 0 01-.049-.06l-.014-.028-.008-.02-.007-.019-.003-.013-.003-.017a.289.289 0 01-.004-.048c0-.12.071-.266.25-.427.026-.024.054-.047.084-.07l.047-.036c.022-.016.043-.032.063-.049.883-.71.573-1.81.131-1.917l-.031-.006-.056-.004a.368.368 0 00-.062.006l-.028.005-.042.014-.039.017-.028.015-.028.019-.036.027-.023.02c-.173.158-.273.428-.31.542l-.016.054s-.53 1.309-1.439 2.234l-.054.054c-.365.358-.596.69-.702 1.018-.143.437-.066.868.21 1.353.055.097.117.195.187.296.882 1.275 3.282.876 4.494.59l.286-.07.25-.074c.276-.084.736-.233 1.2-.42l.188-.077.065-.028.064-.028.124-.056.081-.038c.529-.252.964-.543.994-.827l.001-.036a.299.299 0 00-.037-.139c-.094-.176-.271-.212-.491-.168l-.045.01c-.044.01-.09.024-.136.04l-.097.035-.054.022c-.559.23-1.238.705-1.607.745h.006a.452.452 0 01-.05.003h-.024l-.024-.003-.023-.005c-.068-.016-.116-.06-.14-.142a.22.22 0 01-.005-.1c.062-.345.958-.595 1.713-.91l.066-.028c.528-.224.97-.483.985-.832v-.04a.47.47 0 00-.016-.098c-.048-.18-.175-.251-.36-.251-.785 0-2.55 1.36-2.92 1.36-.025 0-.048-.007-.058-.024a.6.6 0 01-.046-.088c-.1-.238.068-.462 1.06-1.066l.209-.126c.538-.32 1.01-.588 1.341-.831.29-.212.475-.406.503-.6l.003-.028c.008-.113-.038-.227-.147-.344a.266.266 0 00-.07-.054l-.034-.015-.013-.005a.403.403 0 00-.13-.02c-.162 0-.369.07-.595.18-.637.313-1.431.952-1.826 1.285l-.249.215-.033.033c-.08.078-.288.27-.493.386l-.071.037-.041.019a.535.535 0 01-.122.036h.005a.346.346 0 01-.031.003l.01-.001-.013.001c-.079.005-.145-.021-.19-.095a.113.113 0 01-.014-.065c.027-.465 2.034-1.991 2.152-2.642l.009-.048c.1-.65-.271-.817-.791-.493zM11.938 2.984c-4.798 0-8.688 3.829-8.688 8.55 0 .692.083 1.364.24 2.008l.008-.009c.252-.298.612-.46 1.017-.46.355.008.699.117.993.312.22.14.465.384.715.694.261-.372.69-.598 1.15-.605.852 0 1.367.728 1.562 1.383l.047.105.06.127c.192.396.595 1.139 1.143 1.68 1.06 1.04 1.324 2.115.8 3.266a8.865 8.865 0 002.024-.014c-.505-1.12-.26-2.17.74-3.186l.066-.066c.695-.684 1.157-1.69 1.252-1.912.195-.655.708-1.383 1.56-1.383.46.007.889.233 1.15.605.25-.31.495-.553.718-.694a1.87 1.87 0 01.99-.312c.357 0 .682.126.925.36.14-.61.215-1.245.215-1.898 0-4.722-3.89-8.55-8.687-8.55zm1.857 8.926l.439-.212c.553-.264.89-.383.89.152 0 1.093-.771 3.208-3.155 3.262h-.184c-2.325-.052-3.116-2.06-3.156-3.175l-.001-.087c0-1.107 1.452.586 3.25.586.716 0 1.379-.272 1.917-.526zm4.017-3.143c.45 0 .813.358.813.8 0 .441-.364.8-.813.8a.806.806 0 01-.812-.8c0-.442.364-.8.812-.8zm-11.624 0c.448 0 .812.358.812.8 0 .441-.364.8-.812.8a.806.806 0 01-.813-.8c0-.442.364-.8.813-.8zm7.79-.841c.32-.384.846-.54 1.33-.394.483.146.83.564.878 1.06.048.495-.212.97-.659 1.203-.322.168-.447-.477-.767-.585l.002-.003c-.287-.098-.772.362-.925.079a1.215 1.215 0 01.14-1.36zm-4.323 0c.322.384.377.92.14 1.36-.152.283-.64-.177-.925-.079l.003.003c-.108.036-.194.134-.273.24l-.118.165c-.11.15-.22.262-.377.18a1.226 1.226 0 01-.658-1.204c.048-.495.395-.913.878-1.059a1.262 1.262 0 011.33.394z"]] },
+        { id: "ollama", o: [0, 0.85], soon: true, label: "Ollama, local models", paths: [["M7.905 1.09c.216.085.411.225.588.41.295.306.544.744.734 1.263.191.522.315 1.1.362 1.68a5.054 5.054 0 012.049-.636l.051-.004c.87-.07 1.73.087 2.48.474.101.053.2.11.297.17.05-.569.172-1.134.36-1.644.19-.52.439-.957.733-1.264a1.67 1.67 0 01.589-.41c.257-.1.53-.118.796-.042.401.114.745.368 1.016.737.248.337.434.769.561 1.287.23.934.27 2.163.115 3.645l.053.04.026.019c.757.576 1.284 1.397 1.563 2.35.435 1.487.216 3.155-.534 4.088l-.018.021.002.003c.417.762.67 1.567.724 2.4l.002.03c.064 1.065-.2 2.137-.814 3.19l-.007.01.01.024c.472 1.157.62 2.322.438 3.486l-.006.039a.651.651 0 01-.747.536.648.648 0 01-.54-.742c.167-1.033.01-2.069-.48-3.123a.643.643 0 01.04-.617l.004-.006c.604-.924.854-1.83.8-2.72-.046-.779-.325-1.544-.8-2.273a.644.644 0 01.18-.886l.009-.006c.243-.159.467-.565.58-1.12a4.229 4.229 0 00-.095-1.974c-.205-.7-.58-1.284-1.105-1.683-.595-.454-1.383-.673-2.38-.61a.653.653 0 01-.632-.371c-.314-.665-.772-1.141-1.343-1.436a3.288 3.288 0 00-1.772-.332c-1.245.099-2.343.801-2.67 1.686a.652.652 0 01-.61.425c-1.067.002-1.893.252-2.497.703-.522.39-.878.935-1.066 1.588a4.07 4.07 0 00-.068 1.886c.112.558.331 1.02.582 1.269l.008.007c.212.207.257.53.109.785-.36.622-.629 1.549-.673 2.44-.05 1.018.186 1.902.719 2.536l.016.019a.643.643 0 01.095.69c-.576 1.236-.753 2.252-.562 3.052a.652.652 0 01-1.269.298c-.243-1.018-.078-2.184.473-3.498l.014-.035-.008-.012a4.339 4.339 0 01-.598-1.309l-.005-.019a5.764 5.764 0 01-.177-1.785c.044-.91.278-1.842.622-2.59l.012-.026-.002-.002c-.293-.418-.51-.953-.63-1.545l-.005-.024a5.352 5.352 0 01.093-2.49c.262-.915.777-1.701 1.536-2.269.06-.045.123-.09.186-.132-.159-1.493-.119-2.73.112-3.67.127-.518.314-.95.562-1.287.27-.368.614-.622 1.015-.737.266-.076.54-.059.797.042zm4.116 9.09c.936 0 1.8.313 2.446.855.63.527 1.005 1.235 1.005 1.94 0 .888-.406 1.58-1.133 2.022-.62.375-1.451.557-2.403.557-1.009 0-1.871-.259-2.493-.734-.617-.47-.963-1.13-.963-1.845 0-.707.398-1.417 1.056-1.946.668-.537 1.55-.849 2.485-.849zm0 .896a3.07 3.07 0 00-1.916.65c-.461.37-.722.835-.722 1.25 0 .428.21.829.61 1.134.455.347 1.124.548 1.943.548.799 0 1.473-.147 1.932-.426.463-.28.7-.686.7-1.257 0-.423-.246-.89-.683-1.256-.484-.405-1.14-.643-1.864-.643zm.662 1.21l.004.004c.12.151.095.37-.056.49l-.292.23v.446a.375.375 0 01-.376.373.375.375 0 01-.376-.373v-.46l-.271-.218a.347.347 0 01-.052-.49.353.353 0 01.494-.051l.215.172.22-.174a.353.353 0 01.49.051zm-5.04-1.919c.478 0 .867.39.867.871a.87.87 0 01-.868.871.87.87 0 01-.867-.87.87.87 0 01.867-.872zm8.706 0c.48 0 .868.39.868.871a.87.87 0 01-.868.871.87.87 0 01-.867-.87.87.87 0 01.867-.872zM7.44 2.3l-.003.002a.659.659 0 00-.285.238l-.005.006c-.138.189-.258.467-.348.832-.17.692-.216 1.631-.124 2.782.43-.128.899-.208 1.404-.237l.01-.001.019-.034c.046-.082.095-.161.148-.239.123-.771.022-1.692-.253-2.444-.134-.364-.297-.65-.453-.813a.628.628 0 00-.107-.09L7.44 2.3zm9.174.04l-.002.001a.628.628 0 00-.107.09c-.156.163-.32.45-.453.814-.29.794-.387 1.776-.23 2.572l.058.097.008.014h.03a5.184 5.184 0 011.466.212c.086-1.124.038-2.043-.128-2.722-.09-.365-.21-.643-.349-.832l-.004-.006a.659.659 0 00-.285-.239h-.004z"]] },
+        { id: "openrouter", o: [-0.55, -0.33], label: "OpenRouter", paths: [["M18.654 3.87a5.087 5.087 0 110 10.174L23.7 19.09c.64.641.187 1.737-.72 1.737H8.48a8.479 8.479 0 010-16.958h10.175zM8.479 7.26a5.087 5.087 0 100 10.176 5.087 5.087 0 000-10.175z"]] },
+        { id: "githubcopilot", label: "GitHub Copilot", paths: [["M19.245 5.364c1.322 1.36 1.877 3.216 2.11 5.817.622 0 1.2.135 1.592.654l.73.964c.21.278.323.61.323.955v2.62c0 .339-.173.669-.453.868C20.239 19.602 16.157 21.5 12 21.5c-4.6 0-9.205-2.583-11.547-4.258-.28-.2-.452-.53-.453-.868v-2.62c0-.345.113-.679.321-.956l.73-.963c.392-.517.974-.654 1.593-.654l.029-.297c.25-2.446.81-4.213 2.082-5.52 2.461-2.54 5.71-2.851 7.146-2.864h.198c1.436.013 4.685.323 7.146 2.864zm-7.244 4.328c-.284 0-.613.016-.962.05-.123.447-.305.85-.57 1.108-1.05 1.023-2.316 1.18-2.994 1.18-.638 0-1.306-.13-1.851-.464-.516.165-1.012.403-1.044.996a65.882 65.882 0 00-.063 2.884l-.002.48c-.002.563-.005 1.126-.013 1.69.002.326.204.63.51.765 2.482 1.102 4.83 1.657 6.99 1.657 2.156 0 4.504-.555 6.985-1.657a.854.854 0 00.51-.766c.03-1.682.006-3.372-.076-5.053-.031-.596-.528-.83-1.046-.996-.546.333-1.212.464-1.85.464-.677 0-1.942-.157-2.993-1.18-.266-.258-.447-.661-.57-1.108-.32-.032-.64-.049-.96-.05zm-2.525 4.013c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zm5 0c.539 0 .976.426.976.95v1.753c0 .525-.437.95-.976.95a.964.964 0 01-.976-.95v-1.752c0-.525.437-.951.976-.951zM7.635 5.087c-1.05.102-1.935.438-2.385.906-.975 1.037-.765 3.668-.21 4.224.405.394 1.17.657 1.995.657h.09c.649-.013 1.785-.176 2.73-1.11.435-.41.705-1.433.675-2.47-.03-.834-.27-1.52-.63-1.813-.39-.336-1.275-.482-2.265-.394zm6.465.394c-.36.292-.6.98-.63 1.813-.03 1.037.24 2.06.675 2.47.968.957 2.136 1.104 2.776 1.11h.044c.825 0 1.59-.263 1.995-.657.555-.556.765-3.187-.21-4.224-.45-.468-1.335-.804-2.385-.906-.99-.088-1.875.058-2.265.394zM12 7.615c-.24 0-.525.015-.84.044.03.16.045.336.06.526l-.001.159a2.94 2.94 0 01-.014.25c.225-.022.425-.027.612-.028h.366c.187 0 .387.006.612.028-.015-.146-.015-.277-.015-.409.015-.19.03-.365.06-.526a9.29 9.29 0 00-.84-.044z"]] },
+        { id: "cursor", o: [0.35, -0.2], soon: true, label: "Cursor", paths: [["M22.106 5.68L12.5.135a.998.998 0 00-.998 0L1.893 5.68a.84.84 0 00-.419.726v11.186c0 .3.16.577.42.727l9.607 5.547a.999.999 0 00.998 0l9.608-5.547a.84.84 0 00.42-.727V6.407a.84.84 0 00-.42-.726zm-.603 1.176L12.228 22.92c-.063.108-.228.064-.228-.061V12.34a.59.59 0 00-.295-.51l-9.11-5.26c-.107-.062-.063-.228.062-.228h18.55c.264 0 .428.286.296.514z"]] },
+        { id: "codex", label: "Codex", paths: [["M8.086.457a6.105 6.105 0 013.046-.415c1.333.153 2.521.72 3.564 1.7a.117.117 0 00.107.029c1.408-.346 2.762-.224 4.061.366l.063.03.154.076c1.357.703 2.33 1.77 2.918 3.198.278.679.418 1.388.421 2.126a5.655 5.655 0 01-.18 1.631.167.167 0 00.04.155 5.982 5.982 0 011.578 2.891c.385 1.901-.01 3.615-1.183 5.14l-.182.22a6.063 6.063 0 01-2.934 1.851.162.162 0 00-.108.102c-.255.736-.511 1.364-.987 1.992-1.199 1.582-2.962 2.462-4.948 2.451-1.583-.008-2.986-.587-4.21-1.736a.145.145 0 00-.14-.032c-.518.167-1.04.191-1.604.185a5.924 5.924 0 01-2.595-.622 6.058 6.058 0 01-2.146-1.781c-.203-.269-.404-.522-.551-.821a7.74 7.74 0 01-.495-1.283 6.11 6.11 0 01-.017-3.064.166.166 0 00.008-.074.115.115 0 00-.037-.064 5.958 5.958 0 01-1.38-2.202 5.196 5.196 0 01-.333-1.589 6.915 6.915 0 01.188-2.132c.45-1.484 1.309-2.648 2.577-3.493.282-.188.55-.334.802-.438.286-.12.573-.22.861-.304a.129.129 0 00.087-.087A6.016 6.016 0 015.635 2.31C6.315 1.464 7.132.846 8.086.457zm-.804 7.85a.848.848 0 00-1.473.842l1.694 2.965-1.688 2.848a.849.849 0 001.46.864l1.94-3.272a.849.849 0 00.007-.854l-1.94-3.393zm5.446 6.24a.849.849 0 000 1.695h4.848a.849.849 0 000-1.696h-4.848z"]] },
+        { id: "claudecode", o: [0, -0.1], soon: true, label: "Claude Code", paths: [["M20.998 10.949H24v3.102h-3v3.028h-1.487V20H18v-2.921h-1.487V20H15v-2.921H9V20H7.488v-2.921H6V20H4.487v-2.921H3V14.05H0V10.95h3V5h17.998v5.949zM6 10.949h1.488V8.102H6v2.847zm10.51 0H18V8.102h-1.49v2.847z"]] }
+      ];
+      // A six-point asterisk, centred on 0,0: the footnote mark for "coming soon".
+      const ASTERISK = '<path class="ast" d="M 0 -3.2 V 3.2 M -2.77 -1.6 L 2.77 1.6 M -2.77 1.6 L 2.77 -1.6" />';
+      $('#soon-mark').innerHTML = ASTERISK;
+      const aisBox = $('#ais'), aiLinks = $('#ai-links'), soonNote = $('#soon');
+      const ais = AIS.map((a) => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'ai'; b.dataset.ai = a.id;
+        b.setAttribute('aria-label', a.label + (a.soon ? '. Coming soon.' : '. Supported.'));
+        if (a.soon) b.classList.add('soon');
+        const body = a.stroke
+          ? a.stroke.map((d) => `<path class="logo-s" d="${d}" />`).join('')
+          : a.paths.map(([d, fr]) => `<path class="logo" d="${d}"${fr ? ` fill-rule="${fr}"` : ''} />`).join('');
+        b.innerHTML = `<svg class="ic" viewBox="-5 -5 34 34" aria-hidden="true"><circle class="ring" cx="12" cy="12" r="16.5" />`
+          + `<g class="logo-g" transform="translate(12 12) scale(.82) translate(${(a.o ? a.o[0] : 0) - 12} ${(a.o ? a.o[1] : 0) - 12})">${body}</g>`
+          + (a.soon ? `<g transform="translate(23.7 .3)"><circle class="ast-bg" r="4.6" />${ASTERISK}</g>` : '') + `</svg>`;
+        aisBox.appendChild(b);
+        return b;
+      });
+      const agentsTile = document.querySelector('.tile[data-task="agents"]');
+      const plugOf = new Map();
+      const flowOut = () => {
+        plugOf.forEach((l) => { l.classList.remove('out', 'in'); void l.getBBox(); l.classList.add('out'); });
+        clearTimeout(flowOut._t);
+        flowOut._t = setTimeout(() => plugOf.forEach((l) => l.classList.remove('out')), 1600);
+      };
+      const tileParts = new Map(tiles.map((t) => [t, [...t.querySelectorAll('.pen, .pop')]]));
 
       // ---- links: real or placeholder ----
       links.forEach((a) => {
         const url = LINKS[a.dataset.link];
-        a.dataset.label = a.textContent;
         if (url) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; }
-        else a.dataset.placeholder = '';
+        else { a.dataset.placeholder = ''; a.setAttribute('aria-label', a.getAttribute('aria-label') + '. Not available yet.'); }
         a.addEventListener('click', (e) => {
           if (!('placeholder' in a.dataset)) return;
           e.preventDefault();
-          a.textContent = 'link coming soon';
-          clearTimeout(a._t);
-          a._t = setTimeout(() => { a.textContent = a.dataset.label; }, 1800);
+          a.classList.remove('nope'); void a.offsetWidth; a.classList.add('nope');
         });
       });
+
+      // ---- tile demos ----
+      const play = (t) => {
+        t.classList.remove('play'); void t.getBoundingClientRect(); t.classList.add('play');
+        if (t === agentsTile) setTimeout(flowOut, 550);
+        clearTimeout(t._t);
+        t._t = setTimeout(() => t.classList.remove('play'), 2300);
+      };
+      tiles.forEach((t) => {
+        t.addEventListener('click', () => { play(t); pauseDemo(); });
+        t.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') play(t); });
+      });
+
+      // While kept and idle, the tiles take turns showing what they do.
+      ais.forEach((b) => {
+        b.addEventListener('click', () => {
+          pauseDemo();
+          b.classList.remove('play'); void b.offsetWidth; b.classList.add('play');
+          setTimeout(() => b.classList.remove('play'), 600);
+          const l = plugOf.get(b);
+          if (l) { l.classList.remove('out', 'in'); void l.getBBox(); l.classList.add('in'); setTimeout(() => l.classList.remove('in'), 900); }
+          setTimeout(() => play(agentsTile), 650);      // a request in, then the hub dispatches
+        });
+        b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') { const l = plugOf.get(b); if (l) { l.classList.add('in'); setTimeout(() => l.classList.remove('in'), 900); } } });
+      });
+
+      let order = tiles, demoT = 0, demoI = 0, demoPause = 0;
+      const pauseDemo = () => { demoPause = performance.now() + 7000; };
+      const stopDemo = () => clearTimeout(demoT);
+      const startDemo = () => {
+        stopDemo();
+        if (reduce.matches) return;
+        const tick = () => {
+          if (state !== 'kept') return;
+          if (performance.now() > demoPause) {
+            const vis = order.filter((t) => !t.classList.contains('stowed'));
+            if (vis.length) play(vis[demoI++ % vis.length]);
+          }
+          demoT = setTimeout(tick, 2400);
+        };
+        demoT = setTimeout(tick, 1900);
+      };
 
       // ---- hint memory (a per-viewer convenience only) ----
       let uses = 0;
@@ -341,12 +944,48 @@
       // ---- state: off | peek | kept ----
       let state = 'off';
       const setState = (s) => {
+        const prev = state;
         state = s;
         app.dataset.xray = s;
         app.classList.toggle('is-on', s !== 'off');
         mark.setAttribute('aria-pressed', String(s === 'kept'));
-        if (s === 'off') { move.hidden = true; disarm(); }
+        if (s === 'off') { move.hidden = true; disarm(); stopDemo(); }
+        if (s === 'kept' && prev !== 'kept') startDemo();
       };
+
+      // ---- paper ruling, registered to the wordmark's plane ----
+      const isDark = () => prefs.scheme ? prefs.scheme === 'dark'
+        : (document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : darkQuery.matches);
+      function applyPaper() {
+        const root = document.documentElement;
+        if (prefs.scheme) root.dataset.scheme = prefs.scheme; else delete root.dataset.scheme;
+        $('#paper-fill').setAttribute('fill', prefs.ruling === 'blank' ? 'none' : `url(#pat-${prefs.ruling})`);
+        pbtns.forEach((b) => {
+          if (b.dataset.ruling) b.setAttribute('aria-pressed', String(b.dataset.ruling === prefs.ruling));
+        });
+        const tg = papersBox.querySelector('[data-scheme-toggle]');
+        tg.setAttribute('aria-pressed', String(isDark()));
+        const paperColor = getComputedStyle(root).getPropertyValue('--paper').trim();
+        document.querySelectorAll('meta[name="theme-color"]').forEach((t) => { if (prefs.scheme) t.content = paperColor; });
+        alignPaper();
+      }
+      function alignPaper() {
+        const M = measure();
+        const o = M.P(447, 132);                    // G-T-P registration line x, "Not" baseline y
+        const s = M.s;
+        document.querySelectorAll('#paper pattern').forEach((pt) => pt.setAttribute('patternTransform', `translate(${o.x} ${o.y}) scale(${s})`));
+        document.querySelectorAll('#paper .rl').forEach((el) => el.setAttribute('stroke-width', String(1 / s)));
+        document.querySelectorAll('#paper .dot').forEach((el) => el.setAttribute('r', String(1.15 / s)));
+        const mx = M.safe.l + 56;
+        $('#paper-margin').setAttribute('d', prefs.ruling === 'ruled' ? `M ${mx} 0 V ${M.vh}` : '');
+      }
+      pbtns.forEach((b) => b.addEventListener('click', () => {
+        if (b.dataset.ruling) prefs.ruling = b.dataset.ruling;
+        else prefs.scheme = isDark() ? 'light' : 'dark';
+        savePrefs(); applyPaper(); pauseDemo();
+      }));
+      darkQuery.addEventListener('change', () => applyPaper());
+      applyPaper();
 
       // ---- geometry ----
       const hit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
@@ -355,7 +994,7 @@
         const x = Math.max(r.l, Math.min(c.x, r.r)), y = Math.max(r.t, Math.min(c.y, r.b));
         return (x - c.x) ** 2 + (y - c.y) ** 2 < c.rad * c.rad;
       };
-      const inside = (p, r) => p.x > r.l && p.x < r.r && p.y > r.t && p.y < r.b;
+      const underThumb = (r, thumb) => thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)));
 
       function measure() {
         const ps = getComputedStyle(probe);
@@ -367,73 +1006,38 @@
         const ox = ar.left + (ar.width - 560 * s) / 2, oy = ar.top + (ar.height - 440 * s) / 2;
         const P = (x, y) => ({ x: ox + x * s, y: oy + y * s });
         const box = (x0, y0, x1, y1) => { const a = P(x0, y0), b = P(x1, y1); return { l: a.x, t: a.y, r: b.x, b: b.y }; };
-        const ink = box(138, 98, 462, 420);              // whole drawing
-        const inks = [box(143, 101, 306, 137),            // "Not"
-                      box(278, 163, 438, 212),            // "pad"
-                      box(404, 166, 453, 418)];           // G T P column + registration
+        const ink = box(138, 98, 462, 420);
+        const inks = [box(143, 101, 306, 137), box(278, 163, 438, 212), box(404, 166, 453, 418)];
         const g = Math.max(16, safe.l), gr = Math.max(16, safe.r);
-        const stripY = vh - safe.b - 46;            // top edge of the drawn input surface
-        const wide = ink.l - g >= 240;
-        return { vw, vh, safe, g, gr, P, ink, inks, stripY, wide };
+        const stripY = vh - safe.b - 46;
+        const wide = vw >= 720 && vh >= 520;
+        return { vw, vh, safe, g, gr, P, s, ink, inks, stripY, wide };
       }
 
-      // Each note: where it would like to be, and what its leader points at.
-      const NOTES = {
-        title: { w: (M) => Math.min(M.wide ? 300 : 340, M.vw - M.g - M.gr),
-                 ideal: (M, p, w, h) => M.wide ? { x: M.vw - M.gr - w / 2, y: M.stripY - 22 - h / 2 }
-                                               : { x: M.vw / 2, y: M.safe.t + 16 + h / 2 } },
-        hold:  { ideal: (M, p, w, h) => M.wide ? { x: p.x - 60 - w / 2, y: p.y - 70 - h / 2 }
-                                               : { x: p.x, y: p.y - 76 - h / 2 },
-                 target: (M, p) => p, ring: true },
-        what:  { ideal: (M, p, w, h) => M.wide ? { x: M.ink.l - 28 - w / 2, y: M.P(0, 112).y }
-                                               : { x: M.ink.l + w / 2, y: M.ink.t - 28 - h / 2 },
-                 target: (M) => M.P(222, 110) },
-        xray:  { ideal: (M, p, w, h) => M.wide ? { x: M.ink.r + 28 + w / 2, y: M.P(0, 330).y }
-                                               : { x: M.ink.r - w / 2, y: M.ink.b + 26 + h / 2 },
-                 target: (M) => M.wide ? M.P(447, 335) : M.P(447, 414) },
-        keys:  { ideal: (M, p, w, h) => ({ x: M.g + 8 + w / 2, y: M.stripY - 22 - h / 2 }),
-                 target: (M, p, r) => ({ x: r.l, y: M.stripY }) }
-      };
-      const ORDER = ['title', 'hold', 'what', 'xray', 'keys'];
-
-      // Leader: the note sits on a landing line; the pen draws the landing, then the leader to the target.
-      function leaderGeom(r, t) {
-        const left = t.x < (r.l + r.r) / 2;
-        const y = t.y < r.t ? r.t - 4 : r.b + 3;
-        const near = { x: left ? r.l : r.r, y }, far = { x: left ? r.r : r.l, y };
-        return { near, far };
-      }
-
-      function search(M, w, h, ideal, tfn, p, blockers, thumb) {
-        const xs = [];
-        const minX = M.g, maxX = M.vw - M.gr - w, stepX = M.wide ? 16 : 8;
-        if (maxX <= minX) xs.push(minX);
-        else { for (let x = minX; x < maxX; x += stepX) xs.push(x); xs.push(maxX); }
-        const minY = M.safe.t + 12, maxY = M.stripY - 10 - h;
+      function search(M, w, h, ideal, blockers, thumb) {
+        const xs = [], minX = M.g, maxX = M.vw - M.gr - w;
+        if (maxX <= minX) xs.push(minX); else { for (let x = minX; x < maxX; x += 8) xs.push(x); xs.push(maxX); }
         let best = null, bestScore = Infinity;
-        const crosses = (q) => M.inks.some((k) => inside(q, k));
-        for (let y = minY; y <= maxY; y += 6) {
+        for (let y = M.safe.t + 12; y <= M.stripY - 10 - h; y += 6) {
           for (const x of xs) {
             const r = { l: x, t: y, r: x + w, b: y + h };
-            if (blockers.some((b) => hit(r, b))) continue;
-            if (thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)))) continue;
-            let score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y);
-            if (tfn) {
-              const t = tfn(M, p, r), { near } = leaderGeom(r, t);
-              const len = Math.hypot(t.x - near.x, t.y - near.y);
-              let cross = 0;
-              for (let i = 1; i < 12; i++) {
-                const q = { x: near.x + (t.x - near.x) * i / 12, y: near.y + (t.y - near.y) * i / 12 };
-                if (len * (1 - i / 12) > 30 && crosses(q)) cross++;
-              }
-              score += cross * 120 + len * 0.15;
-            }
+            if (blockers.some((b) => hit(r, b)) || underThumb(r, thumb)) continue;
+            const score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y);
             if (score < bestScore) { bestScore = score; best = r; }
           }
         }
-        return best && { r: best, score: bestScore };
+        return best;
       }
 
+      let SEED = (Math.random() * 2 ** 32) >>> 0;
+      const mulberry = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+      const LAYOUTS = ['ring', 'column', 'bands', 'cluster'];
+      let layoutName = 'ring';
+      const noise = (a, b, c) => {
+        let h = SEED ^ Math.imul(a + 0x9e37, 0x85ebca6b) ^ Math.imul(b + 0x7f4a, 0xc2b2ae35) ^ Math.imul(c + 0x1656, 0x27d4eb2f);
+        h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
+        return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+      };
       let lastPress = null;
 
       function layout(press) {
@@ -450,10 +1054,7 @@
           thumb.push({ x: p.x, y: p.y, rad: 26 });
         }
 
-        // press marker
         pressG.setAttribute('transform', `translate(${p.x} ${p.y})`);
-
-        // input surface: a proposed (dashed) edge where a phone keyboard would rise
         const x0 = M.g, x1 = M.vw - M.gr;
         $('#input-line').setAttribute('d', `M ${x0} ${M.stripY} H ${x1}`);
         $('#input-ticks').setAttribute('d', `M ${x0} ${M.stripY - 5} V ${M.stripY + 5} M ${x1} ${M.stripY - 5} V ${M.stripY + 5}`);
@@ -461,59 +1062,156 @@
         wr.setAttribute('x', x0 - 2); wr.setAttribute('y', M.stripY - 8);
         wr.setAttribute('width', x1 - x0 + 4); wr.setAttribute('height', 16);
 
-        const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 24, t: p.y - 24, r: p.x + 24, b: p.y + 24 }];
-        leaders.textContent = '';
-        let i = 0;
-        for (const key of ORDER) {
-          const N = NOTES[key], el = xray.querySelector(`[data-note="${key}"]`);
-          // Try a few widths; a narrower note may fit beside the thumb. Wider is preferred.
-          const avail = M.vw - M.g - M.gr;
-          const widths = N.w ? [N.w(M)] : (M.wide ? [232, 196] : [204, 170, 142]).map((x) => Math.min(x, avail));
-          let r = null, bestScore = Infinity, bestW = widths[0];
-          for (const w of widths) {
-            el.style.width = w + 'px';
-            const h = el.offsetHeight;
-            const found = search(M, w, h, N.ideal(M, p, w, h), N.target, p, blockers, thumb);
-            const score = found && found.score + (widths[0] - w) * 0.9;
-            if (found && score < bestScore) { bestScore = score; r = found.r; bestW = w; }
-          }
-          el.style.width = bestW + 'px';
-          const d = 760 + i * 90;
-          el.style.setProperty('--d', (d + 120) + 'ms');
-          if (!r) { el.classList.add('stowed'); continue; }   // never under the thumb: stow instead
-          el.classList.remove('stowed');
-          el.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px)`;
-          blockers.push(grow(r, 10));
-          i++;
-          if (!N.target) continue;
-          let t = N.target(M, p, r);
-          const { near, far } = leaderGeom(r, t);
-          if (N.ring) {                                     // stop at the press ring
-            const dx = near.x - t.x, dy = near.y - t.y, L = Math.hypot(dx, dy) || 1;
-            t = { x: t.x + dx / L * 18, y: t.y + dy / L * 18 };
-          }
-          const path = document.createElementNS(NS, 'path');
-          path.setAttribute('class', 'leader pen');
-          path.setAttribute('pathLength', '1');
-          path.setAttribute('d', `M ${far.x} ${far.y} L ${near.x} ${near.y} L ${t.x} ${t.y}`);
-          path.style.setProperty('--d', d + 'ms');
-          path.style.setProperty('--dur', '300ms');
-          leaders.appendChild(path);
-          if (!N.ring) {
-            const node = document.createElementNS(NS, 'circle');
-            node.setAttribute('class', 'lnode');
-            node.setAttribute('r', '2.25');
-            node.setAttribute('cx', t.x); node.setAttribute('cy', t.y);
-            const g = document.createElementNS(NS, 'g');
-            g.setAttribute('class', 'pop');
-            g.style.setProperty('--d', (d + 260) + 'ms');
-            g.appendChild(node);
-            leaders.appendChild(g);
+        const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 26, t: p.y - 26, r: p.x + 26, b: p.y + 26 }];
+
+        // Links: top right, out of the way.
+        const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
+        const lr = search(M, lw, lh, { x: M.vw - M.gr - lw / 2, y: M.safe.t + 12 + lh / 2 }, blockers, thumb);
+        linksBox.classList.toggle('stowed', !lr);
+        linksBox.style.setProperty('--d', '1300ms');
+        if (lr) { linksBox.style.transform = `translate(${Math.round(lr.l)}px, ${Math.round(lr.t)}px)`; blockers.push(grow(lr, 10)); }
+
+        // Paper picker: top left, out of the way.
+        const pw = papersBox.offsetWidth, ph = papersBox.offsetHeight;
+        const pr = search(M, pw, ph, { x: M.g + pw / 2, y: M.safe.t + 12 + ph / 2 }, blockers, thumb);
+        papersBox.classList.toggle('stowed', !pr);
+        papersBox.style.setProperty('--d', '1380ms');
+        if (pr) { papersBox.style.transform = `translate(${Math.round(pr.l)}px, ${Math.round(pr.t)}px)`; blockers.push(grow(pr, 10)); }
+
+        // This reveal's selection: a few tasks (always the AI hub) and a few AIs around it.
+        const rng = mulberry(SEED);
+        const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+        const nTiles = M.wide ? 14 : 10, nAis = M.wide ? 8 : 6;
+        const showTiles = shuffle([agentsTile, ...shuffle(tiles.filter((t) => t !== agentsTile)).slice(0, nTiles - 1)]);
+        const showAis = shuffle(ais).slice(0, nAis);
+        const anySoon = showAis.some((b) => b.classList.contains('soon'));
+
+        // Footnote: bottom-left (in the margin), else bottom-right; never under the thumb.
+        if (!anySoon) soonNote.classList.add('stowed');
+        else {
+          soonNote.style.transform = 'none';
+          const nr = soonNote.getBoundingClientRect(), w = nr.width, h = nr.height;
+          const spots = [{ l: M.safe.l + 22, t: M.stripY - 14 - h }, { l: M.vw - M.safe.r - 22 - w, t: M.stripY - 14 - h }];
+          const spot = spots.map((q) => ({ l: q.l, t: q.t, r: q.l + w, b: q.t + h }))
+            .find((r) => !underThumb(r, thumb) && !blockers.some((q) => hit(r, q)));
+          soonNote.classList.toggle('stowed', !spot);
+          soonNote.style.setProperty('--d', '1500ms');
+          if (spot) {
+            soonNote.style.transform = `translate(${Math.round(spot.l)}px, ${Math.round(spot.t)}px)`;
+            blockers.push(grow(spot, 8));
           }
         }
+
+        // Scatter: tiles and AI badges land on the paper's grid lines, nearest their anchor
+        // plus a seeded jitter, never overlapping, never under the thumb. Tiles get a slight tilt,
+        // like the wordmark's letters.
+        const cell = 16.25 * M.s;
+        const size = Math.max(4, Math.round((M.wide ? 64 : 54) / cell)) * cell;
+        const badge = Math.max(2, Math.round((M.wide ? 42 : 36) / cell)) * cell;
+        const o = M.P(447, 132);
+        const c = { x: (M.ink.l + M.ink.r) / 2, y: (M.ink.t + M.ink.b) / 2 };
+        const placed = [];
+        const place = (w, h, anchor, ring, spread, key, gap) => {
+          let best = null, bestScore = Infinity;
+          const kx0 = Math.ceil((M.g - o.x) / cell), kx1 = Math.floor((M.vw - M.gr - w - o.x) / cell);
+          const ky0 = Math.ceil((M.safe.t + 10 - o.y) / cell), ky1 = Math.floor((M.stripY - 10 - h - o.y) / cell);
+          for (let kx = kx0; kx <= kx1; kx++) {
+            const x = o.x + kx * cell;
+            for (let ky = ky0; ky <= ky1; ky++) {
+              const y = o.y + ky * cell;
+              const r = { l: x, t: y, r: x + w, b: y + h };
+              if (blockers.some((q) => hit(r, q)) || placed.some((q) => hit(r, grow(q, gap))) || underThumb(r, thumb)) continue;
+              const dist = Math.hypot(x + w / 2 - anchor.x, (y + h / 2 - anchor.y) * (M.wide ? 1.25 : 1));
+              const score = Math.abs(dist - ring) + noise(key, kx, ky) * spread;   // prefer a loose ring around the anchor
+              if (score < bestScore) { bestScore = score; best = r; }
+            }
+          }
+          if (best) placed.push(best);
+          return best;
+        };
+
+        // Each layout family gives every tile a target; tiles land on the nearest free grid spot.
+        const n = showTiles.length, top = M.safe.t + 80, bottom = M.stripY - 20;
+        const targets = [];
+        if (layoutName === 'ring') {
+          const a0 = rng() * Math.PI * 2;
+          const rx = (M.ink.r - M.ink.l) / 2 + size * .9, ry = (M.ink.b - M.ink.t) / 2 + size * .9;
+          for (let i = 0; i < n; i++) { const t = a0 + i * Math.PI * 2 / n; targets.push({ x: c.x + rx * Math.cos(t), y: c.y + ry * Math.sin(t) }); }
+        } else if (layoutName === 'column') {
+          const left = rng() < .5;
+          const x = left ? M.g + size / 2 + 4 : M.vw - M.gr - size / 2 - 4;
+          const x2 = left ? x + size * 1.2 : x - size * 1.2;      // a second, shorter column when it doesn't fit
+          const per = Math.max(1, Math.floor((bottom - top) / (size * 1.25)));
+          for (let i = 0; i < n; i++) {
+            const col = i < per ? x : x2, k = i < per ? i : i - per, m = i < per ? Math.min(n, per) : n - per;
+            targets.push({ x: col, y: top + (k + .5) * (bottom - top) / m });
+          }
+        } else if (layoutName === 'bands') {
+          const up = Math.ceil(n / 2), yA = (top + M.ink.t) / 2, yB = (M.ink.b + bottom) / 2;
+          for (let i = 0; i < n; i++) {
+            const row = i < up ? 0 : 1, k = row ? i - up : i, m = row ? n - up : up;
+            targets.push({ x: M.g + (k + .5) * (M.vw - M.g - M.gr) / m, y: row ? yB : yA });
+          }
+        } else {
+          const spots = [{ x: M.vw / 2, y: (top + M.ink.t) / 2 }, { x: M.vw / 2, y: (M.ink.b + bottom) / 2 }];
+          if (M.wide) spots.push({ x: (M.g + M.ink.l) / 2, y: c.y }, { x: (M.ink.r + M.vw - M.gr) / 2, y: c.y });
+          const at = spots[Math.floor(rng() * spots.length)];
+          for (let i = 0; i < n; i++) { const r = size * 1.05 * Math.sqrt(i), t = i * 2.4; targets.push({ x: at.x + r * Math.cos(t), y: at.y + r * Math.sin(t) }); }
+        }
+
+        order = [];
+        tiles.forEach((t) => { if (!showTiles.includes(t)) { t.classList.add('stowed'); t.tabIndex = -1; t._r = null; } });
+        showTiles.forEach((t, i) => {
+          const r = place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
+          t.classList.toggle('stowed', !r);     // never under the thumb: stow instead
+          t.tabIndex = r ? 0 : -1;
+          t._r = r;
+          if (!r) return;
+          order.push(t);
+          const tilt = (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
+          t.style.width = t.style.height = size + 'px';
+          t.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px) rotate(${tilt.toFixed(1)}deg)`;
+          const base = 720 + i * 60;
+          tileParts.get(t).forEach((el, j) => {
+            el.style.setProperty('--d', (base + j * 40) + 'ms');
+            if (el.classList.contains('pen')) el.style.setProperty('--dur', '200ms');
+          });
+        });
+
+        // AI badges gather around the agents tile they plug into.
+        const hub = agentsTile._r && !agentsTile.classList.contains('stowed')
+          ? { x: (agentsTile._r.l + agentsTile._r.r) / 2, y: (agentsTile._r.t + agentsTile._r.b) / 2 } : c;
+        aiLinks.textContent = '';
+        plugOf.clear();
+        ais.forEach((b) => { if (!showAis.includes(b)) { b.classList.add('stowed'); b.tabIndex = -1; } });
+        showAis.forEach((b, i) => {
+          const r = place(badge, badge, hub, size * .7 + badge * .8, badge * 1.6, 100 + ais.indexOf(b), cell * .35);
+          b.classList.toggle('stowed', !r);
+          b.tabIndex = r ? 0 : -1;
+          if (!r) return;
+          b.style.width = b.style.height = badge + 'px';
+          b.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px)`;
+          b.style.setProperty('--d', (1250 + i * 60) + 'ms');
+          if (hub === c) return;
+          const bx = (r.l + r.r) / 2, by = (r.t + r.b) / 2;
+          const line = document.createElementNS(NS, 'path');
+          line.setAttribute('class', 'plug');
+          line.setAttribute('d', `M ${hub.x} ${hub.y} L ${bx} ${by}`);
+          const g = document.createElementNS(NS, 'g');
+          g.setAttribute('class', 'pop');
+          g.style.setProperty('--d', (1350 + i * 60) + 'ms');
+          g.appendChild(line);
+          aiLinks.appendChild(g);
+          plugOf.set(b, line);
+        });
       }
 
       function reveal(press, next) {
+        // Every reveal: a new selection and a different layout from last time.
+        SEED = (Math.random() * 2 ** 32) >>> 0;
+        const pick = LAYOUTS.filter((n) => n !== layoutName);
+        layoutName = pick[Math.floor(Math.random() * pick.length)];
+        app.dataset.layout = layoutName;
         app.classList.add('instant');
         layout(press);
         void app.offsetWidth;                 // commit hidden start state before drawing in
@@ -522,15 +1220,15 @@
         setState(next);
       }
 
-      // ---- follow a path: while holding, drag to a link and let go to open it ----
+      // ---- follow a path: while holding, drag to a tile or link and let go ----
       let armed = null;
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        for (const a of links) {
-          if (a.closest('.stowed')) continue;
-          const r = a.getBoundingClientRect();
-          if (x > r.left - 10 && x < r.right + 10 && y > r.top - 12 && y < r.bottom + 12) { found = a; break; }
+        for (const el of [...tiles, ...ais, ...links, ...pbtns]) {
+          if (el.closest('.stowed')) continue;
+          const r = el.getBoundingClientRect();
+          if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
         }
         if (found !== armed) { disarm(); armed = found; if (armed) armed.classList.add('armed'); }
       }
@@ -538,7 +1236,7 @@
         const dx = x - p.x, dy = y - p.y, L = Math.hypot(dx, dy);
         if (L < 22) { move.hidden = true; return; }
         const ux = dx / L, uy = dy / L, hx = x - ux * 12, hy = y - uy * 12;
-        const sx = p.x + ux * 20, sy = p.y + uy * 20;  // start at the press ring
+        const sx = p.x + ux * 20, sy = p.y + uy * 20;
         moveLine.setAttribute('d', `M ${sx} ${sy} L ${hx} ${hy}`);
         const wx = -uy * 4, wy = ux * 4, bx = x - ux * 7, by = y - uy * 7;
         moveHead.setAttribute('d', `M ${hx} ${hy} L ${x} ${y} M ${bx + wx} ${by + wy} L ${x} ${y} L ${bx - wx} ${by - wy}`);
@@ -550,7 +1248,7 @@
       let press = null;
       app.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 || press) return;
-        if (state === 'kept' && e.target.closest('a')) return;  // links work normally when kept
+        if (state === 'kept' && e.target.closest('a, .tile, .pbtn, .ai')) return;   // tiles and links work normally when kept
         press = { id: e.pointerId, x: e.clientX, y: e.clientY, type: e.pointerType,
                   t: performance.now(), from: state, dist: 0 };
         try { app.setPointerCapture(e.pointerId); } catch (_) {}
@@ -571,7 +1269,9 @@
         move.hidden = true;
         disarm();
         if (target && p.dist >= TAP_PX) {
-          if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
+          if (target.classList.contains('tile')) { setState('kept'); play(target); pauseDemo(); }
+          else if (target.classList.contains('pbtn') || target.classList.contains('ai')) { setState('kept'); target.click(); }
+          else if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
           else { target.click(); setState(p.from === 'kept' ? 'kept' : 'off'); }
         } else if (tap) {
           setState(p.from === 'off' ? 'kept' : 'off');
@@ -586,7 +1286,7 @@
 
       // ---- keyboard: Enter/Space on the wordmark toggles keep; holding Alt peeks; Esc releases ----
       mark.addEventListener('click', (e) => {
-        if (e.detail !== 0) return;          // pointer taps are handled above
+        if (e.detail !== 0) return;
         if (state === 'off') reveal(null, 'kept'); else setState('off');
         used();
       });
@@ -597,6 +1297,7 @@
           if (!e.repeat && state === 'off' && !press) { altPeek = true; reveal(null, 'peek'); }
         } else if (e.key === 'Escape' && state !== 'off') {
           setState('off');
+          mark.focus();
         }
       });
       addEventListener('keyup', (e) => {
@@ -606,7 +1307,7 @@
       });
       addEventListener('blur', () => { altPeek = false; if (state === 'peek') setState('off'); });
 
-      // Tabbing to a link while the x-ray is off keeps it on, so focus is never invisible.
+      // Tabbing into the x-ray while it is off keeps it on, so focus is never invisible.
       xray.addEventListener('focusin', () => { if (state !== 'kept') reveal(null, 'kept'); });
 
       // ---- keep marks registered on resize / rotation ----
@@ -614,6 +1315,7 @@
       addEventListener('resize', () => {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
+          alignPaper();
           if (state === 'off') return;
           app.classList.add('instant');
           layout(lastPress);
