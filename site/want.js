@@ -21,13 +21,13 @@
     countPress?.cancel();
     const restingInk = getComputedStyle(count).fillOpacity;
     if (reduce.matches) {
-      countPress = count.animate([{ fillOpacity: .78 }, { fillOpacity: restingInk }],
+      countPress = count.animate([{ fillOpacity: .96 }, { fillOpacity: restingInk }],
         { duration: 140 });
     } else {
       const timing = { duration: 200, easing: 'cubic-bezier(.2, .7, .25, 1)' };
       labelPress = label.animate([{ transform: 'scale(.82)' }, { transform: 'none' }], timing);
       countPress = count.animate([
-        { transform: 'scale(1.12)', fillOpacity: .78 },
+        { transform: 'scale(1.12)', fillOpacity: .96 },
         { transform: 'none', fillOpacity: restingInk },
       ], timing);
     }
