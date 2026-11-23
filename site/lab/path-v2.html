@@ -1,0 +1,1161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>not-padgtp path lab v2</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font: 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<style>
+/* Layout: Notepad first. The screen is one note of plain text. A thin bar at the bottom is where paths start; the
+   typing strip slides up under it only while typing. The x-ray is a fixed SVG over everything, empty until you hesitate. */
+:root {
+  --paper: #e8ebe5;
+  --ink: #1b201d;
+  --x: #4a3ec2;
+  --text: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.23, 1, .32, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --paper: #121513; --ink: #dce1d8; --x: #ada2ff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --paper: #121513; --ink: #dce1d8; --x: #ada2ff; color-scheme: dark; }
+
+html { height: 100%; box-sizing: border-box; }
+body { height: 100%; overflow: hidden; background: var(--paper); color: var(--ink); overscroll-behavior: none; font-family: var(--ui); }
+*, *::before, *::after { box-sizing: border-box; }
+
+#app { height: 100%; display: flex; flex-direction: column; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
+/* ---------- The note ---------- */
+#view { flex: 1; min-height: 0; position: relative; overflow: hidden; }
+#page {
+  position: absolute; inset: 0; overflow-y: auto; touch-action: pan-y; cursor: text;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40vh;
+  transition: opacity .18s;
+}
+#text {
+  max-width: 68ch; margin: 0 auto; white-space: pre-wrap; overflow-wrap: anywhere;
+  font: 400 17px/1.6 var(--text); min-height: 1.6em;
+}
+#text mark { background: color-mix(in srgb, var(--x) 20%, transparent); color: inherit; border-radius: 2px; }
+.caret { position: relative; display: inline; }
+.caret::after {
+  content: ""; position: absolute; left: -1px; top: -0.05em; width: 2px; height: 1.3em; background: var(--ink);
+  animation: blink 1.1s steps(1) infinite;
+}
+.typing .caret::after { animation: none; }
+@keyframes blink { 50% { opacity: 0; } }
+.ghost { opacity: .38; border-bottom: 1px dashed currentColor; cursor: pointer; }
+.xr #page { opacity: .16; }
+
+/* Neighbour notes: a hairline on the edge they lie beyond. */
+.edge { position: absolute; background: var(--ink); opacity: .28; pointer-events: none; transition: opacity .2s; }
+.edge[hidden] { display: none; }
+.edge.w { left: 3px; top: calc(50% - 18px); width: 1.5px; height: 36px; }
+.edge.e { right: 3px; top: calc(50% - 18px); width: 1.5px; height: 36px; }
+.edge.n { top: 3px; left: calc(50% - 18px); height: 1.5px; width: 36px; }
+.edge.s { bottom: 3px; left: calc(50% - 18px); height: 1.5px; width: 36px; }
+
+/* ---------- Map ---------- */
+#map { position: absolute; inset: 0; background: var(--paper); overflow: auto; touch-action: pan-x pan-y; }
+#mapInner { position: relative; margin: 0 auto; }
+.card {
+  position: absolute; padding: 10px; overflow: hidden; cursor: pointer;
+  font: 400 9px/1.45 var(--text); white-space: pre-wrap; color: var(--ink);
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); background: var(--paper);
+}
+.card.focus { border: 1.5px solid var(--x); }
+.card b { display: block; font: 500 11px/1.3 var(--ui); margin-bottom: 4px; }
+#mapCap { position: sticky; top: 0; padding: 14px 16px 8px; font: 400 13px var(--ui); color: var(--x); opacity: .8; text-align: center; background: var(--paper); z-index: 1; }
+
+/* ---------- The bar: the one place paths start on touch ---------- */
+#rail { position: relative; flex: none; height: 30px; touch-action: none; cursor: grab; display: grid; place-items: center; }
+#rail::before { content: ""; position: absolute; inset: 0 0 auto; height: 1px; background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.grip { width: 44px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--ink) 34%, transparent); transition: width .2s var(--ease); }
+.kept .grip { width: 64px; background: repeating-linear-gradient(-45deg, var(--x) 0 1.5px, transparent 1.5px 4.5px); border: 1px solid var(--x); }
+.held .grip { width: 64px; background: var(--x); }
+#rail:focus-visible { outline: 2px solid var(--x); outline-offset: -3px; }
+
+/* ---------- Typing strip ---------- */
+#keys { flex: none; touch-action: none; padding-bottom: 4px; }
+#keys[hidden] { display: none; }
+.krows {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  max-width: 560px; margin: 0 auto;
+}
+.krow { display: grid; grid-template-columns: repeat(10, 1fr); height: 44px; }
+.k { position: relative; display: grid; place-items: center; font: 400 21px/1 var(--text); color: var(--ink); border-radius: 6px; }
+.k sup { position: absolute; top: 4px; right: 3px; font: 400 10px/1 var(--text); opacity: .42; }
+.k.fn { font-family: var(--ui); font-size: 19px; opacity: .7; }
+.k.down { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+.cap .k.l { text-transform: uppercase; }
+.space { height: 30px; margin: 2px 0 0; display: flex; align-items: center; justify-content: center; gap: 16px; font: 400 12px var(--ui); color: var(--ink); opacity: .55; border-top: 1px solid color-mix(in srgb, var(--ink) 12%, transparent); }
+.space.down { background: color-mix(in srgb, var(--ink) 9%, transparent); }
+#pop {
+  position: fixed; z-index: 30; min-width: 54px; height: 58px; padding: 0 12px; display: grid; place-items: center; pointer-events: none;
+  font: 400 30px/1 var(--text); color: var(--ink); background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--ink) 30%, transparent); border-radius: 10px;
+  transform: translate(-50%, -100%);
+}
+#pop.word { font-size: 20px; }
+
+/* ---------- X-ray ---------- */
+#xray { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; overflow: visible; }
+#xray * { vector-effect: non-scaling-stroke; }
+#xray path, #xray circle, #xray line, #xray rect { fill: none; stroke: var(--x); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+#xray text { fill: var(--x); stroke: var(--paper); stroke-width: 6px; paint-order: stroke; stroke-linejoin: round; }
+.dead, .cross { opacity: .35; }
+.gate { opacity: .35; }
+.lead { opacity: 0; }
+#xray .dot { fill: var(--x); stroke: none; }
+.more { opacity: .55; }
+.lbl { font: 400 17px var(--ui); opacity: .66; }
+.ul { opacity: 0; }
+.node { animation: nodeIn .16s var(--ease) both; animation-delay: calc(var(--i) * 18ms); }
+@keyframes nodeIn { from { opacity: 0; transform: scale(.88); } }
+.node.hot .lbl { opacity: 1; }
+.node.hot .ul, .node.hot .lead { opacity: .9; }
+.node.hot .gate { opacity: 1; }
+.node.off .lbl { opacity: .2; }
+.node.off .dot, .node.off .gate, .node.off .more { opacity: .18; }
+.node.pred .lbl { opacity: 1; }
+.keyr { opacity: .8; }
+#xray .keyt { font: 500 12px var(--text); stroke-width: 0; }
+.ring { transition: opacity .2s; }
+.ring.past { opacity: .2; }
+.ring.past .node:not(.hot) .lbl { display: none; }
+.ring.out { opacity: 0; transition: opacity .25s; }
+.ring.commit .node.hot .lbl { animation: commit .3s var(--ease); }
+@keyframes commit { 40% { opacity: 1; font-size: 20px; } }
+.route { stroke-dasharray: 3 5; opacity: .85; }
+.rlbl { font: 400 15px var(--ui); }
+.rkey { font: 500 12px var(--text); opacity: .75; }
+#xray .trail { stroke-dasharray: 4 6; opacity: .6; }
+#xray .head { fill: var(--x); stroke: none; opacity: .8; }
+.fade { opacity: 0; transition: opacity .3s; }
+.cap1 { font: 400 15px var(--ui); }
+
+#xhead {
+  position: fixed; z-index: 21; left: 0; right: 0; top: env(safe-area-inset-top, 0px); pointer-events: none;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 8px;
+  font: 400 12px/1.3 var(--text); color: var(--x); opacity: 0; transition: opacity .15s; font-variant-numeric: tabular-nums;
+}
+.xr #xhead { opacity: .9; }
+#xhead svg { flex: none; }
+#xhead svg rect { fill: none; stroke: var(--x); stroke-width: 1; }
+#xhead svg rect.f { fill: var(--x); }
+
+#toast {
+  position: fixed; z-index: 22; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 10px); transform: translateX(-50%);
+  font: 400 14px var(--ui); color: var(--x); background: var(--paper); padding: 4px 10px; border-radius: 6px;
+  opacity: 0; transition: opacity .2s; pointer-events: none; white-space: nowrap;
+}
+#toast.on { opacity: 1; transition: none; }
+
+#hints {
+  position: fixed; z-index: 19; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none; opacity: 0; transition: opacity .2s;
+}
+#hints.on { opacity: 1; }
+#hints.on .hint { pointer-events: auto; }
+.hint {
+  display: inline-flex; align-items: baseline; gap: 8px; padding: 6px 10px; cursor: pointer;
+  font: 400 15px var(--ui); color: var(--x); background: var(--paper);
+  border: 1px solid color-mix(in srgb, var(--x) 45%, transparent); border-radius: 7px;
+}
+.hint .r { font: 400 15px var(--text); letter-spacing: .08em; }
+.hint kbd { font: 500 11px var(--text); opacity: .75; }
+.hint:focus-visible { outline: 2px solid var(--x); }
+
+@media (prefers-reduced-motion: reduce) {
+  .node, .ring.commit .node.hot .lbl { animation: none; }
+  .caret::after { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="view">
+    <div id="page"><div id="text"></div></div>
+    <div class="edge w" hidden></div><div class="edge e" hidden></div><div class="edge n" hidden></div><div class="edge s" hidden></div>
+    <div id="map" hidden><div id="mapCap">Map · tap a note to open it</div><div id="mapInner"></div></div>
+  </div>
+  <div id="rail" tabindex="0" aria-label="Path bar. Hold to show paths. Tap to show or hide keys. Double-tap to keep the x-ray on."><span class="grip"></span></div>
+  <div id="keys" hidden><div class="krows" id="krows"></div><div class="space" id="space"><span>space</span><span>swipe → space · ← delete · ↑ symbol · ↓ capital · ↗ accept</span></div></div>
+</div>
+<svg id="xray" aria-hidden="true"><g id="routes"></g><g id="rings"></g><g id="trailG"><path class="trail" id="trail"></path><path class="head" id="head"></path></g><g id="demo"></g></svg>
+<div id="xhead"><span id="xl"></span><span id="xr"></span></div>
+<div id="toast" role="status"></div>
+<div id="hints"></div>
+<div id="pop" hidden></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const f = (n) => Math.round(n * 10) / 10;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const now = () => performance.now();
+const fine = matchMedia("(pointer: fine)").matches;
+
+const app = $("#app"), view = $("#view"), page = $("#page"), textEl = $("#text"), rail = $("#rail"), keysEl = $("#keys");
+const ringsEl = $("#rings"), routesEl = $("#routes"), demoEl = $("#demo"), trailEl = $("#trail"), headEl = $("#head"), trailG = $("#trailG");
+const toastEl = $("#toast"), hintsEl = $("#hints"), popEl = $("#pop"), mapEl = $("#map"), mapInner = $("#mapInner");
+
+const WORDS = ("the of and to a in is it you that he was for on are with as i his they be at one have this from or had by not word but what some we can out other were all there when up use your how said an each she which do their time if will way about many then them write would like so these her long make thing see him two has look more day could go come did number sound no most people my over know water than call first who may down side been now find any new work part take get place made live where after back little only round man year came show every good me give our under name very through just form sentence great think say help low line differ turn cause much mean before move right boy old too same tell does set three want air well also play small end put home read hand port large spell add even land here must big high such follow act why ask men change went light kind off need house picture try us again animal point mother world near build self earth father tile tiles path paths hold release drag pause expert action actions note notes canvas keys key layer quiet editor thought clear map habit habits practice smooth paper pen ink weight arrange later open").split(" ");
+
+// ---------- State ----------
+const KEY = "notpad-pathlab-v2";
+const WELCOME = `Welcome to not-padgtp
+
+This screen is just text. Tap anywhere to type.
+
+Hold the bar at the bottom. After a moment the x-ray draws the paths you can follow. Slide toward one and let go.
+
+Once you know a path, don't wait. Hold and slide in one move, and nothing gets drawn.
+
+  ← Undo        → Redo
+  ↖ Select ›    ↑ Note ›    ↗ Edit ›
+
+Double-tap the bar to keep the x-ray on. It suggests the next path, and tapping a suggestion shows you how to draw it.
+
+Swipe sideways on the text to walk to the next note.
+
+On a computer, hold Alt and press letters, or right-drag anywhere.
+`;
+function seed() {
+  const g = "Groceries\n\noat milk\nrye bread\nlemons\ncoffee beans\n";
+  const i = "Ideas for the canvas\n\nA canvas is a folder of .txt files plus one layout file.\nNotes sit on a grid. Swipe sideways to walk a row.\nNote › Map shows the whole grid.\n";
+  return {
+    notes: [
+      { id: 1, x: 0, y: 0, text: WELCOME, caret: 0 },
+      { id: 2, x: 1, y: 0, text: g, caret: g.length },
+      { id: 3, x: 0, y: 1, text: i, caret: i.length }
+    ],
+    focus: 1, nextId: 4, kept: false, clip: "",
+    stats: { paths: 0, eyesFree: 0, cancels: 0, taught: 0, chars: 0, typingMs: 0 }
+  };
+}
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)); } catch { state = null; }
+if (!state || !Array.isArray(state.notes) || !state.notes.length) state = seed();
+for (const n of state.notes) n.anchor = null;
+
+let saveT = 0;
+function save() {
+  clearTimeout(saveT);
+  saveT = setTimeout(() => {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ ...state, notes: state.notes.map(({ id, x, y, text, caret }) => ({ id, x, y, text, caret })) }));
+    } catch {}
+  }, 300);
+}
+
+const hists = new Map();
+const hist = (id) => { if (!hists.has(id)) hists.set(id, { u: [], r: [], kind: null, at: 0 }); return hists.get(id); };
+const cur = () => state.notes.find((n) => n.id === state.focus) || state.notes[0];
+const selRange = (n) => n.anchor == null ? [n.caret, n.caret] : [Math.min(n.caret, n.anchor), Math.max(n.caret, n.anchor)];
+const hasSel = () => { const [a, b] = selRange(cur()); return b > a; };
+const snap = (n) => ({ text: n.text, caret: n.caret, anchor: n.anchor });
+
+let lastEdit = 0, lastKind = null, lastCmd = null, closed = [], keysOn = false, mapOpen = false;
+
+function edit(fn, kind) {
+  const n = cur(), h = hist(n.id), t = now();
+  if (!(kind && h.kind === kind && t - h.at < 1200)) { h.u.push(snap(n)); if (h.u.length > 300) h.u.shift(); }
+  h.r.length = 0; h.kind = kind; h.at = t;
+  fn(n);
+  lastEdit = t; lastKind = kind; lastCmd = null; closed.length = 0;
+  render(); save(); poke();
+}
+function insertText(s, kind = "type") {
+  edit((n) => { const [a, b] = selRange(n); n.text = n.text.slice(0, a) + s + n.text.slice(b); n.caret = a + s.length; n.anchor = null; }, kind);
+}
+function backspace(word) {
+  const n = cur(), [a, b] = selRange(n);
+  if (a === b && a === 0) return;
+  edit((n) => {
+    let s = a;
+    if (a === b) {
+      s = a - 1;
+      if (word) { while (s > 0 && /\s/.test(n.text[s])) s--; while (s > 0 && !/\s/.test(n.text[s - 1])) s--; }
+    }
+    n.text = n.text.slice(0, s) + n.text.slice(b); n.caret = s; n.anchor = null;
+  }, "del");
+}
+function delForward() {
+  const n = cur(), [a, b] = selRange(n);
+  if (a === b && a >= n.text.length) return;
+  edit((n) => { n.text = n.text.slice(0, a) + n.text.slice(a === b ? a + 1 : b); n.caret = a; n.anchor = null; }, "del");
+}
+const isWord = (c) => !!c && /[\p{L}\p{N}'_-]/u.test(c);
+function wordAt(n, i) {
+  let s = i, e = i;
+  while (s > 0 && isWord(n.text[s - 1])) s--;
+  while (e < n.text.length && isWord(n.text[e])) e++;
+  return [s, e];
+}
+function lineAt(n, i) {
+  const s = n.text.lastIndexOf("\n", i - 1) + 1;
+  let e = n.text.indexOf("\n", i); if (e < 0) e = n.text.length;
+  return [s, e];
+}
+function paraAt(n, i) {
+  const t = n.text;
+  let s = i; while (s > 0 && !(t[s - 1] === "\n" && (s < 2 || t[s - 2] === "\n"))) s--;
+  let e = i; while (e < t.length && !(t[e] === "\n" && t[e + 1] === "\n")) e++;
+  return [s, e];
+}
+function selectRange(a, b) { const n = cur(); n.anchor = a; n.caret = b; render(); }
+
+// ---------- Commands ----------
+function setClip(s) {
+  state.clip = s;
+  try { navigator.clipboard?.writeText(s).catch(() => {}); } catch {}
+}
+const commands = {
+  undo() {
+    if (lastCmd === "close" && closed.length) { restoreClosed(); return "Note restored"; }
+    const n = cur(), h = hist(n.id);
+    if (!h.u.length) return "Nothing to undo";
+    h.r.push(snap(n)); Object.assign(n, h.u.pop()); h.kind = null; render(); save(); return "Undone";
+  },
+  redo() {
+    const n = cur(), h = hist(n.id);
+    if (!h.r.length) return "Nothing to redo";
+    h.u.push(snap(n)); Object.assign(n, h.r.pop()); h.kind = null; render(); save(); return "Redone";
+  },
+  selWord() { const n = cur(); const [s, e] = wordAt(n, n.caret); if (e > s) selectRange(s, e); return "Word"; },
+  selLine() { const n = cur(); const [s, e] = lineAt(n, n.caret); selectRange(s, e); return "Line"; },
+  selPara() { const n = cur(); const [s, e] = paraAt(n, n.caret); selectRange(s, e); return "Paragraph"; },
+  selAll() { selectRange(0, cur().text.length); return "All"; },
+  selNone() { cur().anchor = null; render(); return "Selection cleared"; },
+  copy() { const n = cur(), [a, b] = selRange(n); setClip(n.text.slice(a, b)); return "Copied"; },
+  cut() { const n = cur(), [a, b] = selRange(n); setClip(n.text.slice(a, b)); insertText("", "cut"); return "Cut"; },
+  paste() { insertText(state.clip, "paste"); return "Pasted"; },
+  delLine() {
+    const n = cur(); let [s, e] = lineAt(n, n.caret);
+    if (e < n.text.length) e++; else if (s > 0) s--;
+    edit((n) => { n.text = n.text.slice(0, s) + n.text.slice(e); n.caret = Math.min(s, n.text.length); n.anchor = null; }, "line");
+    return "Line deleted";
+  },
+  find() {
+    const n = cur(); let [a, b] = selRange(n);
+    if (a === b) [a, b] = wordAt(n, n.caret);
+    const q = n.text.slice(a, b); if (!q) return "No word here";
+    let i = n.text.indexOf(q, b); if (i < 0) i = n.text.indexOf(q);
+    selectRange(i, i + q.length);
+    return i === a ? "Only match" : "Next match";
+  },
+  map() { openMap(); return null; },
+  newRight() { addNote(1, 0); return "New note →"; },
+  newBelow() { addNote(0, 1); return "New note ↓"; },
+  close() { return closeNote(); },
+  reset() {
+    if (now() - (commands.reset.armed || 0) > 3000) { commands.reset.armed = now(); return "Do it again to reset the lab"; }
+    try { localStorage.removeItem(KEY); } catch {}
+    state = seed(); hists.clear(); closed = []; for (const n of state.notes) n.anchor = null;
+    closeMap(true); render(); save(); return "Lab reset";
+  }
+};
+const enabled = {
+  undo: () => (lastCmd === "close" && closed.length > 0) || hist(cur().id).u.length > 0,
+  redo: () => hist(cur().id).r.length > 0,
+  copy: hasSel, cut: hasSel, selNone: hasSel,
+  paste: () => !!state.clip,
+  selWord: () => { const n = cur(); const [s, e] = wordAt(n, n.caret); return e > s; },
+  find: () => { const n = cur(); if (hasSel()) return true; const [s, e] = wordAt(n, n.caret); return e > s; },
+  delLine: () => cur().text.length > 0
+};
+
+const tree = { label: "", children: {
+  W: { label: "Undo", key: "z", cmd: "undo" },
+  NW: { label: "Select", key: "s", children: {
+    NW: { label: "Word", key: "w", cmd: "selWord" },
+    N: { label: "Line", key: "l", cmd: "selLine" },
+    W: { label: "Paragraph", key: "p", cmd: "selPara" },
+    NE: { label: "All", key: "a", cmd: "selAll" },
+    E: { label: "None", key: "n", cmd: "selNone" }
+  } },
+  N: { label: "Note", key: "n", children: {
+    N: { label: "Map", key: "m", cmd: "map" },
+    E: { label: "New →", key: "l", cmd: "newRight" },
+    NE: { label: "New ↓", key: "j", cmd: "newBelow" },
+    NW: { label: "Close", key: "x", cmd: "close" },
+    W: { label: "Reset lab", key: "0", cmd: "reset" }
+  } },
+  NE: { label: "Edit", key: "e", children: {
+    NE: { label: "Paste", key: "v", cmd: "paste" },
+    N: { label: "Copy", key: "c", cmd: "copy" },
+    NW: { label: "Cut", key: "x", cmd: "cut" },
+    E: { label: "Find next", key: "f", cmd: "find" },
+    W: { label: "Delete line", key: "d", cmd: "delLine" }
+  } },
+  E: { label: "Redo", key: "y", cmd: "redo" }
+} };
+function isOn(node) {
+  if (node.children) return Object.values(node.children).some(isOn);
+  return enabled[node.cmd] ? enabled[node.cmd]() : true;
+}
+const PATHS = {};
+(function index(node, dirs, keys) {
+  for (const [d, c] of Object.entries(node.children || {})) {
+    if (c.children) index(c, dirs.concat(d), keys.concat(c.key));
+    else PATHS[c.cmd] = { dirs: dirs.concat(d), keys: keys.concat(c.key), node: c };
+  }
+})(tree, [], []);
+
+// ---------- Notes on the grid ----------
+const at = (x, y) => state.notes.find((n) => n.x === x && n.y === y);
+function addNote(dx, dy) {
+  const c = cur();
+  for (const n of state.notes) {
+    if (dx && n.y === c.y && n.x > c.x) n.x++;
+    if (dy && n.x === c.x && n.y > c.y) n.y++;
+  }
+  const n = { id: state.nextId++, x: c.x + dx, y: c.y + dy, text: "", caret: 0, anchor: null };
+  state.notes.push(n);
+  go(n, dx, dy);
+  if (!fine) showKeys(true);
+}
+function closeNote() {
+  const c = cur();
+  if (state.notes.length === 1) { edit((n) => { n.text = ""; n.caret = 0; n.anchor = null; }, "close"); return "Note cleared"; }
+  const rest = state.notes.filter((n) => n !== c);
+  const next = rest.reduce((best, n) => (Math.abs(n.x - c.x) + Math.abs(n.y - c.y) < Math.abs(best.x - c.x) + Math.abs(best.y - c.y) ? n : best), rest[0]);
+  closed.push(c);
+  state.notes = rest;
+  go(next, Math.sign(next.x - c.x), Math.sign(next.y - c.y));
+  setTimeout(() => { lastCmd = "close"; }, 0);
+  return "Note closed · ← undoes";
+}
+function restoreClosed() {
+  const n = closed.pop();
+  while (at(n.x, n.y)) n.x++;
+  state.notes.push(n);
+  go(n, 0, 0);
+}
+function neighbour(dx, dy) {
+  const c = cur();
+  const same = state.notes.filter((n) => (dx ? n.y === c.y && Math.sign(n.x - c.x) === dx : n.x === c.x && Math.sign(n.y - c.y) === dy));
+  const pool = same.length ? same : state.notes.filter((n) => (dx ? Math.sign(n.x - c.x) === dx : Math.sign(n.y - c.y) === dy));
+  if (!pool.length) return null;
+  return pool.reduce((b, n) => (Math.abs(n.x - c.x) + Math.abs(n.y - c.y) < Math.abs(b.x - c.x) + Math.abs(b.y - c.y) ? n : b));
+}
+function go(n, dx, dy) {
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const swap = () => { state.focus = n.id; render(); page.scrollTop = 0; scrollCaret(); save(); };
+  if (reduce || (!dx && !dy) || !page.animate) { swap(); page.style.transform = ""; return; }
+  const out = page.animate([{ transform: page.style.transform || "none", opacity: 1 }, { transform: `translate(${-dx * 60}px, ${-dy * 60}px)`, opacity: 0 }], { duration: 120, easing: "ease-in" });
+  out.onfinish = () => {
+    page.style.transform = "";
+    swap();
+    page.animate([{ transform: `translate(${dx * 60}px, ${dy * 60}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { duration: 180, easing: "cubic-bezier(.23,1,.32,1)" });
+  };
+}
+
+// ---------- Rendering the note ----------
+let caretSpan = null, ghostRest = "";
+function completion(n) {
+  if (lastKind !== "type" || n.anchor != null) return "";
+  if (isWord(n.text[n.caret])) return "";
+  const [s] = wordAt(n, n.caret);
+  const pre = n.text.slice(s, n.caret);
+  if (pre.length < 2) return "";
+  const low = pre.toLowerCase();
+  const w = WORDS.find((w) => w.length > low.length && w.startsWith(low));
+  return w ? w.slice(low.length) : "";
+}
+function render() {
+  const n = cur(), T = n.text, [a, b] = selRange(n);
+  textEl.textContent = "";
+  const add = (s, e, marked) => {
+    if (e <= s) return;
+    const node = document.createTextNode(T.slice(s, e)); node._o = s;
+    if (marked) { const m = document.createElement("mark"); m.append(node); textEl.append(m); } else textEl.append(node);
+  };
+  caretSpan = document.createElement("span"); caretSpan.className = "caret";
+  ghostRest = completion(n);
+  add(0, a);
+  if (n.caret === a) textEl.append(caretSpan);
+  if (a === b && ghostRest) {
+    const gs = document.createElement("span"); gs.className = "ghost"; gs.textContent = ghostRest; gs.firstChild._ghost = a; textEl.append(gs);
+  }
+  add(a, b, true);
+  if (b > a && n.caret === b) textEl.append(caretSpan);
+  add(b, T.length);
+  updateEdges();
+  updateCase();
+  updateHead();
+}
+function scrollCaret() { caretSpan?.scrollIntoView({ block: "nearest" }); }
+function updateEdges() {
+  for (const [cls, dx, dy] of [["w", -1, 0], ["e", 1, 0], ["n", 0, -1], ["s", 0, 1]]) view.querySelector(".edge." + cls).hidden = !neighbour(dx, dy);
+}
+function offsetAt(x, y) {
+  let node, off;
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); if (!p) return null; node = p.offsetNode; off = p.offset; }
+  else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); if (!r) return null; node = r.startContainer; off = r.startOffset; }
+  else return null;
+  if (node.nodeType === 3) { if (node._o != null) return node._o + off; if (node._ghost != null) return node._ghost; }
+  if (!textEl.contains(node)) { const r = textEl.getBoundingClientRect(); return y > r.bottom ? cur().text.length : y < r.top ? 0 : null; }
+  const kids = node.childNodes;
+  for (let i = off; i < kids.length; i++) { const k = kids[i]; const t = k.nodeType === 3 ? k : k.firstChild; if (t && t._o != null) return t._o; }
+  return cur().text.length;
+}
+function caretPoint() {
+  const r = caretSpan?.getBoundingClientRect();
+  return r ? [r.left, r.top + r.height / 2] : [innerWidth / 2, innerHeight / 2];
+}
+
+// ---------- Toast, haptics ----------
+let toastT = 0;
+function toast(msg) {
+  if (!msg) return;
+  toastEl.textContent = msg; toastEl.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove("on"), 900);
+}
+function haptic(ms) { try { navigator.vibrate?.(ms); } catch {} }
+
+// ---------- The path engine (v1 mechanics) ----------
+const DIRS = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"];
+const VEC = Object.fromEntries(DIRS.map((d, i) => [d, [Math.cos(i * Math.PI / 4), Math.sin(i * Math.PI / 4)]]));
+const ARROW = { E: "→", SE: "↘", S: "↓", SW: "↙", W: "←", NW: "↖", N: "↑", NE: "↗" };
+const dirOf = (dx, dy) => DIRS[((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8];
+const R_DEAD = 16, R_SELECT = 44, R_VIS = 84, PEEK = 180;
+let g = null, trailGen = 0;
+
+function compassCenter() {
+  const rt = rail.getBoundingClientRect().top;
+  return [innerWidth / 2, Math.max(190, rt - 230)];
+}
+function startGesture(input, x, y, pointerId, src) {
+  const t = now();
+  clearHints();
+  g = { input, src, pointerId, levels: [], trail: [[x, y]], armed: null, drawn: false, stillX: x, stillY: y, stillAt: t, t0: t, x, y, moved: 0, off: [0, 0] };
+  if (input === "touch") { const [cx, cy] = compassCenter(); g.off = [cx - x, cy - y]; }
+  if (input === "keys") {
+    const [cx, cy] = caretPoint();
+    g.off = [clamp(cx + 24, 150, innerWidth - 150) - x, clamp(cy, 160, innerHeight - 60) - y];
+  }
+  trailGen++;
+  trailG.classList.remove("fade");
+  trailEl.setAttribute("d", ""); headEl.setAttribute("d", "");
+  app.classList.add("held");
+  pushLevel(tree, x, y);
+  requestAnimationFrame(tick);
+}
+const topLevel = () => g.levels[g.levels.length - 1];
+function pushLevel(node, x, y, dir) {
+  const prev = g.levels.length ? topLevel() : null;
+  if (prev?.ring) {
+    if (g.input === "keys") { prev.ring.remove(); prev.ring = null; }
+    else { prev.ring.classList.add("past"); }
+  }
+  if (prev) routesEl.textContent = "";
+  const level = { node, ox: x, oy: y, ring: null, hot: null, dir };
+  g.levels.push(level);
+  g.armed = null; g.stillAt = now();
+  if (g.drawn) showRing(level);
+}
+function popLevel() {
+  const level = g.levels.pop();
+  level.ring?.remove();
+  const parent = topLevel();
+  if (parent.ring) parent.ring.classList.remove("past");
+  else if (g.drawn) showRing(parent);
+  if (g.levels.length === 1 && g.drawn) drawRoutes(parent);
+  g.armed = null; g.stillAt = now();
+}
+function tick() {
+  if (!g) return;
+  const level = topLevel();
+  if (!level.ring && now() - g.stillAt >= PEEK) {
+    g.drawn = true;
+    app.classList.add("xr");
+    showRing(level);
+    if (g.levels.length === 1) drawRoutes(level);
+    updateHead();
+  }
+  requestAnimationFrame(tick);
+}
+function moveGesture(x, y) {
+  g.moved = Math.max(g.moved, Math.hypot(x - g.trail[0][0], y - g.trail[0][1]));
+  const last = g.trail[g.trail.length - 1];
+  if (Math.hypot(x - last[0], y - last[1]) > 3) { g.trail.push([x, y]); drawTrail(); }
+  if (Math.hypot(x - g.stillX, y - g.stillY) > 7) { g.stillX = x; g.stillY = y; g.stillAt = now(); }
+  g.x = x; g.y = y;
+  if (g.levels.length > 1) {
+    const parent = g.levels[g.levels.length - 2];
+    if (Math.hypot(x - parent.ox, y - parent.oy) < R_DEAD + 8) { popLevel(); haptic(4); return; }
+  }
+  const level = topLevel();
+  const dx = x - level.ox, dy = y - level.oy, d = Math.hypot(dx, dy);
+  const dir = d > R_DEAD ? dirOf(dx, dy) : null;
+  let node = dir ? level.node.children[dir] : null;
+  if (node && !isOn(node)) node = null;
+  setHot(level, node ? dir : null);
+  if (d >= R_SELECT && node) {
+    if (node.children) { pushLevel(node, x, y, dir); haptic(6); return; }
+    if (g.armed !== dir) { g.armed = dir; haptic(4); }
+  } else g.armed = null;
+}
+function endGesture(cancelled) {
+  if (!g) return;
+  const done = g; g = null;
+  app.classList.remove("xr", "held");
+  routesEl.textContent = "";
+  const level = done.levels[done.levels.length - 1];
+  const node = !cancelled && done.armed ? level.node.children[done.armed] : null;
+  if (node) {
+    state.stats.paths++;
+    if (!done.drawn) state.stats.eyesFree++;
+    for (const l of done.levels) if (l.ring) finishRing(l.ring, l === level ? "commit" : "out");
+    haptic(12);
+    const msg = commands[node.cmd]();
+    if (node.cmd !== "close") lastCmd = node.cmd;
+    toast(msg === undefined ? node.label : msg);
+    scrollCaret();
+  } else {
+    for (const l of done.levels) if (l.ring) finishRing(l.ring, "out");
+    const tap = done.input !== "keys" && done.moved < 8 && now() - done.t0 < 300;
+    if (tap && done.src === "rail") railTap();
+    else if (done.levels.length > 1 || (done.input !== "keys" && done.moved >= R_DEAD)) { state.stats.cancels++; toast("Cancelled"); }
+  }
+  const gen = trailGen;
+  trailG.classList.add("fade");
+  setTimeout(() => { if (gen === trailGen) { trailEl.setAttribute("d", ""); headEl.setAttribute("d", ""); } }, 320);
+  save(); poke();
+}
+function finishRing(ring, kind) { ring.classList.add(kind); setTimeout(() => ring.remove(), kind === "commit" ? 360 : 260); }
+
+// ---------- Drawing: Plotter marks, made legible ----------
+const SVGNS = "http://www.w3.org/2000/svg";
+const measureCtx = document.createElement("canvas").getContext("2d");
+function textW(s, px = 17, fam = "IBM Plex Sans") { measureCtx.font = `${px}px "${fam}", system-ui, sans-serif`; return measureCtx.measureText(s).width; }
+const showKeysFor = (input) => input === "keys" || input === "mouse" || fine;
+
+function placeLabel(text, px, py, vx, vy, gap, size) {
+  const w = textW(text, size), vw = innerWidth;
+  let lx, ly, anchor;
+  if (Math.abs(vx) > 0.3) {
+    anchor = vx > 0 ? "start" : "end";
+    lx = px + (vx > 0 ? gap : -gap);
+    ly = py + size * 0.33 + (Math.abs(vy) > 0.3 ? vy * 6 : 0);
+    if (anchor === "start" && lx + w > vw - 10) lx = vw - 10 - w;
+    if (anchor === "end" && lx - w < 10) lx = 10 + w;
+  } else {
+    anchor = "middle";
+    lx = clamp(px, 10 + w / 2, vw - 10 - w / 2);
+    ly = vy < 0 ? py - gap : py + gap + size * 0.7;
+  }
+  ly = Math.max(ly, size + 34);
+  const x0 = anchor === "start" ? lx : anchor === "end" ? lx - w : lx - w / 2;
+  return { lx, ly, anchor, w, box: [x0, ly - size * 0.8, x0 + w, ly + size * 0.25] };
+}
+function drawRing(node, cx, cy, keys, entry) {
+  const ring = document.createElementNS(SVGNS, "g");
+  ring.setAttribute("class", "ring");
+  let m = `<circle class="dead" cx="${f(cx)}" cy="${f(cy)}" r="${R_DEAD}"/><path class="cross" d="M${f(cx - 5)} ${f(cy)}H${f(cx + 5)}M${f(cx)} ${f(cy - 5)}V${f(cy + 5)}"/>`;
+  let i = 0;
+  const boxes = [];
+  for (const dir of DIRS) {
+    const c = node.children?.[dir];
+    if (!c) continue;
+    const [vx, vy] = VEC[dir];
+    const a = Math.atan2(vy, vx), a0 = a - Math.PI / 10, a1 = a + Math.PI / 10;
+    const px = cx + vx * R_VIS, py = cy + vy * R_VIS;
+    const gate = `M${f(cx + Math.cos(a0) * R_SELECT)} ${f(cy + Math.sin(a0) * R_SELECT)}A${R_SELECT} ${R_SELECT} 0 0 1 ${f(cx + Math.cos(a1) * R_SELECT)} ${f(cy + Math.sin(a1) * R_SELECT)}`;
+    const lead = `M${f(cx + vx * (R_SELECT + 4))} ${f(cy + vy * (R_SELECT + 4))}L${f(px - vx * 12)} ${f(py - vy * 12)}`;
+    let mark;
+    if (keys) mark = `<rect class="keyr" x="${f(px - 9)}" y="${f(py - 9)}" width="18" height="18" rx="3.5"/><text class="keyt" x="${f(px)}" y="${f(py + 4)}" text-anchor="middle">${esc(c.key)}</text>`;
+    else mark = `<circle class="dot" cx="${f(px)}" cy="${f(py)}" r="3.5"/>`;
+    if (c.children && !keys) mark += `<circle class="more" cx="${f(px)}" cy="${f(py)}" r="9"/>`;
+    const text = c.label + (c.children ? " ›" : "");
+    const L = placeLabel(text, px, py, vx, vy, keys ? 18 : 16, 17);
+    boxes.push(L.box);
+    const [ux0, , ux1] = L.box;
+    m += `<g class="node${isOn(c) ? "" : " off"}" data-dir="${dir}" style="--i:${i++};transform-origin:${f(cx)}px ${f(cy)}px">`
+      + `<path class="gate" d="${gate}"/><path class="lead" d="${lead}"/>${mark}`
+      + `<text class="lbl" x="${f(L.lx)}" y="${f(L.ly)}" text-anchor="${L.anchor}">${esc(text)}</text>`
+      + `<line class="ul" x1="${f(ux0)}" y1="${f(L.ly + 5)}" x2="${f(ux1)}" y2="${f(L.ly + 5)}"/></g>`;
+  }
+  ring.innerHTML = m;
+  ring._boxes = boxes;
+  return ring;
+}
+function showRing(level) {
+  const keys = showKeysFor(g.input);
+  const ring = drawRing(level.node, level.ox + g.off[0], level.oy + g.off[1], keys, level.dir);
+  ringsEl.append(ring);
+  level.ring = ring;
+  if (level.hot) setHot(level, level.hot, true);
+}
+function setHot(level, dir, force) {
+  if (level.hot === dir && !force) return;
+  level.hot = dir;
+  if (!level.ring) return;
+  for (const n of level.ring.querySelectorAll(".node")) n.classList.toggle("hot", n.dataset.dir === dir);
+}
+const overlaps = (a, b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1];
+
+// Proposed routes: the full stable path to each predicted action, never a shortcut.
+function routeMarkup(pred, cx, cy, keys, boxes) {
+  const P = PATHS[pred.cmd];
+  const [d1, d2] = P.dirs;
+  if (!d2) return { m: "", depth1: d1 };
+  const p1 = [cx + VEC[d1][0] * R_SELECT * 1.3, cy + VEC[d1][1] * R_SELECT * 1.3];
+  const p2 = [p1[0] + VEC[d2][0] * R_VIS * 0.95, p1[1] + VEC[d2][1] * R_VIS * 0.95];
+  let [vx, vy] = VEC[d2];
+  const text = P.node.label + (keys ? "  " + P.keys.join(" ") : "");
+  let L, k = 0, end = p2;
+  do {
+    end = [p2[0] + vx * 18 * k, p2[1] + vy * 18 * k];
+    L = placeLabel(text, end[0], end[1], vx, vy, 12, 15);
+  } while (boxes.some((b) => overlaps(b, L.box)) && ++k < 5);
+  boxes.push(L.box);
+  const label = keys
+    ? `<text class="rlbl" x="${f(L.lx)}" y="${f(L.ly)}" text-anchor="${L.anchor}">${esc(P.node.label)}<tspan class="rkey">  ${esc(P.keys.join(" "))}</tspan></text>`
+    : `<text class="rlbl" x="${f(L.lx)}" y="${f(L.ly)}" text-anchor="${L.anchor}">${esc(P.node.label)}</text>`;
+  return { m: `<path class="route" d="M${f(cx)} ${f(cy)}L${f(p1[0])} ${f(p1[1])}L${f(end[0])} ${f(end[1])}"/><circle class="route" cx="${f(end[0])}" cy="${f(end[1])}" r="4.5"/>${label}` };
+}
+function drawRoutes(level) {
+  routesEl.textContent = "";
+  const preds = predict();
+  if (!preds.length || !level.ring) return;
+  const cx = level.ox + g.off[0], cy = level.oy + g.off[1], keys = showKeysFor(g.input);
+  const boxes = level.ring._boxes.slice();
+  let m = "";
+  for (const p of preds) {
+    const r = routeMarkup(p, cx, cy, keys, boxes);
+    if (r.depth1) level.ring.querySelector(`.node[data-dir="${r.depth1}"]`)?.classList.add("pred");
+    m += r.m;
+  }
+  routesEl.innerHTML = m;
+}
+function drawTrail() {
+  const pts = g.trail, [ox, oy] = g.off;
+  if (pts.length < 2 || g.input === "keys") return;
+  trailEl.setAttribute("d", "M" + pts.map(([x, y]) => `${f(x + ox)} ${f(y + oy)}`).join("L"));
+  const [x1, y1] = pts[pts.length - 1];
+  let k = pts.length - 2;
+  while (k > 0 && Math.hypot(x1 - pts[k][0], y1 - pts[k][1]) < 8) k--;
+  const [x0, y0] = pts[k];
+  const a = Math.atan2(y1 - y0, x1 - x0), X = x1 + ox, Y = y1 + oy;
+  const p = (ang, r) => `${f(X + Math.cos(ang) * r)} ${f(Y + Math.sin(ang) * r)}`;
+  headEl.setAttribute("d", `M${f(X)} ${f(Y)}L${p(a + Math.PI * 0.85, 9)}L${p(a - Math.PI * 0.85, 9)}Z`);
+}
+
+// ---------- Prediction (v2's pipe, reduced to rules): confidence ≥ 0.7, at most three ----------
+function predict() {
+  const n = cur(), out = [];
+  const add = (cmd, c) => { if (!enabled[cmd] || enabled[cmd]()) out.push({ cmd, c }); };
+  if (hasSel()) { add("copy", .86); add("cut", .76); add("find", .71); }
+  else {
+    if (lastCmd === "undo") add("redo", .82);
+    if (lastCmd === "copy" || lastCmd === "cut") add("paste", .84);
+    else if (state.clip && lastKind !== "type") add("paste", .7);
+    if (now() - lastEdit < 8000 && lastCmd !== "undo") add("undo", .74);
+    const [s, e] = wordAt(n, n.caret);
+    if (e > s && lastKind !== "type") add("selWord", .71);
+    if (!n.text.trim() && state.notes.length > 1) add("close", .72);
+    if (/\n\s*\n\s*$/.test(n.text) && n.caret >= n.text.trimEnd().length) add("newRight", .7);
+  }
+  const seen = new Set();
+  return out.filter((p) => p.c >= .7 && !seen.has(p.cmd) && seen.add(p.cmd)).sort((a, b) => b.c - a.c).slice(0, 3);
+}
+
+// ---------- Kept mode: speak only on a prediction, after a dwell, after the last edit ----------
+let idleT = 0;
+function clearHints() { clearTimeout(idleT); hintsEl.classList.remove("on"); }
+function poke() {
+  clearHints();
+  if (!state.kept) return;
+  idleT = setTimeout(showHints, Math.max(160, 400 - (now() - lastEdit)));
+}
+function showHints() {
+  if (g || mapOpen || demoBusy) return;
+  const preds = predict();
+  if (!preds.length) { hintsEl.textContent = ""; return; }
+  hintsEl.innerHTML = preds.map((p) => {
+    const P = PATHS[p.cmd];
+    const route = P.dirs.map((d) => ARROW[d]).join(" ");
+    return `<button class="hint" type="button" data-cmd="${p.cmd}"><span class="r">${route}</span><span>${esc(P.node.label)}</span>${fine ? `<kbd>Alt ${P.keys.join(" ")}</kbd>` : ""}</button>`;
+  }).join("");
+  placeHints();
+  hintsEl.classList.add("on");
+}
+function placeHints() { hintsEl.style.bottom = (innerHeight - rail.getBoundingClientRect().top + 10) + "px"; }
+hintsEl.addEventListener("click", (e) => { const b = e.target.closest(".hint"); if (b) teach(b.dataset.cmd); });
+
+// Clicking a hint teaches the input: it plays the path, it does not run the action.
+let demoBusy = false, demoGen = 0;
+function teach(cmd) {
+  const P = PATHS[cmd]; if (!P || g) return;
+  const gen = ++demoGen; demoBusy = true;
+  clearHints(); demoEl.textContent = "";
+  app.classList.add("xr");
+  state.stats.taught++; save();
+  const [cx, cy] = compassCenter();
+  const keys = fine;
+  const step = (fn, ms) => new Promise((res) => setTimeout(() => { if (gen === demoGen) fn(); res(); }, ms));
+  const r1 = drawRing(tree, cx, cy, keys); demoEl.append(r1);
+  const route = P.dirs.map((d) => ARROW[d]).join(" then ");
+  const cap = document.createElementNS(SVGNS, "text");
+  cap.setAttribute("class", "cap1"); cap.setAttribute("x", f(cx)); cap.setAttribute("y", f(cy + 62)); cap.setAttribute("text-anchor", "middle");
+  cap.textContent = fine ? `Hold Alt, press ${P.keys.join(" then ")} · or right-drag ${route}` : `Hold the bar, slide ${route}`;
+  demoEl.append(cap);
+  const line = document.createElementNS(SVGNS, "path"); line.setAttribute("class", "trail"); demoEl.append(line);
+  const pts = [[cx, cy]];
+  let x = cx, y = cy;
+  (async () => {
+    let ring = r1, node = tree;
+    for (let i = 0; i < P.dirs.length; i++) {
+      const d = P.dirs[i];
+      await step(() => {}, i ? 260 : 380);
+      const len = P.dirs[i + 1] ? R_SELECT * 1.3 : R_VIS;
+      x += VEC[d][0] * len; y += VEC[d][1] * len; pts.push([x, y]);
+      await step(() => {
+        line.setAttribute("d", "M" + pts.map((p) => `${f(p[0])} ${f(p[1])}`).join("L"));
+        ring.querySelector(`.node[data-dir="${d}"]`)?.classList.add("hot");
+      }, 0);
+      node = node.children[d];
+      if (node.children) {
+        await step(() => { ring.classList.add("past"); ring = drawRing(node, x, y, keys); demoEl.append(ring); }, 300);
+      }
+    }
+    await step(() => ring.classList.add("commit"), 200);
+    await step(() => { demoEl.classList.add("fade"); }, 1400);
+    await step(() => { demoEl.textContent = ""; demoEl.classList.remove("fade"); app.classList.remove("xr"); demoBusy = false; poke(); }, 320);
+  })();
+}
+
+// ---------- X-ray header: the old debug chrome lives here now ----------
+function updateHead() {
+  if (!app.classList.contains("xr")) return;
+  const n = cur(), s = state.stats;
+  const title = (n.text.split("\n")[0] || "Untitled").slice(0, 26);
+  const words = (n.text.match(/\S+/g) || []).length;
+  const wpm = s.typingMs > 4000 ? Math.round(s.chars / 5 / (s.typingMs / 60000)) : "–";
+  const xs = state.notes.map((m) => m.x), ys = state.notes.map((m) => m.y);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys);
+  const mini = `<svg width="${(Math.max(...xs) - x0 + 1) * 10}" height="${(Math.max(...ys) - y0 + 1) * 12}">`
+    + state.notes.map((m) => `<rect class="${m.id === n.id ? "f" : ""}" x="${(m.x - x0) * 10 + .5}" y="${(m.y - y0) * 12 + .5}" width="7" height="9"/>`).join("") + "</svg>";
+  $("#xl").innerHTML = `${esc(title)} · ${words} words`;
+  $("#xr").innerHTML = `<span>paths ${s.paths} · eyes-free ${s.eyesFree} · ${wpm} wpm</span> ${mini}`;
+  $("#xr").style.cssText = "display:flex;gap:10px;align-items:center";
+}
+
+// ---------- The bar ----------
+let railTapT = 0, railLast = 0;
+function railTap() {
+  const t = now();
+  if (t - railLast < 320) {
+    clearTimeout(railTapT); railLast = 0;
+    state.kept = !state.kept; app.classList.toggle("kept", state.kept);
+    toast(state.kept ? "X-ray kept on" : "X-ray off"); save(); poke();
+    return;
+  }
+  railLast = t;
+  railTapT = setTimeout(() => showKeys(!keysOn), 260);
+}
+rail.addEventListener("pointerdown", (e) => {
+  if (g || (e.pointerType === "mouse" && e.button !== 0)) return;
+  e.preventDefault();
+  try { rail.setPointerCapture(e.pointerId); } catch {}
+  startGesture(e.pointerType === "mouse" ? "mouse" : "touch", e.clientX, e.clientY, e.pointerId, "rail");
+});
+for (const el of [rail, view]) {
+  el.addEventListener("pointermove", (e) => { if (g && g.pointerId === e.pointerId) moveGesture(e.clientX, e.clientY); });
+  el.addEventListener("pointerup", (e) => { if (g && g.pointerId === e.pointerId) endGesture(false); });
+  el.addEventListener("pointercancel", (e) => { if (g && g.pointerId === e.pointerId) endGesture(true); });
+}
+rail.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); showKeys(!keysOn); } });
+
+// ---------- The note: tap for caret, swipe sideways to walk, right-drag for paths ----------
+let tp = null;
+view.addEventListener("contextmenu", (e) => e.preventDefault());
+page.addEventListener("pointerdown", (e) => {
+  if (g) return;
+  poke();
+  if (e.pointerType === "mouse" && e.button === 2) {
+    e.preventDefault();
+    try { view.setPointerCapture(e.pointerId); } catch {}
+    startGesture("mouse", e.clientX, e.clientY, e.pointerId, "view");
+    return;
+  }
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  if (e.target.classList.contains("ghost")) { acceptCompletion(); e.preventDefault(); return; }
+  tp = { id: e.pointerId, x: e.clientX, y: e.clientY, mouse: e.pointerType === "mouse", dx: 0 };
+  if (tp.mouse) {
+    e.preventDefault();
+    const o = offsetAt(e.clientX, e.clientY);
+    if (o != null) { const n = cur(); if (e.shiftKey) { if (n.anchor == null) n.anchor = n.caret; } else n.anchor = null; n.caret = o; lastKind = null; render(); }
+    try { page.setPointerCapture(e.pointerId); } catch {}
+  }
+});
+page.addEventListener("pointermove", (e) => {
+  if (!tp || tp.id !== e.pointerId) return;
+  if (tp.mouse) {
+    if (!(e.buttons & 1)) return;
+    const o = offsetAt(e.clientX, e.clientY), n = cur();
+    if (o != null && o !== n.caret) { if (n.anchor == null) n.anchor = n.caret; n.caret = o; if (n.anchor === n.caret) n.anchor = null; render(); }
+    return;
+  }
+  tp.dx = e.clientX - tp.x;
+  const dy = e.clientY - tp.y;
+  if (Math.abs(tp.dx) > 12 && Math.abs(tp.dx) > Math.abs(dy)) page.style.transform = `translateX(${f(tp.dx * 0.5)}px)`;
+});
+page.addEventListener("pointerup", (e) => {
+  if (!tp || tp.id !== e.pointerId) return;
+  const t = tp; tp = null;
+  if (t.mouse) { save(); return; }
+  const dx = e.clientX - t.x, dy = e.clientY - t.y;
+  if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    const n = neighbour(dx < 0 ? 1 : -1, 0);
+    if (n) { go(n, dx < 0 ? 1 : -1, 0); return; }
+  }
+  page.style.transform = "";
+  if (Math.hypot(dx, dy) < 10) {
+    const o = offsetAt(e.clientX, e.clientY);
+    if (o != null) { const n = cur(); n.caret = o; n.anchor = null; lastKind = null; render(); save(); }
+    showKeys(true);
+    setTimeout(scrollCaret, 240);
+  }
+});
+page.addEventListener("pointercancel", () => { tp = null; page.style.transform = ""; });
+
+// ---------- Map ----------
+function openMap() {
+  mapOpen = true; showKeys(false); mapEl.hidden = false; clearHints();
+  const xs = state.notes.map((n) => n.x), ys = state.notes.map((n) => n.y);
+  const x0 = Math.min(...xs), y0 = Math.min(...ys), cols = Math.max(...xs) - x0 + 1, rows = Math.max(...ys) - y0 + 1;
+  const W = clamp((view.clientWidth - 32 - (cols - 1) * 12) / cols, 90, 170), H = W * 1.3;
+  mapInner.style.width = (cols * W + (cols - 1) * 12) + "px";
+  mapInner.style.height = (rows * H + (rows - 1) * 12 + 24) + "px";
+  mapInner.innerHTML = state.notes.map((n) => {
+    const [first, ...rest] = n.text.split("\n");
+    return `<div class="card${n.id === state.focus ? " focus" : ""}" data-id="${n.id}" style="left:${(n.x - x0) * (W + 12)}px;top:${(n.y - y0) * (H + 12)}px;width:${W}px;height:${H}px"><b>${esc(first || "Untitled")}</b>${esc(rest.join("\n").slice(0, 260))}</div>`;
+  }).join("");
+}
+function closeMap(silent) { mapOpen = false; mapEl.hidden = true; if (!silent) render(); }
+mapEl.addEventListener("click", (e) => {
+  const c = e.target.closest(".card");
+  if (c) { state.focus = Number(c.dataset.id); save(); }
+  closeMap(); page.scrollTop = 0;
+});
+
+// ---------- Typing strip ----------
+const ROWS = [
+  ["qwertyuiop", "1234567890"],
+  ["asdfghjkl⌫", "-/+=()$&@ "],
+  ["zxcvbnm,.⏎", "!?'\"#%*;: "]
+];
+$("#krows").innerHTML = ROWS.map(([r, s]) => `<div class="krow">${[...r].map((c, i) => {
+  const fn = c === "⌫" || c === "⏎";
+  const sec = s[i] && s[i] !== " " && !fn ? `<sup>${esc(s[i])}</sup>` : "";
+  return `<div class="k${fn ? " fn" : ""}${/[a-z]/.test(c) ? " l" : ""}" data-c="${esc(c)}" data-s="${esc(fn ? "" : s[i].trim())}">${esc(c)}${sec}</div>`;
+}).join("")}</div>`).join("");
+const spaceEl = $("#space");
+function showKeys(on) {
+  if (mapOpen && on) return;
+  keysOn = on && !mapOpen; keysEl.hidden = !keysOn;
+  if (state.kept) placeHints();
+}
+function autoCap() {
+  const n = cur(); if (n.anchor != null) return false;
+  const before = n.text.slice(0, n.caret);
+  return before === "" || /(^|[.!?]\s+|\n)$/.test(before);
+}
+function updateCase() { keysEl.classList.toggle("cap", autoCap()); }
+let lastCharAt = 0;
+function typed(ch) {
+  const t = now();
+  if (t - lastCharAt < 2000) state.stats.typingMs += t - lastCharAt;
+  lastCharAt = t; state.stats.chars++;
+  app.classList.add("typing"); clearTimeout(typed.t); typed.t = setTimeout(() => app.classList.remove("typing"), 600);
+  insertText(ch, "type");
+  scrollCaret();
+}
+function acceptCompletion() {
+  if (!ghostRest) return false;
+  const rest = ghostRest;
+  insertText(rest + " ", "type"); lastKind = "accept"; render(); scrollCaret();
+  return true;
+}
+function classify(dx, dy) {
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  if (ax < 16 && ay < 16) return "tap";
+  if (dx > 18 && dy < -18 && ax < ay * 2.2 && ay < ax * 2.2) return "ne";
+  if (ax >= ay) return ax > 26 ? (dx > 0 ? "space" : "back") : "tap";
+  return ay > 18 ? (dy < 0 ? "alt" : "case") : "tap";
+}
+const presses = new Map();
+function keyAt(x, y) {
+  const r = $("#krows").getBoundingClientRect();
+  if (y > r.bottom) return { space: true };
+  const rows = [...document.querySelectorAll(".krow")];
+  const row = rows.find((el) => y < el.getBoundingClientRect().bottom) || rows[rows.length - 1];
+  const ks = [...row.children], rr = row.getBoundingClientRect();
+  const i = clamp(Math.floor((x - rr.left) / (rr.width / 10)), 0, 9);
+  return { el: ks[i] };
+}
+function glyphFor(p, kind) {
+  if (kind === "space") return "␣";
+  if (kind === "back") return Math.abs(p.dx) > 120 ? "⌫ word" : "⌫";
+  if (kind === "ne") return ghostRest ? cur().text.slice(wordAt(cur(), cur().caret)[0], cur().caret) + ghostRest : "";
+  if (p.space) return "␣";
+  const c = p.el.dataset.c;
+  if (c === "⌫" || c === "⏎") return c;
+  if (kind === "alt") return p.el.dataset.s || "";
+  const up = autoCap();
+  if (kind === "case") return up ? c : c.toUpperCase();
+  return up && /[a-z]/.test(c) ? c.toUpperCase() : c;
+}
+function showPop(p, kind) {
+  const g0 = glyphFor(p, kind);
+  if (!g0) { popEl.hidden = true; return; }
+  const r = (p.space ? spaceEl : p.el).getBoundingClientRect();
+  popEl.textContent = g0; popEl.classList.toggle("word", g0.length > 2);
+  popEl.style.left = clamp(r.left + r.width / 2, 40, innerWidth - 40) + "px";
+  popEl.style.top = (r.top - 8) + "px";
+  popEl.hidden = false;
+}
+keysEl.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  try { keysEl.setPointerCapture(e.pointerId); } catch {}
+  const k = keyAt(e.clientX, e.clientY);
+  const p = { ...k, x: e.clientX, y: e.clientY, dx: 0, dy: 0, kind: "tap" };
+  presses.set(e.pointerId, p);
+  (p.space ? spaceEl : p.el).classList.add("down");
+  if (!p.space && p.el.dataset.c === "⌫") {
+    backspace(); p.fired = true;
+    p.rep = setTimeout(() => { p.int = setInterval(() => backspace(), 60); }, 420);
+  }
+  showPop(p, "tap");
+  clearHints();
+});
+keysEl.addEventListener("pointermove", (e) => {
+  const p = presses.get(e.pointerId); if (!p) return;
+  p.dx = e.clientX - p.x; p.dy = e.clientY - p.y;
+  const kind = classify(p.dx, p.dy);
+  if (kind !== "tap" && p.rep) { clearTimeout(p.rep); clearInterval(p.int); p.rep = 0; }
+  if (kind !== p.kind || kind === "back") { p.kind = kind; showPop(p, kind); }
+});
+function releaseKey(e, commit) {
+  const p = presses.get(e.pointerId); if (!p) return;
+  presses.delete(e.pointerId);
+  clearTimeout(p.rep); clearInterval(p.int);
+  (p.space ? spaceEl : p.el).classList.remove("down");
+  popEl.hidden = true;
+  if (!commit) return;
+  const kind = classify(p.dx, p.dy);
+  if (kind === "space") return typed(" ");
+  if (kind === "back") return backspace(Math.abs(p.dx) > 120);
+  if (kind === "ne") { acceptCompletion(); return; }
+  if (p.space) return typed(" ");
+  const c = p.el.dataset.c;
+  if (c === "⌫") { if (!p.fired) backspace(); return; }
+  if (c === "⏎") return typed("\n");
+  if (kind === "alt") { if (p.el.dataset.s) typed(p.el.dataset.s); return; }
+  typed(glyphFor(p, kind));
+}
+keysEl.addEventListener("pointerup", (e) => releaseKey(e, true));
+keysEl.addEventListener("pointercancel", (e) => releaseKey(e, false));
+
+// ---------- Desktop keyboard: type normally; hold Alt for paths ----------
+function codeChar(code) {
+  if (code.startsWith("Key")) return code.slice(3).toLowerCase();
+  if (code.startsWith("Digit")) return code.slice(5);
+  return null;
+}
+const ARROWDIR = { ArrowLeft: "W", ArrowUp: "N", ArrowRight: "E" };
+function keyStep(e) {
+  if (e.key === "Escape") { endGesture(true); return; }
+  const level = topLevel();
+  let dir = ARROWDIR[e.key];
+  if (!dir) {
+    const ch = codeChar(e.code);
+    dir = Object.keys(level.node.children).find((d) => level.node.children[d].key === ch);
+  }
+  const node = dir && level.node.children[dir];
+  if (!node || !isOn(node)) { haptic(2); return; }
+  setHot(level, dir);
+  if (node.children) { pushLevel(node, level.ox, level.oy, dir); return; }
+  g.armed = dir;
+  endGesture(false);
+}
+function moveCaret(n, to, shift) {
+  if (shift) { if (n.anchor == null) n.anchor = n.caret; } else if (n.anchor != null) { n.anchor = null; }
+  n.caret = clamp(to, 0, n.text.length);
+  if (n.anchor === n.caret) n.anchor = null;
+  lastKind = null; render(); scrollCaret(); save();
+}
+addEventListener("keydown", (e) => {
+  if (e.key === "Alt") { e.preventDefault(); if (!g && !e.repeat && !mapOpen) startGesture("keys", 0, 0, null, "keys"); return; }
+  if (g && g.input === "keys") { e.preventDefault(); if (!e.repeat) keyStep(e); return; }
+  if (g) return;
+  if (mapOpen) { if (e.key === "Escape") closeMap(); return; }
+  if (e.target === rail || e.target.closest?.(".hint")) return;
+  const n = cur(), mod = e.ctrlKey || e.metaKey;
+  if (mod) {
+    const k = e.key.toLowerCase();
+    if (e.altKey) return;
+    if (k === "z" && !e.shiftKey) { e.preventDefault(); toast(commands.undo()); lastCmd = "undo"; }
+    else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); toast(commands.redo()); lastCmd = "redo"; }
+    else if (k === "a") { e.preventDefault(); commands.selAll(); }
+    poke(); return;
+  }
+  const [a, b] = selRange(n);
+  let handled = true;
+  switch (e.key) {
+    case "Backspace": backspace(e.ctrlKey); break;
+    case "Delete": delForward(); break;
+    case "Enter": typed("\n"); break;
+    case "Tab": if (!acceptCompletion()) typed("  "); break;
+    case "ArrowLeft": moveCaret(n, !e.shiftKey && b > a ? a : n.caret - 1, e.shiftKey); break;
+    case "ArrowRight": moveCaret(n, !e.shiftKey && b > a ? b : n.caret + 1, e.shiftKey); break;
+    case "ArrowUp": case "ArrowDown": {
+      const [x, y] = caretPoint(), lh = parseFloat(getComputedStyle(textEl).lineHeight) || 27;
+      const o = offsetAt(x + 1, y + (e.key === "ArrowUp" ? -lh : lh));
+      moveCaret(n, o == null ? (e.key === "ArrowUp" ? 0 : n.text.length) : o, e.shiftKey); break;
+    }
+    case "Home": moveCaret(n, lineAt(n, n.caret)[0], e.shiftKey); break;
+    case "End": moveCaret(n, lineAt(n, n.caret)[1], e.shiftKey); break;
+    case "Escape": if (n.anchor != null) { n.anchor = null; render(); } else handled = false; break;
+    default:
+      if (e.key.length === 1) typed(e.key); else handled = false;
+  }
+  if (handled) e.preventDefault();
+  poke();
+});
+addEventListener("keyup", (e) => { if (e.key === "Alt" && g?.input === "keys") { e.preventDefault(); endGesture(false); } });
+addEventListener("blur", () => { if (g) endGesture(true); });
+document.addEventListener("copy", (e) => { const n = cur(), [a, b] = selRange(n); if (b > a) { e.preventDefault(); state.clip = n.text.slice(a, b); e.clipboardData?.setData("text/plain", state.clip); toast("Copied"); } });
+document.addEventListener("cut", (e) => { const n = cur(), [a, b] = selRange(n); if (b > a) { e.preventDefault(); state.clip = n.text.slice(a, b); e.clipboardData?.setData("text/plain", state.clip); insertText("", "cut"); } });
+document.addEventListener("paste", (e) => { const t = e.clipboardData?.getData("text/plain"); if (t) { e.preventDefault(); insertText(t.replace(/\r\n?/g, "\n"), "paste"); scrollCaret(); } });
+addEventListener("resize", () => { if (state.kept) placeHints(); if (mapOpen) openMap(); });
+
+// ---------- Boot ----------
+app.classList.toggle("kept", !!state.kept);
+render();
+if (cur().id === 1 && cur().caret === 0) page.scrollTop = 0;
+poke();
+</script>
+</body>
+</html>
