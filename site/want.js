@@ -8,8 +8,11 @@
   const format = new Intl.NumberFormat();
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const endpoint = window.wantCounterSocket || (local ? `ws://${location.host}/api/want` : '');
+  const BATCH_MS = 250, MAX_BATCH = 100;
+  const address = endpoint ? new URL(endpoint) : null;
+  if (address) address.searchParams.set('client', crypto.randomUUID());
   let socket, retry, pulse, labelPress, countPress, pressPointer;
-  let delay = 1000, total = null;
+  let delay = 1000, total = null, taps = 0, accepted = 0, sentThrough = null, batchTimer;
 
   function animatePress() {
     pulse?.cancel();
@@ -37,41 +40,90 @@
   }
 
   function setStatus(text, ready = false) {
-    status.textContent = text;
+    if (status.textContent !== text) status.textContent = text;
     button.setAttribute('aria-disabled', String(!ready));
   }
 
+  function renderTotal(remote = false) {
+    const pending = taps - accepted;
+    if (total === null && !pending) return;
+    const value = (total ?? 0) + pending;
+    const text = (total === null ? '+' : '') + format.format(value);
+    const previous = count.textContent;
+    if (text === previous) return;
+    count.textContent = text;
+    description.textContent = total === null ? `${format.format(pending)} local clicks pending`
+      : text + (value === 1 ? ' click' : ' clicks');
+    if (text.length !== previous.length) {
+      count.style.fontSize = '';
+      const width = count.getComputedTextLength();
+      // Leave room for the count to grow within the button when pressed.
+      const maxWidth = 140;
+      if (width > maxWidth) {
+        const fontSize = parseFloat(getComputedStyle(count).fontSize);
+        count.style.fontSize = `${fontSize * maxWidth / width}px`;
+      }
+    }
+    if (remote && !reduce.matches && pressPointer === undefined && countPress?.playState !== 'running') {
+      pulse?.cancel();
+      pulse = count.animate([{ opacity: .45 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
+    }
+  }
+
+  // Send the cumulative number of taps so reconnects can safely retry any unacknowledged batch.
+  function nextBatch() {
+    return Math.min(taps, accepted + MAX_BATCH);
+  }
+
+  function flush() {
+    clearTimeout(batchTimer);
+    batchTimer = undefined;
+    if (socket?.readyState !== WebSocket.OPEN || sentThrough === null) return;
+    const through = nextBatch();
+    if (through <= sentThrough) return;
+    socket.send(String(through));
+    sentThrough = through;
+  }
+
+  function scheduleFlush() {
+    if (sentThrough !== null && nextBatch() > sentThrough && batchTimer === undefined) {
+      batchTimer = setTimeout(flush, BATCH_MS);
+    }
+  }
+
   function connect() {
-    setStatus(total === null ? 'connecting' : 'reconnecting');
-    const connection = new WebSocket(endpoint);
+    setStatus(total === null ? 'connecting' : 'reconnecting', true);
+    sentThrough = null;
+    const connection = new WebSocket(address);
     socket = connection;
     connection.addEventListener('message', ({ data }) => {
-      if (socket !== connection || !/^\d+$/.test(data)) return;
-      const next = Number(data);
-      if (!Number.isSafeInteger(next) || (total !== null && next < total)) return;
-      if (next !== total) {
-        count.textContent = format.format(next);
-        description.textContent = count.textContent + (next === 1 ? ' click' : ' clicks');
-        count.style.fontSize = '';
-        const width = count.getComputedTextLength();
-        // Leave room for the count to grow within the button when pressed.
-        const maxWidth = 140;
-        if (width > maxWidth) {
-          const fontSize = parseFloat(getComputedStyle(count).fontSize);
-          count.style.fontSize = `${fontSize * maxWidth / width}px`;
-        }
-        pulse?.cancel();
-        if (total !== null && !reduce.matches && pressPointer === undefined && countPress?.playState !== 'running') {
-          pulse = count.animate([{ opacity: .45 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-        }
-        total = next;
+      if (socket !== connection) return;
+      let snapshot;
+      try { snapshot = JSON.parse(data); } catch (_) { return; }
+      if (Number.isSafeInteger(snapshot)) {
+        setStatus('counter update required');
+        return;
       }
+      const next = snapshot?.total, acknowledged = snapshot?.accepted;
+      if (!Number.isSafeInteger(next) || !Number.isSafeInteger(acknowledged) ||
+          acknowledged < accepted || acknowledged > taps || next < acknowledged ||
+          (total !== null && next - total < acknowledged - accepted)) return;
+      const reconnecting = sentThrough === null;
+      const remote = total !== null && next - total > acknowledged - accepted;
+      total = next;
+      accepted = acknowledged;
+      sentThrough = Math.max(sentThrough ?? 0, accepted);
+      renderTotal(remote);
       delay = 1000;
-      if (button.getAttribute('aria-disabled') === 'true') setStatus('live', true);
+      setStatus('live', true);
+      if (reconnecting) flush(); else scheduleFlush();
     });
     connection.addEventListener('close', () => {
       if (socket !== connection) return;
-      setStatus('reconnecting');
+      clearTimeout(batchTimer);
+      batchTimer = undefined;
+      sentThrough = null;
+      setStatus('reconnecting', true);
       retry = setTimeout(connect, delay);
       delay = Math.min(delay * 2, 15000);
     });
@@ -91,10 +143,11 @@
   addEventListener('blur', releasePress);
 
   button.addEventListener('click', () => {
-    if (button.getAttribute('aria-disabled') === 'false' && socket.readyState === WebSocket.OPEN) {
-      socket.send('click');
-      animatePress();
-    }
+    if (button.getAttribute('aria-disabled') === 'true') return;
+    taps++;
+    renderTotal();
+    animatePress();
+    scheduleFlush();
   });
 
   reduce.addEventListener('change', () => {
@@ -108,7 +161,9 @@
     setStatus('counter offline');
     return;
   }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
   addEventListener('pagehide', () => {
+    flush();
     clearTimeout(retry);
     const connection = socket;
     socket = undefined;
