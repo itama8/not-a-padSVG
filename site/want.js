@@ -9,13 +9,14 @@
   const local = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const endpoint = window.wantCounterSocket || (local ? `ws://${location.host}/api/want` : '');
   const BATCH_MS = 250, MAX_BATCH = 100;
+  const CATCH_UP_STEPS = 8, CATCH_UP_STEP_MS = 24;
   const address = endpoint ? new URL(endpoint) : null;
   if (address) address.searchParams.set('client', crypto.randomUUID());
-  let socket, retry, pulse, labelPress, countPress, pressPointer;
+  let socket, retry, labelPress, countPress, pressPointer;
   let delay = 1000, total = null, taps = 0, accepted = 0, sentThrough = null, batchTimer;
+  let displayed = 0, catchUpSteps = 0, catchUpTimer;
 
   function animatePress() {
-    pulse?.cancel();
     labelPress?.cancel();
     countPress?.cancel();
     const restingInk = getComputedStyle(count).fillOpacity;
@@ -44,16 +45,13 @@
     button.setAttribute('aria-disabled', String(!ready));
   }
 
-  function renderTotal(remote = false) {
-    const pending = taps - accepted;
-    if (total === null && !pending) return;
-    const value = (total ?? 0) + pending;
-    const text = (total === null ? '+' : '') + format.format(value);
+  function renderTotal() {
+    const text = (total === null ? '+' : '') + format.format(displayed);
     const previous = count.textContent;
     if (text === previous) return;
     count.textContent = text;
-    description.textContent = total === null ? `${format.format(pending)} local clicks pending`
-      : text + (value === 1 ? ' click' : ' clicks');
+    description.textContent = total === null ? `${format.format(displayed)} local clicks pending`
+      : text + (displayed === 1 ? ' click' : ' clicks');
     if (text.length !== previous.length) {
       count.style.fontSize = '';
       const width = count.getComputedTextLength();
@@ -64,10 +62,18 @@
         count.style.fontSize = `${fontSize * maxWidth / width}px`;
       }
     }
-    if (remote && !reduce.matches && pressPointer === undefined && countPress?.playState !== 'running') {
-      pulse?.cancel();
-      pulse = count.animate([{ opacity: .45 }, { opacity: 1 }], { duration: 180, easing: 'ease-out' });
-    }
+  }
+
+  function catchUp() {
+    clearTimeout(catchUpTimer);
+    catchUpTimer = undefined;
+    const target = total + (taps - accepted);
+    if (displayed >= target) return;
+    const steps = reduce.matches || document.hidden ? 1 : catchUpSteps;
+    displayed += Math.ceil((target - displayed) / Math.max(1, steps));
+    catchUpSteps--;
+    renderTotal();
+    if (displayed < target) catchUpTimer = setTimeout(catchUp, CATCH_UP_STEP_MS);
   }
 
   // Send the cumulative number of taps so reconnects can safely retry any unacknowledged batch.
@@ -109,11 +115,18 @@
           acknowledged < accepted || acknowledged > taps || next < acknowledged ||
           (total !== null && next - total < acknowledged - accepted)) return;
       const reconnecting = sentThrough === null;
-      const remote = total !== null && next - total > acknowledged - accepted;
+      const firstTotal = total === null;
+      const remote = !firstTotal && next - total > acknowledged - accepted;
       total = next;
       accepted = acknowledged;
       sentThrough = Math.max(sentThrough ?? 0, accepted);
-      renderTotal(remote);
+      if (firstTotal) {
+        displayed = total + (taps - accepted);
+        renderTotal();
+      } else if (remote) {
+        catchUpSteps = CATCH_UP_STEPS;
+        if (catchUpTimer === undefined) catchUp();
+      }
       delay = 1000;
       setStatus('live', true);
       if (reconnecting) flush(); else scheduleFlush();
@@ -145,6 +158,7 @@
   button.addEventListener('click', () => {
     if (button.getAttribute('aria-disabled') === 'true') return;
     taps++;
+    displayed++;
     renderTotal();
     animatePress();
     scheduleFlush();
@@ -152,16 +166,20 @@
 
   reduce.addEventListener('change', () => {
     if (!reduce.matches) return;
-    pulse?.cancel();
     labelPress?.cancel();
     countPress?.cancel();
+    if (catchUpTimer !== undefined) catchUp();
   });
 
   if (!endpoint) {
     setStatus('counter offline');
     return;
   }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    if (catchUpTimer !== undefined) catchUp();
+    flush();
+  });
   addEventListener('pagehide', () => {
     flush();
     clearTimeout(retry);
