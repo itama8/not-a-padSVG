@@ -1428,20 +1428,21 @@
       // ---- pointer: hold to peek, tap to keep ----
       const TAP_MS = 280, TAP_PX = 12;
       const controlSelector = '.tile, .ai, .pbtn, .ilink, #want';
-      let press = null, secondTap = null;
+      let press = null, nextHold = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
         // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
         if (e.pointerType === 'mouse' || e.button !== 0) return;
         const control = e.target.closest(controlSelector);
         if (press) {
-          if (state === 'off' || !control || secondTap) return;
-          // Route the second finger through the control's click handler even on
-          // browsers that only synthesize clicks for the primary touch.
-          // Capture at the app so any native click from this tap misses the control.
+          if (state === 'off') return;
+          if (control && secondTap) return;
+          if (!control && (nextHold || state !== 'peek' || press.from !== 'off')) return;
+          // Keep tracking the second contact at the app and activate control taps ourselves.
           app.setPointerCapture(e.pointerId);
           e.preventDefault();
-          secondTap = { id: e.pointerId, control };
+          if (control) secondTap = { id: e.pointerId, control };
+          else nextHold = { id: e.pointerId, x: e.clientX, y: e.clientY, t: null, from: press.from, dist: 0 };
           press.usedSecondFinger = true;
           move.hidden = true;
           disarm();
@@ -1454,6 +1455,11 @@
         if (state === 'off') reveal(press, 'peek');
       });
       app.addEventListener('pointermove', (e) => {
+        if (nextHold?.id === e.pointerId) {
+          nextHold.x = e.clientX;
+          nextHold.y = e.clientY;
+          return;
+        }
         if (!press || e.pointerId !== press.id || press.usedSecondFinger) return;
         press.dist = Math.max(press.dist, Math.hypot(e.clientX - press.x, e.clientY - press.y));
         if (state === 'off') return;
@@ -1461,6 +1467,10 @@
         armAt(e.clientX, e.clientY);
       });
       const end = (e, cancelled) => {
+        if (nextHold?.id === e.pointerId) {
+          nextHold = null;
+          return;
+        }
         if (secondTap?.id === e.pointerId) {
           const { control } = secondTap;
           secondTap = null;
@@ -1471,9 +1481,18 @@
           return;
         }
         if (!press || e.pointerId !== press.id) return;
+        if (!cancelled && state === 'peek' && nextHold) {
+          // Keep the same layout and start any subsequent drag at the new contact.
+          press = lastPress = nextHold;
+          nextHold = null;
+          press.usedSecondFinger = Boolean(secondTap);
+          pressG.setAttribute('transform', `translate(${press.x} ${press.y})`);
+          return;
+        }
         const p = press; press = null;
+        nextHold = null;
         secondTap = null;
-        const tap = !cancelled && !p.usedSecondFinger && performance.now() - p.t < TAP_MS && p.dist < TAP_PX;
+        const tap = !cancelled && p.t !== null && !p.usedSecondFinger && performance.now() - p.t < TAP_MS && p.dist < TAP_PX;
         const target = cancelled ? null : armed;
         move.hidden = true;
         disarm();
