@@ -322,6 +322,16 @@
     #app[data-hint="2"] #hint { opacity: 0; }
     #app.is-on #hint { opacity: 0; transition-duration: 120ms; }
 
+    #touchhint { display: none; }
+    @media (hover: none), (pointer: coarse) {
+      #hint { width: auto; height: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+              opacity: min(1, calc(.42 * var(--kt))); }
+      #hint svg { display: none; }
+      #touchhint { display: block; font: 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; color: var(--ink); }
+      #app[data-hint="1"] #hint, #app[data-hint="2"] #hint { opacity: min(1, calc(.26 * var(--kt))); }
+      #app.is-on #hint { opacity: 0; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
       .wipe-y, .wipe-x, .is-on .wipe-y, .is-on .wipe-x { transform: none; transition: none !important; }
@@ -788,6 +798,7 @@
     </section>
 
     <div id="hint">
+      <span id="touchhint" aria-hidden="true">tap or hold</span>
       <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, hold Alt, or press Enter on the wordmark.</span>
       <svg viewBox="0 0 76 30" aria-hidden="true">
         <circle class="h-ring s" cx="10" cy="15" r="8" />
