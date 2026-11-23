@@ -36,6 +36,8 @@ jobs:
           ref: dev
           path: dev
       - name: Assemble the site
+        env:
+          WANT_COUNTER_SOCKET: ${{ vars.WANT_COUNTER_SOCKET }}
         run: |
           mkdir -p _site
           cp -R prod/site/. _site/
@@ -45,6 +47,16 @@ jobs:
             # keep work in progress out of search results
             find _site/dev -name '*.html' -exec sed -i 's#<head>#<head>\n  <meta name="robots" content="noindex" />#' {} +
           fi
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          endpoint = os.environ["WANT_COUNTER_SOCKET"]
+          if endpoint:
+              for config in Path("_site").glob("**/want-config.js"):
+                  config.write_text(f"window.wantCounterSocket = {json.dumps(endpoint)};\n")
+          PY
           echo "prod: $(git -C prod rev-parse --short HEAD)" > _site/version.txt
           [ -d dev ] && echo "dev: $(git -C dev rev-parse --short HEAD)" >> _site/version.txt
           cat _site/version.txt
