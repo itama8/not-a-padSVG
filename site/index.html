@@ -275,6 +275,11 @@
     .pbtn .sw-d { fill: var(--ink); opacity: min(1, calc(.55 * var(--kl))); }
     .pbtn[aria-pressed="true"] .sw-frame { stroke-width: 1.6; opacity: min(1, calc(.85 * var(--kt))); }
     .pbtn.sep { margin-left: 5px; }
+    #papers.vert { flex-direction: column; }
+    #papers.vert .pbtn { height: 40px; }
+    #papers.vert .pbtn.sep { margin-left: 0; margin-top: 5px; }
+    #papers.grid { display: grid; grid-template-columns: repeat(4, 38px); }
+    #papers.grid .pbtn.sep { margin-left: 0; }
     .pbtn:hover, .pbtn.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
     .pbtn:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
 
@@ -1083,9 +1088,19 @@
         linksBox.style.setProperty('--d', '1300ms');
         if (lr) { linksBox.style.transform = `translate(${Math.round(lr.l)}px, ${Math.round(lr.t)}px)`; blockers.push(grow(lr, 10)); }
 
-        // Paper picker: top left, out of the way.
-        const pw = papersBox.offsetWidth, ph = papersBox.offsetHeight;
-        const pr = search(M, pw, ph, { x: M.g + pw / 2, y: M.safe.t + 12 + ph / 2 }, blockers, thumb);
+        // Paper picker: top left, out of the way. On a phone a press near the top leaves no row clear of
+        // the hand, so it stands up along an edge beside it, or folds into two rows, instead of disappearing.
+        const findPapers = () => {
+          const pw = papersBox.offsetWidth, ph = papersBox.offsetHeight;
+          return search(M, pw, ph, { x: M.g + pw / 2, y: M.safe.t + 12 + ph / 2 }, blockers, thumb);
+        };
+        let pr = null;
+        for (const shape of ['', 'vert', 'grid']) {
+          papersBox.classList.remove('vert', 'grid');
+          if (shape) papersBox.classList.add(shape);
+          if ((pr = findPapers())) break;
+        }
+        if (!pr) papersBox.classList.remove('vert', 'grid');
         papersBox.classList.toggle('stowed', !pr);
         papersBox.style.setProperty('--d', '1380ms');
         if (pr) { papersBox.style.transform = `translate(${Math.round(pr.l)}px, ${Math.round(pr.t)}px)`; blockers.push(grow(pr, 10)); }
