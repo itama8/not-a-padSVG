@@ -1,6 +1,7 @@
 (() => {
   const button = document.querySelector('#want');
   const label = document.querySelector('#want-label');
+  const underline = document.querySelector('#want-underline');
   const count = document.querySelector('#want-count');
   const description = document.querySelector('#want-total');
   const status = document.querySelector('#want-status');
@@ -10,34 +11,48 @@
   const endpoint = window.wantCounterSocket || (local ? `ws://${location.host}/api/want` : '');
   const BATCH_MS = 250, MAX_BATCH = 100;
   const CATCH_UP_STEPS = 8, CATCH_UP_STEP_MS = 24;
+  const labelOrbit = [
+    [133, 136, -3], [68, 131, -7], [24, 80, -90], [72, 28, -6],
+    [110, 20, 0], [152, 28, 7], [196, 80, 90], [153, 133, 6],
+  ];
+  const numberOrigins = [
+    [-14, 0], [-10, -9], [0, -12], [10, -9],
+    [14, 0], [10, 9], [0, 12], [-10, 9],
+  ];
   const address = endpoint ? new URL(endpoint) : null;
   if (address) address.searchParams.set('client', crypto.randomUUID());
-  let socket, retry, labelPress, countPress, pressPointer;
+  let socket, retry, labelIndex = 0, numberIndex = -1;
+  let arrivals = [];
   let delay = 1000, total = null, taps = 0, accepted = 0, sentThrough = null, batchTimer;
   let displayed = 0, catchUpSteps = 0, catchUpTimer;
 
-  function animatePress() {
-    labelPress?.cancel();
-    countPress?.cancel();
-    const restingInk = getComputedStyle(count).fillOpacity;
-    if (reduce.matches) {
-      countPress = count.animate([{ fillOpacity: .56 }, { fillOpacity: restingInk }],
-        { duration: 140 });
-    } else {
-      const timing = { duration: 200, easing: 'cubic-bezier(.2, .7, .25, 1)' };
-      labelPress = label.animate([{ transform: 'scale(.82)' }, { transform: 'none' }], timing);
-      countPress = count.animate([
-        { transform: 'scale(1.12)', fillOpacity: .56 },
-        { transform: 'none', fillOpacity: restingInk },
-      ], timing);
-    }
+  function nextPosition(previous, length) {
+    if (previous < 0) return Math.floor(Math.random() * length);
+    return (previous + 1 + Math.floor(Math.random() * (length - 1))) % length;
   }
 
-  function releasePress() {
-    if (pressPointer === undefined) return;
-    pressPointer = undefined;
-    if (labelPress?.playState === 'paused') labelPress.play();
-    if (countPress?.playState === 'paused') countPress.play();
+  function animateUpdate() {
+    if (!underline) return;
+    arrivals.forEach(animation => animation.cancel());
+    labelIndex = nextPosition(labelIndex, labelOrbit.length);
+    const [x, y, angle] = labelOrbit[labelIndex];
+    label.setAttribute('transform', `translate(${x} ${y}) rotate(${angle})`);
+    if (reduce.matches || document.hidden) return;
+
+    numberIndex = nextPosition(numberIndex, numberOrigins.length);
+    const [dx, dy] = numberOrigins[numberIndex];
+    const easing = 'cubic-bezier(.16, .75, .3, 1)';
+    arrivals = [
+      count.animate([
+        { transform: `translate(${dx}px, ${dy}px)`, opacity: .1 },
+        { transform: 'none', opacity: 1 },
+      ], { duration: 240, easing }),
+      label.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, easing }),
+      underline.animate([
+        { strokeDasharray: '1 1', strokeDashoffset: 1 },
+        { strokeDasharray: '1 1', strokeDashoffset: 0 },
+      ], { duration: 300, easing }),
+    ];
   }
 
   function setStatus(text, ready = false) {
@@ -55,8 +70,8 @@
     if (text.length !== previous.length) {
       count.style.fontSize = '';
       const width = count.getComputedTextLength();
-      // Leave room for the count to grow within the button when pressed.
-      const maxWidth = 140;
+      // Leave space beside the widest total for the lettering and the entrance.
+      const maxWidth = 142;
       if (width > maxWidth) {
         const fontSize = parseFloat(getComputedStyle(count).fontSize);
         count.style.fontSize = `${fontSize * maxWidth / width}px`;
@@ -126,6 +141,7 @@
       } else if (remote) {
         catchUpSteps = CATCH_UP_STEPS;
         if (catchUpTimer === undefined) catchUp();
+        animateUpdate();
       }
       delay = 1000;
       setStatus('live', true);
@@ -142,32 +158,18 @@
     });
   }
 
-  button.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0 || pressPointer !== undefined || button.getAttribute('aria-disabled') === 'true') return;
-    pressPointer = e.pointerId;
-    animatePress();
-    // Hold the first frame until release, including when the reveal captures the touch.
-    if (!reduce.matches) labelPress.pause();
-    countPress.pause();
-  });
-  for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-    addEventListener(type, (e) => { if (e.pointerId === pressPointer) releasePress(); }, true);
-  }
-  addEventListener('blur', releasePress);
-
   button.addEventListener('click', () => {
     if (button.getAttribute('aria-disabled') === 'true') return;
     taps++;
     displayed++;
     renderTotal();
-    animatePress();
+    animateUpdate();
     scheduleFlush();
   });
 
   reduce.addEventListener('change', () => {
     if (!reduce.matches) return;
-    labelPress?.cancel();
-    countPress?.cancel();
+    arrivals.forEach(animation => animation.cancel());
     if (catchUpTimer !== undefined) catchUp();
   });
 
