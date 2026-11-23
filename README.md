@@ -11,10 +11,26 @@ The website lives in [`site/`](site/). It is plain HTML with no build step yet.
 | `dev` | Where new ideas get built | https://itama8.github.io/not-padgtp/dev/ |
 | `prod` | What the public sees | https://itama8.github.io/not-padgtp/ |
 
-A push to either branch rebuilds and deploys both. To ship, merge `dev` into `prod`:
-
-```sh
-git switch prod && git merge --ff-only dev && git push && git switch dev
-```
+A push to either branch rebuilds and deploys both. Promote reviewed public site
+changes to `prod`. The tile and scatter labs live under `/dev/`.
 
 `version.txt` on the live site shows which commit of each branch is deployed.
+
+## Live click counter
+
+Run the site and the counter together from the repository root:
+
+```sh
+npx --yes wrangler@4.166.0 dev
+```
+
+Open the local URL Wrangler prints in two tabs. Reveal X-Ray with the wordmark,
+then press **I WANT THIS** repeatedly. Both tabs receive the same total
+over WebSocket. Wrangler keeps the local count in `.wrangler/`.
+
+For public testing, deploy the Worker from an authenticated Cloudflare account
+with `npx --yes wrangler@4.166.0 deploy`. Set the GitHub repository Actions
+variable `WANT_COUNTER_SOCKET` to the deployed Worker's WebSocket URL, including
+`/api/want`, and run **Build and deploy site**. GitHub Pages injects that URL
+into any build that includes the counter. Both Pages builds share one total
+when they use the same endpoint.

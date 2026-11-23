@@ -110,10 +110,27 @@
     #marks .press-node { fill: var(--ink); stroke: none; opacity: min(1, calc(.45 * var(--kl))); }
     #marks .movement { stroke-dasharray: 4 6; opacity: min(1, calc(.5 * var(--kl))); }
     #marks .movement-head { opacity: min(1, calc(.7 * var(--kl))); stroke-width: 1.25; }
+    #marks .station-path { opacity: min(1, calc(.29 * var(--kl))); stroke-dasharray: 0 5; }
+    #marks .station-reveal { stroke: white; stroke-width: 3; --dur: 420ms; }
     #move[hidden] { display: none; }
 
     /* ---------- x-ray layer ---------- */
     #xray { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+    #xray .station.stowed { visibility: hidden; }
+
+    #want {
+      position: absolute; left: 0; top: 0; width: 160px; height: 118px; padding: 0;
+      border: 0; background: none; color: var(--ink); cursor: pointer; pointer-events: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #app:is([data-xray="kept"], .alt-peek) #want { pointer-events: auto; }
+    #want[aria-disabled="true"] { cursor: default; }
+    #want:focus-visible { outline: 1px dashed var(--ink); outline-offset: 3px; }
+    #want svg { display: block; width: 100%; height: 100%; pointer-events: none; }
+    #want text { fill: currentColor; font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 900; }
+    #want-label { font-size: 34px; letter-spacing: -.045em; }
+    #want-count { font-size: 100px; font-variant-numeric: tabular-nums; fill-opacity: .24; }
+    #want:hover:not([aria-disabled="true"]) #want-count, #want.armed #want-count { fill-opacity: .34; }
 
     /* Shared icon ink: graphite for the app's structure, blue for what you put in. */
     .ic { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -133,7 +150,7 @@
       border: 0; background: none; color: inherit; font: inherit; border-radius: 6px;
       cursor: pointer; pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
     }
-    #app[data-xray="kept"] .tile, #app[data-xray="kept"] .ilink { pointer-events: auto; }
+    #app:is([data-xray="kept"], .alt-peek) :is(.tile, .ilink) { pointer-events: auto; }
     .tile.stowed, .ai.stowed { visibility: hidden; }
 
     /* AI badges: any model or agent can plug into the agents hub. Dashed = proposed. */
@@ -144,7 +161,7 @@
       opacity: 0; transition: opacity 90ms linear;
     }
     .is-on .ai { opacity: 1; transition: opacity 260ms ease var(--d, 0ms); }
-    #app[data-xray="kept"] .ai { pointer-events: auto; }
+    #app:is([data-xray="kept"], .alt-peek) .ai { pointer-events: auto; }
     .ai .ic { width: 100%; height: 100%; }
     .ai .ring { fill: var(--paper); stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl))); }
     .ai .ast-bg { fill: var(--paper); stroke: none; }
@@ -268,7 +285,7 @@
       border: 0; background: none; color: var(--ink); border-radius: 3px; cursor: pointer;
       pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
     }
-    #app[data-xray="kept"] .pbtn { pointer-events: auto; }
+    #app:is([data-xray="kept"], .alt-peek) .pbtn { pointer-events: auto; }
     .pbtn .ic { width: 26px; height: 26px; }
     .pbtn .sw-frame { fill: var(--paper); stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.4 * var(--kl))); }
     .pbtn .sw-l { fill: none; stroke: var(--ink); stroke-width: .8; opacity: min(1, calc(.45 * var(--kl))); }
@@ -332,6 +349,24 @@
       #app.is-on #hint { opacity: 0; }
     }
 
+    /* The desktop hint shows the next toggle action whenever Alt isn't being used to peek. */
+    #keyhint { display: none; }
+    @media (hover: hover) and (pointer: fine) {
+      #hint { width: auto; height: auto; white-space: nowrap; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+              opacity: min(1, calc(.42 * var(--kt))); }
+      #hint svg { display: none; }
+      #app:not([data-xray="peek"]) #keyhint { display: block; }
+      #keyhint { font: 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: .02em; color: var(--ink); }
+      #keyhint kbd { font: inherit; padding: 2px 6px 3px; margin: 0 1px; border: 1px solid currentColor; border-radius: 4px; }
+      #keyhint [data-hint-for] { display: none; }
+      #app[data-xray="off"] [data-hint-for="off"],
+      #app[data-xray="kept"] [data-hint-for="kept"] { display: inline; }
+      #app[data-hint="1"] #hint, #app[data-hint="2"] #hint { opacity: min(1, calc(.26 * var(--kt))); }
+      #app.alt-hint-flash[data-xray="off"] #hint { opacity: .9; transition-duration: 150ms; }
+      #app[data-xray="peek"] #hint { opacity: 0; }
+      #app[data-xray="kept"] #hint { opacity: min(1, calc(.42 * var(--kt))); transition-duration: 250ms; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
       .wipe-y, .wipe-x, .is-on .wipe-y, .is-on .wipe-x { transform: none; transition: none !important; }
@@ -339,6 +374,7 @@
       .xr, .is-on .xr { transition: opacity 120ms linear; }
       .play * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
       #hint * { animation: none !important; }
+      #app #hint { transition: none !important; }
       #hint .h-path { stroke-dashoffset: 0; }
     }
   </style>
@@ -370,7 +406,7 @@
           <path class="rl" d="M 0 0 L 28.146 16.25 M 0 16.25 L 28.146 0 M 0 0 V 16.25 M 14.073 0 V 16.25 M 28.146 0 V 16.25" />
         </pattern>
       </defs>
-      <rect id="paper-fill" x="0" y="0" width="100%" height="100%" fill="none" />
+      <rect id="paper-fill" x="0" y="0" width="100%" height="100%" fill="url(#pat-ruled)" />
       <path id="paper-margin" class="margin" d="" />
     </svg>
 
@@ -441,6 +477,15 @@
         <mask id="input-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
           <rect id="input-wipe-rect" class="wipe-x" style="--d:820ms;--dur:420ms" x="0" y="0" width="0" height="20" fill="#fff" />
         </mask>
+        <mask id="papers-path-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+          <path class="station-reveal pen" pathLength="1" />
+        </mask>
+        <mask id="links-path-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+          <path class="station-reveal pen" pathLength="1" />
+        </mask>
+        <mask id="want-path-wipe" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+          <path class="station-reveal pen" pathLength="1" />
+        </mask>
       </defs>
       <!-- a proposed edge where a phone keyboard would rise: the app draws its own input surface -->
       <g id="input-surface">
@@ -452,6 +497,11 @@
         <circle class="press-node" r="2" cx="0" cy="0" />
       </g>
       <g id="ai-links"></g>
+      <g id="station-paths">
+        <path class="station-path" data-station="papers" mask="url(#papers-path-wipe)" />
+        <path class="station-path" data-station="links" mask="url(#links-path-wipe)" />
+        <path class="station-path" data-station="want" mask="url(#want-path-wipe)" />
+      </g>
       <g id="move" hidden>
         <path class="movement" d="" />
         <path class="movement-head" d="" />
@@ -460,7 +510,7 @@
 
     <!-- The x-ray. No visible words; screen readers get them from the labels. -->
     <section id="xray" class="xr" aria-label="X-ray">
-      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. Each reveal shows a few of the tasks to come: lists, calendar and meetings, daily notes, AI agents, meal plans, wedding plans, workouts, technical explanations, random stuff, budgeting, journaling, travel and vacation planning, date planning, pets, family, a calculator, recipes, a lab book, inventory, a phonebook and RSS. Any AI can plug in: OpenAI, Claude, Gemini, Meta Llama, Mistral, DeepSeek, Grok, Qwen, Hugging Face, OpenRouter, GitHub Copilot and Codex work today; Perplexity, Cursor, Claude Code, Ollama and your own AI are coming. This reveal shows:</p>
+      <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On a desktop, hold or tap Alt. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. Each reveal shows a few of the tasks to come: lists, calendar and meetings, daily notes, AI agents, meal plans, wedding plans, workouts, technical explanations, random stuff, budgeting, journaling, travel and vacation planning, date planning, pets, family, a calculator, recipes, a lab book, inventory, a phonebook and RSS. Any AI can plug in: OpenAI, Claude, Gemini, Meta Llama, Mistral, DeepSeek, Grok, Qwen, Hugging Face, OpenRouter, GitHub Copilot and Codex work today; Perplexity, Cursor, Claude Code, Ollama and your own AI are coming. This reveal shows:</p>
 
       <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
         <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
@@ -766,7 +816,7 @@
       <p id="soon" aria-hidden="true"><svg viewBox="-4 -4 8 8"><g id="soon-mark"></g></svg>coming soon</p>
       <div id="ais" role="group" aria-label="AI that can plug in. Marked ones are coming soon."></div>
 
-      <div id="papers" class="xi" role="group" aria-label="Paper">
+      <div id="papers" class="xi station" role="group" aria-label="Paper">
         <button class="pbtn" type="button" data-ruling="blank" aria-label="Blank paper" aria-pressed="false">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect class="sw-frame" x="3" y="2" width="18" height="20" rx="2" /></svg>
         </button>
@@ -790,16 +840,29 @@
         </button>
       </div>
 
-      <nav id="links" class="xi" aria-label="Links">
+      <nav id="links" class="xi station" aria-label="Links">
         <a class="ilink" data-link="github" href="https://github.com/itama8/not-padgtp" aria-label="Star not-padgtp on GitHub">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="logo-gh" d="M12 0c6.63 0 12 5.276 12 11.79-.001 5.067-3.29 9.567-8.175 11.187-.6.118-.825-.25-.825-.56 0-.398.015-1.665.015-3.242 0-1.105-.375-1.813-.81-2.181 2.67-.295 5.475-1.297 5.475-5.822 0-1.297-.465-2.344-1.23-3.169.12-.295.54-1.503-.12-3.125 0 0-1.005-.324-3.3 1.209a11.32 11.32 0 00-3-.398c-1.02 0-2.04.133-3 .398-2.295-1.518-3.3-1.209-3.3-1.209-.66 1.622-.24 2.83-.12 3.125-.765.825-1.23 1.887-1.23 3.169 0 4.51 2.79 5.527 5.46 5.822-.345.294-.66.81-.765 1.577-.69.31-2.415.81-3.495-.973-.225-.354-.9-1.223-1.845-1.209-1.005.015-.405.56.015.781.51.28 1.095 1.327 1.23 1.666.24.663 1.02 1.93 4.035 1.385 0 .988.015 1.916.015 2.196 0 .31-.225.664-.825.56C3.303 21.374-.003 16.867 0 11.791 0 5.276 5.37 0 12 0z" /><path class="star" d="M 20.5 -1.2 L 21.6 1.1 L 24.1 1.4 L 22.3 3.1 L 22.7 5.6 L 20.5 4.4 L 18.3 5.6 L 18.7 3.1 L 16.9 1.4 L 19.4 1.1 Z" /></svg>
         </a>
       </nav>
+      <button id="want" class="xi station" type="button" aria-label="I WANT THIS" aria-disabled="true" aria-describedby="want-total want-status">
+        <svg viewBox="0 0 160 118" aria-hidden="true">
+          <text id="want-count" x="80" y="59" text-anchor="middle" dominant-baseline="central">—</text>
+          <text id="want-label" text-anchor="middle">
+            <tspan x="80" y="33">I</tspan>
+            <tspan x="80" y="67">WANT</tspan>
+            <tspan x="80" y="101">THIS</tspan>
+          </text>
+        </svg>
+      </button>
+      <span id="want-total" class="sr-only"></span>
+      <span id="want-status" class="sr-only" role="status">connecting</span>
     </section>
 
     <div id="hint">
       <span id="touchhint" aria-hidden="true">tap or hold</span>
-      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, hold Alt, or press Enter on the wordmark.</span>
+      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, tap Alt or press Enter on the wordmark to show or hide the x-ray. Hold Alt to peek.</span>
+      <span id="keyhint" aria-hidden="true">press <kbd>Alt</kbd> <span data-hint-for="off">to show UI</span><span data-hint-for="kept">to hide UI</span></span>
       <svg viewBox="0 0 76 30" aria-hidden="true">
         <circle class="h-ring s" cx="10" cy="15" r="8" />
         <circle class="h-dot" cx="10" cy="15" r="3" />
@@ -810,6 +873,9 @@
     </div>
   </div>
 
+  <script src="./want-config.js" defer></script>
+  <script src="./want.js" defer></script>
+  <script src="./scatter-layout.js"></script>
   <script>
     (() => {
       // ---- Links. Empty ones give a small "not yet" shake when followed. ----
@@ -822,9 +888,10 @@
 
       // ---- paper: a ruling plus light/dark, remembered per viewer ----
       const RULINGS = ['blank', 'ruled', 'grid', 'graph', 'dots', 'iso'];
-      const prefs = { ruling: 'blank', scheme: '' };
+      const DEFAULT_RULING = 'ruled';
+      const prefs = { ruling: DEFAULT_RULING, scheme: '' };
       try { Object.assign(prefs, JSON.parse(localStorage.getItem('npg.paper') || '{}')); } catch (_) {}
-      if (!RULINGS.includes(prefs.ruling)) prefs.ruling = 'blank';
+      if (!RULINGS.includes(prefs.ruling)) prefs.ruling = DEFAULT_RULING;
       const savePrefs = () => { try { localStorage.setItem('npg.paper', JSON.stringify(prefs)); } catch (_) {} };
 
       const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
@@ -833,6 +900,7 @@
       const xray = $('#xray'), linksBox = $('#links');
       const tiles = [...xray.querySelectorAll('.tile')];
       const papersBox = $('#papers');
+      const wantButton = $('#want');
       const pbtns = [...papersBox.querySelectorAll('.pbtn')];
       const darkQuery = matchMedia('(prefers-color-scheme: dark)');
       const links = [...xray.querySelectorAll('a[data-link]')];
@@ -911,6 +979,12 @@
         if (url) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; }
         else { a.dataset.placeholder = ''; a.setAttribute('aria-label', a.getAttribute('aria-label') + '. Not available yet.'); }
         a.addEventListener('click', (e) => {
+          if (url && e.altKey && altDown && state !== 'off') {
+            // Alt is held to reveal the link, so bypass the browser's Alt-click download shortcut.
+            e.preventDefault();
+            a.click();
+            return;
+          }
           if (!('placeholder' in a.dataset)) return;
           e.preventDefault();
           a.classList.remove('nope'); void a.offsetWidth; a.classList.add('nope');
@@ -968,6 +1042,16 @@
         app.dataset.hint = String(uses);
         try { localStorage.setItem('npg.hint', String(uses)); } catch (_) {}
       };
+      let hintTimer;
+      function clearAltHint() {
+        clearTimeout(hintTimer);
+        app.classList.remove('alt-hint-flash');
+      }
+      function flashAltHint() {
+        clearTimeout(hintTimer);
+        app.classList.add('alt-hint-flash');
+        hintTimer = setTimeout(clearAltHint, 420);
+      }
 
       // ---- state: off | peek | kept ----
       let state = 'off';
@@ -976,8 +1060,15 @@
         state = s;
         app.dataset.xray = s;
         app.classList.toggle('is-on', s !== 'off');
+        app.classList.toggle('alt-peek', s === 'peek' && altPeek);
+        if (s !== 'off') clearAltHint();
         mark.setAttribute('aria-pressed', String(s === 'kept'));
-        if (s === 'off') { move.hidden = true; disarm(); stopDemo(); }
+        if (s === 'off') {
+          move.hidden = true;
+          disarm();
+          stopDemo();
+          if (xray.contains(document.activeElement)) mark.focus({ preventScroll: true });
+        }
         if (s === 'kept' && prev !== 'kept') startDemo();
       };
 
@@ -1058,15 +1149,42 @@
       }
 
       let SEED = (Math.random() * 2 ** 32) >>> 0;
-      const mulberry = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-      const LAYOUTS = ['ring', 'column', 'bands', 'cluster'];
-      let layoutName = 'ring';
+      const compactLayouts = ['ring', 'column', 'bands', 'cluster'];
+      let compactLayout = 'ring', desktopMood;
       const noise = (a, b, c) => {
         let h = SEED ^ Math.imul(a + 0x9e37, 0x85ebca6b) ^ Math.imul(b + 0x7f4a, 0xc2b2ae35) ^ Math.imul(c + 0x1656, 0x27d4eb2f);
         h = Math.imul(h ^ (h >>> 16), 0x45d9f3b); h = Math.imul(h ^ (h >>> 16), 0x45d9f3b);
         return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
       };
       let lastPress = null;
+
+      function placeStation(el, rect, origin, delay, blockers) {
+        const line = $(`#station-paths [data-station="${el.id}"]`);
+        const wipe = $(`#${el.id}-path-wipe path`);
+        el.classList.toggle('stowed', !rect);
+        line.toggleAttribute('hidden', !rect);
+        if (!rect) {
+          line.removeAttribute('d');
+          return;
+        }
+        const x = Math.round(rect.l), y = Math.round(rect.t);
+        const w = rect.r - rect.l, h = rect.b - rect.t;
+        el.style.transform = `translate(${x}px, ${y}px)`;
+        el.style.setProperty('--d', `${delay + 240}ms`);
+        wipe.style.setProperty('--d', `${delay}ms`);
+        blockers.push(grow(rect, 10));
+
+        const dx = x + w / 2 - origin.x, dy = y + h / 2 - origin.y;
+        const horizontal = Math.abs(dx) / w > Math.abs(dy) / h;
+        const end = horizontal
+          ? { x: dx > 0 ? x : x + w, y: y + h / 2 }
+          : { x: x + w / 2, y: dy > 0 ? y : y + h };
+        const bend = horizontal ? { x: origin.x, y: end.y } : { x: end.x, y: origin.y };
+        const route = `M ${origin.x} ${origin.y} Q ${bend.x} ${bend.y} ${end.x} ${end.y}`;
+        line.setAttribute('d', route);
+        wipe.setAttribute('d', route);
+        return line;
+      }
 
       function layout(press) {
         lastPress = press;
@@ -1075,11 +1193,9 @@
 
         // Where the hand is: a circle at the contact point and the column below it (touch/pen).
         const thumb = [];
-        if (press && press.type !== 'mouse') {
+        if (press) {
           thumb.push({ x: p.x, y: p.y, rad: 50 });
           thumb.push({ l: p.x - 32, t: p.y, r: p.x + 32, b: M.vh });
-        } else if (press) {
-          thumb.push({ x: p.x, y: p.y, rad: 26 });
         }
 
         pressG.setAttribute('transform', `translate(${p.x} ${p.y})`);
@@ -1095,9 +1211,7 @@
         // Links: top right, out of the way.
         const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
         const lr = search(M, lw, lh, { x: M.vw - M.gr - lw / 2, y: M.safe.t + 12 + lh / 2 }, blockers, thumb);
-        linksBox.classList.toggle('stowed', !lr);
-        linksBox.style.setProperty('--d', '1300ms');
-        if (lr) { linksBox.style.transform = `translate(${Math.round(lr.l)}px, ${Math.round(lr.t)}px)`; blockers.push(grow(lr, 10)); }
+        const githubPath = placeStation(linksBox, lr, M.P(429, 170), 170, blockers);
 
         // Paper picker: top left, out of the way. On a phone a press near the top leaves no row clear of
         // the hand, so it stands up along an edge beside it, or folds into two rows, instead of disappearing.
@@ -1112,13 +1226,26 @@
           if ((pr = findPapers())) break;
         }
         if (!pr) papersBox.classList.remove('vert', 'grid');
-        papersBox.classList.toggle('stowed', !pr);
-        papersBox.style.setProperty('--d', '1380ms');
-        if (pr) { papersBox.style.transform = `translate(${Math.round(pr.l)}px, ${Math.round(pr.t)}px)`; blockers.push(grow(pr, 10)); }
+        const paperPath = placeStation(papersBox, pr, M.P(154, 109), 80, blockers);
+
+        const ww = wantButton.offsetWidth, wh = wantButton.offsetHeight;
+        const wantSpot = { x: M.g + ww / 2, y: M.stripY - 16 - wh / 2 };
+        const wrct = search(M, ww, wh, wantSpot, blockers, thumb)
+          ?? search(M, ww, wh, wantSpot, blockers, thumb.slice(0, 1));
+        const wantPath = placeStation(wantButton, wrct, M.P(284, 202), 260, blockers);
+
+        // Keep scattered tiles and badges off the strokes connecting the wordmark to these controls.
+        for (const line of [githubPath, paperPath, wantPath].filter(Boolean)) {
+          const length = line.getTotalLength();
+          for (let d = 0; d < length; d += 10) {
+            const { x, y } = line.getPointAtLength(d);
+            blockers.push(grow({ l: x, t: y, r: x, b: y }, 6));
+          }
+        }
 
         // This reveal's selection: a few tasks (always the AI hub) and a few AIs around it.
-        const rng = mulberry(SEED);
-        const shuffle = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+        const rng = ScatterLayout.randomFromSeed(SEED);
+        const shuffle = (items) => ScatterLayout.shuffle(items, rng);
         const nTiles = M.wide ? 14 : 10, nAis = M.wide ? 8 : 6;
         const showTiles = shuffle([agentsTile, ...shuffle(tiles.filter((t) => t !== agentsTile)).slice(0, nTiles - 1)]);
         const showAis = shuffle(ais).slice(0, nAis);
@@ -1148,6 +1275,19 @@
         const badge = Math.max(2, Math.round((M.wide ? 42 : 36) / cell)) * cell;
         const o = M.P(447, 132);
         const c = { x: (M.ink.l + M.ink.r) / 2, y: (M.ink.t + M.ink.b) / 2 };
+        let scatter;
+        if (M.wide && !press) {
+          const area = { l: M.g, t: M.safe.t + 10, r: M.vw - M.gr, b: M.stripY - 10 };
+          // Keep tile sampling work bounded on ultrawide screens. Badges still use every ruling.
+          const stride = Math.ceil(Math.max(1, Math.sqrt(M.vw * M.stripY / (cell ** 2 * 5000))));
+          scatter = ScatterLayout.generate({
+            tiles: ScatterLayout.candidates(size, size * 0.54, cell, o, area, blockers, stride),
+            badges: ScatterLayout.candidates(badge, badge / 2, cell, o, area, blockers),
+            size, badgeSize: badge, cell, center: c, width: M.vw, height: M.vh,
+            tileCount: showTiles.length, badgeCount: showAis.length
+          }, { ...ScatterLayout.MOODS[desktopMood], mood: desktopMood }, SEED);
+        }
+        app.dataset.layout = scatter ? desktopMood : compactLayout;
         const placed = [];
         const place = (w, h, anchor, ring, spread, key, gap) => {
           let best = null, bestScore = Infinity;
@@ -1171,11 +1311,14 @@
         // Each layout family gives every tile a target; tiles land on the nearest free grid spot.
         const n = showTiles.length, top = M.safe.t + 80, bottom = M.stripY - 20;
         const targets = [];
-        if (layoutName === 'ring') {
+        if (scatter) {
+          const hubFirst = [agentsTile, ...showTiles.filter((tile) => tile !== agentsTile)];
+          for (const [i, tile] of hubFirst.entries()) targets[showTiles.indexOf(tile)] = scatter.points[i];
+        } else if (compactLayout === 'ring') {
           const a0 = rng() * Math.PI * 2;
           const rx = (M.ink.r - M.ink.l) / 2 + size * .9, ry = (M.ink.b - M.ink.t) / 2 + size * .9;
           for (let i = 0; i < n; i++) { const t = a0 + i * Math.PI * 2 / n; targets.push({ x: c.x + rx * Math.cos(t), y: c.y + ry * Math.sin(t) }); }
-        } else if (layoutName === 'column') {
+        } else if (compactLayout === 'column') {
           const left = rng() < .5;
           const x = left ? M.g + size / 2 + 4 : M.vw - M.gr - size / 2 - 4;
           const x2 = left ? x + size * 1.2 : x - size * 1.2;      // a second, shorter column when it doesn't fit
@@ -1184,7 +1327,7 @@
             const col = i < per ? x : x2, k = i < per ? i : i - per, m = i < per ? Math.min(n, per) : n - per;
             targets.push({ x: col, y: top + (k + .5) * (bottom - top) / m });
           }
-        } else if (layoutName === 'bands') {
+        } else if (compactLayout === 'bands') {
           const up = Math.ceil(n / 2), yA = (top + M.ink.t) / 2, yB = (M.ink.b + bottom) / 2;
           for (let i = 0; i < n; i++) {
             const row = i < up ? 0 : 1, k = row ? i - up : i, m = row ? n - up : up;
@@ -1200,7 +1343,8 @@
         order = [];
         tiles.forEach((t) => { if (!showTiles.includes(t)) { t.classList.add('stowed'); t.tabIndex = -1; t._r = null; } });
         showTiles.forEach((t, i) => {
-          const r = place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
+          const r = scatter ? ScatterLayout.bounds(targets[i], size / 2)
+            : place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
           t.classList.toggle('stowed', !r);     // never under the thumb: stow instead
           t.tabIndex = r ? 0 : -1;
           t._r = r;
@@ -1208,7 +1352,8 @@
           order.push(t);
           const tilt = (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
           t.style.width = t.style.height = size + 'px';
-          t.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px) rotate(${tilt.toFixed(1)}deg)`;
+          const x = scatter ? r.l : Math.round(r.l), y = scatter ? r.t : Math.round(r.t);
+          t.style.transform = `translate(${x}px, ${y}px) rotate(${tilt.toFixed(1)}deg)`;
           const base = 720 + i * 60;
           tileParts.get(t).forEach((el, j) => {
             el.style.setProperty('--d', (base + j * 40) + 'ms');
@@ -1223,12 +1368,14 @@
         plugOf.clear();
         ais.forEach((b) => { if (!showAis.includes(b)) { b.classList.add('stowed'); b.tabIndex = -1; } });
         showAis.forEach((b, i) => {
-          const r = place(badge, badge, hub, size * .7 + badge * .8, badge * 1.6, 100 + ais.indexOf(b), cell * .35);
+          const r = scatter ? ScatterLayout.bounds(scatter.badges[i], badge / 2)
+            : place(badge, badge, hub, size * .7 + badge * .8, badge * 1.6, 100 + ais.indexOf(b), cell * .35);
           b.classList.toggle('stowed', !r);
           b.tabIndex = r ? 0 : -1;
           if (!r) return;
           b.style.width = b.style.height = badge + 'px';
-          b.style.transform = `translate(${Math.round(r.l)}px, ${Math.round(r.t)}px)`;
+          const x = scatter ? r.l : Math.round(r.l), y = scatter ? r.t : Math.round(r.t);
+          b.style.transform = `translate(${x}px, ${y}px)`;
           b.style.setProperty('--d', (1250 + i * 60) + 'ms');
           if (hub === c) return;
           const bx = (r.l + r.r) / 2, by = (r.t + r.b) / 2;
@@ -1247,9 +1394,9 @@
       function reveal(press, next) {
         // Every reveal: a new selection and a different layout from last time.
         SEED = (Math.random() * 2 ** 32) >>> 0;
-        const pick = LAYOUTS.filter((n) => n !== layoutName);
-        layoutName = pick[Math.floor(Math.random() * pick.length)];
-        app.dataset.layout = layoutName;
+        const pick = compactLayouts.filter((name) => name !== compactLayout);
+        compactLayout = pick[Math.floor(Math.random() * pick.length)];
+        if (!press) desktopMood = desktopMood === 'loose' ? 'swarm' : 'loose';
         app.classList.add('instant');
         layout(press);
         void app.offsetWidth;                 // commit hidden start state before drawing in
@@ -1263,7 +1410,7 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        for (const el of [...tiles, ...ais, ...links, ...pbtns]) {
+        for (const el of [wantButton, ...links, ...pbtns, ...tiles, ...ais]) {
           if (el.closest('.stowed')) continue;
           const r = el.getBoundingClientRect();
           if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
@@ -1285,9 +1432,12 @@
       const TAP_MS = 280, TAP_PX = 12;
       let press = null;
       app.addEventListener('pointerdown', (e) => {
+        if (altDown) altDown.alone = false;
+        // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
+        if (e.pointerType === 'mouse') return;
         if (e.button !== 0 || press) return;
-        if (state === 'kept' && e.target.closest('a, .tile, .pbtn, .ai')) return;   // tiles and links work normally when kept
-        press = { id: e.pointerId, x: e.clientX, y: e.clientY, type: e.pointerType,
+        if (state === 'kept' && e.target.closest('a, .tile, .pbtn, .ai, #want')) return;
+        press = { id: e.pointerId, x: e.clientX, y: e.clientY,
                   t: performance.now(), from: state, dist: 0 };
         try { app.setPointerCapture(e.pointerId); } catch (_) {}
         if (state === 'off') reveal(press, 'peek');
@@ -1308,7 +1458,7 @@
         disarm();
         if (target && p.dist >= TAP_PX) {
           if (target.classList.contains('tile')) { setState('kept'); play(target); pauseDemo(); }
-          else if (target.classList.contains('pbtn') || target.classList.contains('ai')) { setState('kept'); target.click(); }
+          else if (target === wantButton || target.classList.contains('pbtn') || target.classList.contains('ai')) { setState('kept'); target.click(); }
           else if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
           else { target.click(); setState(p.from === 'kept' ? 'kept' : 'off'); }
         } else if (tap) {
@@ -1320,6 +1470,9 @@
       };
       app.addEventListener('pointerup', (e) => end(e, false));
       app.addEventListener('pointercancel', (e) => end(e, true));
+      app.addEventListener('click', (e) => {
+        if (state === 'off' && e.detail > 0 && (!e.pointerType || e.pointerType === 'mouse')) flashAltHint();
+      });
       app.addEventListener('contextmenu', (e) => e.preventDefault());
 
       // ---- keyboard: Enter/Space on the wordmark toggles keep; holding Alt peeks; Esc releases ----
@@ -1328,11 +1481,17 @@
         if (state === 'off') reveal(null, 'kept'); else setState('off');
         used();
       });
-      let altPeek = false;
+      // Hold Alt to peek; tap it (quickly, on its own) to keep the x-ray on, and tap again to put it away.
+      const ALT_TAP_MS = 300;
+      let altPeek = false, altDown = null;
+      if (/Mac|iPhone|iPad/.test(navigator.platform || '')) $('#keyhint kbd').textContent = '\u2325 Option';
       addEventListener('keydown', (e) => {
+        if (e.key !== 'Alt' && altDown) altDown.alone = false;   // Alt+Tab and friends aren't taps
         if (e.key === 'Alt') {
           e.preventDefault();
-          if (!e.repeat && state === 'off' && !press) { altPeek = true; reveal(null, 'peek'); }
+          if (e.repeat || press) return;
+          altDown = { t: e.timeStamp, from: state, alone: true };
+          if (state === 'off') { altPeek = true; reveal(null, 'peek'); }
         } else if (e.key === 'Escape' && state !== 'off') {
           setState('off');
           mark.focus();
@@ -1341,12 +1500,15 @@
       addEventListener('keyup', (e) => {
         if (e.key !== 'Alt') return;
         e.preventDefault();
-        if (altPeek) { altPeek = false; if (state === 'peek') setState('off'); used(); }
+        const d = altDown; altDown = null;
+        const tap = d && d.alone && e.timeStamp - d.t < ALT_TAP_MS;
+        if (altPeek) { altPeek = false; if (state === 'peek') setState(tap ? 'kept' : 'off'); used(); }
+        else if (tap && d.from === 'kept' && state === 'kept') { setState('off'); used(); }
       });
-      addEventListener('blur', () => { altPeek = false; if (state === 'peek') setState('off'); });
+      addEventListener('blur', () => { altPeek = false; altDown = null; if (state === 'peek') setState('off'); });
 
-      // Tabbing into the x-ray while it is off keeps it on, so focus is never invisible.
-      xray.addEventListener('focusin', () => { if (state !== 'kept') reveal(null, 'kept'); });
+      // Tabbing into a hidden x-ray keeps it on. Focus inside an Alt peek leaves it in place.
+      xray.addEventListener('focusin', () => { if (state === 'off' || (state === 'peek' && !altPeek)) reveal(null, 'kept'); });
 
       // ---- keep marks registered on resize / rotation ----
       let raf = 0;
