@@ -1,6 +1,6 @@
 # not-padgtp
 
-A supercharged notepad: plain text, a tiny UI, and an x-ray you hold to see.
+### notepad pro-max-ultra-plus-plus
 
 The website lives in [`site/`](site/). It is plain HTML with no build step yet.
 
