@@ -123,7 +123,6 @@
       border: 0; background: none; color: var(--ink); cursor: pointer; pointer-events: none;
       -webkit-tap-highlight-color: transparent;
     }
-    #app:is([data-xray="kept"], .alt-peek) #want { pointer-events: auto; }
     #want[aria-disabled="true"] { cursor: default; }
     #want:focus-visible { outline: 1px dashed var(--ink); outline-offset: 3px; }
     #want svg { display: block; width: 100%; height: 100%; pointer-events: none; }
@@ -150,7 +149,6 @@
       border: 0; background: none; color: inherit; font: inherit; border-radius: 6px;
       cursor: pointer; pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
     }
-    #app:is([data-xray="kept"], .alt-peek) :is(.tile, .ilink) { pointer-events: auto; }
     .tile.stowed, .ai.stowed { visibility: hidden; }
 
     /* AI badges: any model or agent can plug into the agents hub. Dashed = proposed. */
@@ -161,7 +159,6 @@
       opacity: 0; transition: opacity 90ms linear;
     }
     .is-on .ai { opacity: 1; transition: opacity 260ms ease var(--d, 0ms); }
-    #app:is([data-xray="kept"], .alt-peek) .ai { pointer-events: auto; }
     .ai .ic { width: 100%; height: 100%; }
     .ai .ring { fill: var(--paper); stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl))); }
     .ai .ast-bg { fill: var(--paper); stroke: none; }
@@ -285,7 +282,6 @@
       border: 0; background: none; color: var(--ink); border-radius: 3px; cursor: pointer;
       pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
     }
-    #app:is([data-xray="kept"], .alt-peek) .pbtn { pointer-events: auto; }
     .pbtn .ic { width: 26px; height: 26px; }
     .pbtn .sw-frame { fill: var(--paper); stroke: var(--ink); stroke-width: 1; opacity: min(1, calc(.4 * var(--kl))); }
     .pbtn .sw-l { fill: none; stroke: var(--ink); stroke-width: .8; opacity: min(1, calc(.45 * var(--kl))); }
@@ -316,6 +312,7 @@
     .ilink:hover, .ilink.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
     .ilink:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
     .ilink.nope { animation: nope .42s ease; }
+    #app.is-on :is(.tile, .ai, .pbtn, .ilink, #want) { pointer-events: auto; }
 
     /* ---------- the quiet hint: press, hold, follow a path to a tile ---------- */
     #hint {
@@ -861,7 +858,7 @@
 
     <div id="hint">
       <span id="touchhint" aria-hidden="true">tap or hold</span>
-      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray, then follow a path to a tile. Tap to keep it on. On a keyboard, tap Alt or press Enter on the wordmark to show or hide the x-ray. Hold Alt to peek.</span>
+      <span id="hint-desc" class="sr-only">Hold anywhere to show the x-ray. Tap a control with another finger, or drag to it and release. Tap to keep the x-ray on. On a keyboard, tap Alt or press Enter on the wordmark to show or hide the x-ray. Hold Alt to peek.</span>
       <span id="keyhint" aria-hidden="true">press <kbd>Alt</kbd> <span data-hint-for="off">to show UI</span><span data-hint-for="kept">to hide UI</span></span>
       <svg viewBox="0 0 76 30" aria-hidden="true">
         <circle class="h-ring s" cx="10" cy="15" r="8" />
@@ -1060,7 +1057,6 @@
         state = s;
         app.dataset.xray = s;
         app.classList.toggle('is-on', s !== 'off');
-        app.classList.toggle('alt-peek', s === 'peek' && altPeek);
         if (s !== 'off') clearAltHint();
         mark.setAttribute('aria-pressed', String(s === 'kept'));
         if (s === 'off') {
@@ -1430,29 +1426,53 @@
 
       // ---- pointer: hold to peek, tap to keep ----
       const TAP_MS = 280, TAP_PX = 12;
-      let press = null;
+      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want';
+      let press = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
         // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
-        if (e.pointerType === 'mouse') return;
-        if (e.button !== 0 || press) return;
-        if (state === 'kept' && e.target.closest('a, .tile, .pbtn, .ai, #want')) return;
+        if (e.pointerType === 'mouse' || e.button !== 0) return;
+        const control = e.target.closest(controlSelector);
+        if (press) {
+          if (state === 'off' || !control || secondTap) return;
+          // Route the second finger through the control's click handler even on
+          // browsers that only synthesize clicks for the primary touch.
+          // Capture at the app so any native click from this tap misses the control.
+          app.setPointerCapture(e.pointerId);
+          e.preventDefault();
+          secondTap = { id: e.pointerId, control };
+          press.usedSecondFinger = true;
+          move.hidden = true;
+          disarm();
+          return;
+        }
+        if (state !== 'off' && control) return;
         press = { id: e.pointerId, x: e.clientX, y: e.clientY,
                   t: performance.now(), from: state, dist: 0 };
         try { app.setPointerCapture(e.pointerId); } catch (_) {}
         if (state === 'off') reveal(press, 'peek');
       });
       app.addEventListener('pointermove', (e) => {
-        if (!press || e.pointerId !== press.id) return;
+        if (!press || e.pointerId !== press.id || press.usedSecondFinger) return;
         press.dist = Math.max(press.dist, Math.hypot(e.clientX - press.x, e.clientY - press.y));
         if (state === 'off') return;
         drawMove(press, e.clientX, e.clientY);
         armAt(e.clientX, e.clientY);
       });
       const end = (e, cancelled) => {
+        if (secondTap?.id === e.pointerId) {
+          const { control } = secondTap;
+          secondTap = null;
+          if (!cancelled && press && state !== 'off' &&
+              document.elementFromPoint(e.clientX, e.clientY)?.closest(controlSelector) === control) {
+            control.click();
+          }
+          return;
+        }
         if (!press || e.pointerId !== press.id) return;
         const p = press; press = null;
-        const tap = !cancelled && performance.now() - p.t < TAP_MS && p.dist < TAP_PX;
+        secondTap = null;
+        const tap = !cancelled && !p.usedSecondFinger && performance.now() - p.t < TAP_MS && p.dist < TAP_PX;
         const target = cancelled ? null : armed;
         move.hidden = true;
         disarm();
@@ -1470,6 +1490,9 @@
       };
       app.addEventListener('pointerup', (e) => end(e, false));
       app.addEventListener('pointercancel', (e) => end(e, true));
+      app.addEventListener('lostpointercapture', (e) => {
+        if (e.target === app) end(e, true);
+      });
       app.addEventListener('click', (e) => {
         if (state === 'off' && e.detail > 0 && (!e.pointerType || e.pointerType === 'mouse')) flashAltHint();
       });
@@ -1507,8 +1530,8 @@
       });
       addEventListener('blur', () => { altPeek = false; altDown = null; if (state === 'peek') setState('off'); });
 
-      // Tabbing into a hidden x-ray keeps it on. Focus inside an Alt peek leaves it in place.
-      xray.addEventListener('focusin', () => { if (state === 'off' || (state === 'peek' && !altPeek)) reveal(null, 'kept'); });
+      // Tabbing into a hidden x-ray keeps it on. Focus during a held peek leaves it in place.
+      xray.addEventListener('focusin', () => { if (state === 'off') reveal(null, 'kept'); });
 
       // ---- keep marks registered on resize / rotation ----
       let raf = 0;
