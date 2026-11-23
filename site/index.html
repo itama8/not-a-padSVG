@@ -119,22 +119,20 @@
     #xray .station.stowed { visibility: hidden; }
 
     #want {
-      position: absolute; left: 0; top: 0; width: 160px; height: 118px; padding: 0;
-      border: 0; background: none; color: var(--ink); cursor: pointer; pointer-events: none;
+      position: absolute; left: 0; top: 0; width: 168px; height: 122px; padding: 0;
+      border: 0; background: none; color: var(--blue); cursor: pointer; pointer-events: none;
       -webkit-tap-highlight-color: transparent;
     }
     #want[aria-disabled="true"] { cursor: default; }
-    #want:focus-visible { outline: 1px dashed var(--ink); outline-offset: 3px; }
+    #want:focus-visible { outline: 1px dashed currentColor; outline-offset: 3px; }
     #want svg { display: block; width: 100%; height: 100%; pointer-events: none; }
-    #want text { fill: currentColor; font-family: ui-sans-serif, system-ui, sans-serif; font-weight: 900; }
-    #want-label, #want-count { transform-box: view-box; transform-origin: center; }
-    #want-label { font-size: 34px; letter-spacing: -.045em; }
-    #want #want-count {
-      fill: var(--blue); fill-opacity: .36;
-      stroke: var(--blue); stroke-width: 2.5; stroke-linejoin: round;
-      font-size: 100px; font-variant-numeric: tabular-nums;
+    #want-label { font: 400 35px/1 ui-sans-serif, system-ui, sans-serif; }
+    #want-count { font: 600 124px/1 ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+    #want-press { opacity: 0; }
+    #want:is(:focus-visible, .armed) #want-press { opacity: .055; }
+    @media (hover: hover) {
+      #want:hover:not([aria-disabled="true"]) #want-press { opacity: .055; }
     }
-    #want:hover:not([aria-disabled="true"]) #want-count, #want.armed #want-count { fill-opacity: .44; }
 
     /* Shared icon ink: graphite for the app's structure, blue for what you put in. */
     .ic { display: block; width: 100%; height: 100%; overflow: visible; }
@@ -848,13 +846,14 @@
         </a>
       </nav>
       <button id="want" class="xi station" type="button" aria-label="I WANT THIS" aria-disabled="true" aria-describedby="want-total want-status">
-        <svg viewBox="0 0 160 118" aria-hidden="true">
-          <text id="want-count" x="80" y="59" text-anchor="middle" dominant-baseline="central">—</text>
-          <text id="want-label" text-anchor="middle">
-            <tspan x="80" y="33">I</tspan>
-            <tspan x="80" y="67">WANT</tspan>
-            <tspan x="80" y="101">THIS</tspan>
-          </text>
+        <svg viewBox="64 64 432 312" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1">
+          <!-- Compact geometry from design/interest-counter.svg. -->
+          <path id="want-press" d="M80 252H480V344L464 360H80Z" fill="currentColor" stroke="none" />
+          <path d="M80 96L96 80H480V344L464 360H80Z" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+          <path d="M80 252H480 M390 252V360" opacity=".32" vector-effect="non-scaling-stroke" />
+          <path d="M418 306H452 M435 289V323" stroke-linecap="round" vector-effect="non-scaling-stroke" />
+          <text id="want-count" x="280" y="166" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none">—</text>
+          <text id="want-label" x="235" y="306" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none">I want this</text>
         </svg>
       </button>
       <span id="want-total" class="sr-only"></span>
