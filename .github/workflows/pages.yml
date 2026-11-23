@@ -1,12 +1,12 @@
 name: Build and deploy site
 
-# prod -> https://itama8.github.io/not-padgtp/
+# main -> https://itama8.github.io/not-padgtp/
 # dev  -> https://itama8.github.io/not-padgtp/dev/  (not indexed by search engines)
 # A push to either branch rebuilds both, so neither overwrites the other.
 
 on:
   push:
-    branches: [prod, dev]
+    branches: [main, dev]
     paths: ["site/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
@@ -23,11 +23,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out prod
+      - name: Check out main
         uses: actions/checkout@v7
         with:
-          ref: prod
-          path: prod
+          ref: main
+          path: main
       - name: Check out dev
         id: dev
         continue-on-error: true
@@ -40,7 +40,7 @@ jobs:
           WANT_COUNTER_SOCKET: ${{ vars.WANT_COUNTER_SOCKET }}
         run: |
           mkdir -p _site
-          cp -R prod/site/. _site/
+          cp -R main/site/. _site/
           if [ -d dev/site ]; then
             mkdir -p _site/dev
             cp -R dev/site/. _site/dev/
@@ -57,7 +57,7 @@ jobs:
               for config in Path("_site").glob("**/want-config.js"):
                   config.write_text(f"window.wantCounterSocket = {json.dumps(endpoint)};\n")
           PY
-          echo "prod: $(git -C prod rev-parse --short HEAD)" > _site/version.txt
+          echo "main: $(git -C main rev-parse --short HEAD)" > _site/version.txt
           [ -d dev ] && echo "dev: $(git -C dev rev-parse --short HEAD)" >> _site/version.txt
           cat _site/version.txt
       - uses: actions/configure-pages@v6

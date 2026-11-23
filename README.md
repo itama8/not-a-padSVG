@@ -9,10 +9,10 @@ The website lives in [`site/`](site/). It is plain HTML with no build step yet.
 | Branch | What it is | Where it's live |
 | --- | --- | --- |
 | `dev` | Where new ideas get built | https://itama8.github.io/not-padgtp/dev/ |
-| `prod` | What the public sees | https://itama8.github.io/not-padgtp/ |
+| `main` | What the public sees | https://itama8.github.io/not-padgtp/ |
 
 A push to either branch rebuilds and deploys both. Promote reviewed public site
-changes to `prod`. The tile and scatter labs live under `/dev/`.
+changes to `main`. The tile and scatter labs live under `/dev/`.
 
 `version.txt` on the live site shows which commit of each branch is deployed.
 
