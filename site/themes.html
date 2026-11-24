@@ -1,0 +1,291 @@
+<!-- Theme catalogue for not-padgtp, after the Plotter project by Pasquale Vitiello: https://github.com/pasqualevitiello/plotter · https://plotter.pasqualevitiello.com -->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>not-padgtp themes</title>
+  <meta name="claude:viewport-fit-sides" content="cover" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="npg-home" content="index.html" />
+  <meta name="description" content="A catalogue of light and dark papers for not-padgtp, each shown with the x-ray on." />
+  <style>
+    /* Layout: a desk of sheets. The page chrome follows the device; each sheet carries its own paper.
+       Every sheet shows the real home page marks at real sizes, with the x-ray on. */
+    :root {
+      --desk: #eceef1; --desk-fg: #202027; --desk-dim: #5d616b; --desk-line: #d3d7dd; --desk-card: #f7f8fa;
+      --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, "Liberation Mono", monospace;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --desk: #0a0b0d; --desk-fg: #e6e7ea; --desk-dim: #9a9ea8; --desk-line: #24272d; --desk-card: #121418; color-scheme: dark; }
+    }
+    :root[data-theme="dark"] { --desk: #0a0b0d; --desk-fg: #e6e7ea; --desk-dim: #9a9ea8; --desk-line: #24272d; --desk-card: #121418; color-scheme: dark; }
+
+    /* Papers (generated from the same list as index.html). Scoped to each sheet. */
+    [data-paper="notepad"] { --paper: #ffffff; --blue: #1978cf; --ink: #202027; --grid: transparent; --kl: 1; --kt: 1; color-scheme: light; }
+    [data-paper="vellum"] { --paper: #f1f4f2; --blue: #1a6cbf; --ink: #1f2523; --grid: transparent; --kl: 1.1; --kt: 1; color-scheme: light; }
+    [data-paper="graph"] { --paper: #fbfcfd; --blue: #1870c6; --ink: #1d2330; --grid: #e4eaf1; --kl: 1.15; --kt: 1.05; color-scheme: light; }
+    [data-paper="frost"] { --paper: #e9eff6; --blue: #1560b0; --ink: #18202c; --grid: transparent; --kl: 1.15; --kt: 1.05; color-scheme: light; }
+    [data-paper="contrast-light"] { --paper: #ffffff; --blue: #0a56a6; --ink: #000000; --grid: transparent; --kl: 1.55; --kt: 1.3; color-scheme: light; }
+    [data-paper="slate"] { --paper: #16181c; --blue: #5ea9f4; --ink: #e7e9ed; --grid: transparent; --kl: 1.55; --kt: 1.15; color-scheme: dark; }
+    [data-paper="carbon"] { --paper: #000000; --blue: #4b9cfb; --ink: #dadbde; --grid: transparent; --kl: 1.6; --kt: 1.15; color-scheme: dark; }
+    [data-paper="night"] { --paper: #0e1622; --blue: #71b4ff; --ink: #dde6f1; --grid: #172231; --kl: 1.5; --kt: 1.12; color-scheme: dark; }
+    [data-paper="dusk"] { --paper: #25272c; --blue: #7ab6ef; --ink: #d3d5da; --grid: transparent; --kl: 1.4; --kt: 1.1; color-scheme: dark; }
+    [data-paper="contrast-dark"] { --paper: #000000; --blue: #80c2ff; --ink: #ffffff; --grid: transparent; --kl: 1.9; --kt: 1.35; color-scheme: dark; }
+    [data-paper] {
+      --rule: color-mix(in srgb, var(--ink) calc(32% * var(--kl)), transparent);
+      --rule-faint: color-mix(in srgb, var(--ink) calc(14% * var(--kl)), transparent);
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--desk); }
+    body {
+      margin: 0; background: var(--desk); color: var(--desk-fg); font-family: var(--mono);
+      font-size: 13px; line-height: 1.55;
+      padding-left: max(16px, env(safe-area-inset-left, 0px));
+      padding-right: max(16px, env(safe-area-inset-right, 0px));
+      padding-block: 28px 56px;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+
+    header { display: grid; gap: 10px; max-width: 68ch; }
+    h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; text-wrap: balance; }
+    header p { margin: 0; color: var(--desk-dim); }
+    header a { color: inherit; text-underline-offset: 3px; }
+
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .controls button {
+      font: inherit; font-size: 12px; color: var(--desk-fg); background: var(--desk-card);
+      border: 1px solid var(--desk-line); border-radius: 6px; padding: 7px 12px; cursor: pointer;
+    }
+    .controls button[aria-pressed="true"] { border-color: var(--desk-fg); }
+    .controls button:focus-visible, .try:focus-visible { outline: 2px solid var(--desk-fg); outline-offset: 2px; }
+
+    section { display: grid; gap: 14px; }
+    h2 { margin: 0; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .12em; color: var(--desk-dim); }
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
+
+    .card { display: grid; grid-template-rows: auto 1fr; background: var(--desk-card); border: 1px solid var(--desk-line); border-radius: 10px; overflow: hidden; min-width: 0; }
+
+    /* ---------- the sheet: real marks at real sizes ---------- */
+    .sheet {
+      position: relative; display: grid; gap: 10px; padding: 14px 14px 12px;
+      background-color: var(--paper); color: var(--ink);
+      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+      background-size: 16px 16px;
+      font-size: 11px; line-height: 1.5;
+    }
+    .tb { border: 1px solid var(--rule); background: var(--paper); font-size: 10.5px; line-height: 1.45; }
+    .tb-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 6px 9px 5px; }
+    .tb-name { font-size: 12.5px; font-weight: 600; }
+    .tb-rev { opacity: min(1, calc(.5 * var(--kt))); }
+    .tb-row { display: grid; grid-template-columns: 6.2em 1fr; border-top: 1px solid var(--rule-faint); }
+    .tb-row > * { padding: 4px 9px; min-width: 0; }
+    .tb-k { border-right: 1px solid var(--rule-faint); opacity: min(1, calc(.55 * var(--kt))); text-transform: uppercase; font-size: 9px; letter-spacing: .1em; padding-top: 5.5px; }
+    .tb u { text-decoration-thickness: 1px; text-underline-offset: 3px; text-decoration-color: var(--rule); }
+    .sw { display: inline-block; width: 14px; height: 0; vertical-align: middle; border-top: 2px solid; margin-right: 5px; border-radius: 2px; }
+    .sw.blue { border-color: var(--blue); }
+    .sw.graphite { border-color: var(--ink); }
+
+    .art { display: block; width: 100%; height: auto; overflow: visible; }
+    .brand-letter, .reveal-letter { fill: none; stroke-width: 3.25; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-letter { stroke: var(--blue); }
+    .reveal-letter { stroke: var(--ink); }
+    .construction path, .construction circle { stroke: var(--ink); fill: none; stroke-width: 1; vector-effect: non-scaling-stroke; }
+    .construction .hidden { opacity: min(1, calc(.24 * var(--kl))); stroke-dasharray: 3 5; }
+    .construction .witness { opacity: min(1, calc(.17 * var(--kl))); }
+    .construction .node { opacity: min(1, calc(.29 * var(--kl))); }
+    .construction .leader { opacity: min(1, calc(.36 * var(--kl))); }
+    .construction .lnode { fill: var(--paper); opacity: min(1, calc(.55 * var(--kl))); }
+
+    .note { margin: -4px 0 0; max-width: 30ch; }
+    .note .lead { opacity: min(1, calc(.92 * var(--kt))); }
+    .note .rest { opacity: min(1, calc(.58 * var(--kt))); }
+    .foot { display: grid; gap: 7px; justify-items: center; margin-top: 4px; }
+    .input-line { width: 100%; height: 0; border-top: 1px dashed var(--ink); opacity: min(1, calc(.3 * var(--kl))); }
+    .hint { font-size: 11px; letter-spacing: .06em; opacity: min(1, calc(.5 * var(--kt))); }
+
+    /* x-ray on/off and the plotter write-in, same timing as the home page */
+    .xr { opacity: 0; transition: opacity 150ms ease-out; }
+    .is-on .xr { opacity: 1; transition: opacity 60ms linear; }
+    .pen { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; transition: stroke-dashoffset 0s linear 170ms; }
+    .is-on .pen { stroke-dashoffset: 0; transition: stroke-dashoffset var(--dur, 220ms) cubic-bezier(.55, .05, .35, 1) var(--d, 0ms); }
+    .pop { opacity: 0; transition: opacity 0s linear 170ms; }
+    .is-on .pop { opacity: 1; transition: opacity 200ms ease var(--d, 0ms); }
+    .is-on .hint { opacity: 0; }
+    .hint { transition: opacity 150ms; }
+
+    /* ---------- the card's label ---------- */
+    .meta { display: grid; gap: 10px; padding: 12px 14px 14px; align-content: start; }
+    .meta h3 { margin: 0; font-size: 14px; font-weight: 600; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: baseline; }
+    .tag { font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .1em; color: var(--desk-dim); }
+    .tag.default { color: var(--desk-fg); border: 1px solid var(--desk-line); border-radius: 4px; padding: 1px 6px; }
+    .meta p { margin: 0; color: var(--desk-dim); font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 4px 0; border-top: 1px solid var(--desk-line); font-weight: 400; vertical-align: middle; }
+    th { color: var(--desk-dim); }
+    td.num { text-align: right; white-space: nowrap; }
+    .chip { display: inline-block; width: 11px; height: 11px; border-radius: 3px; border: 1px solid var(--desk-line); vertical-align: -1px; margin-right: 6px; }
+    .low { color: #c2410c; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .low { color: #fb923c; } }
+    :root[data-theme="dark"] .low { color: #fb923c; }
+    .try { justify-self: start; color: var(--desk-fg); font-size: 12px; text-underline-offset: 3px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
+      .pop, .is-on .pop { transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap is-on" id="desk">
+    <header>
+      <h1>not-padgtp papers</h1>
+      <p>Every sheet shows the home page's real marks at real sizes, with the x-ray on. Blue is always your ink. Graphite is the app's ink, so on dark paper it turns to chalk. Faint marks are lifted on dark paper so the x-ray keeps its hierarchy.</p>
+      <p>Notepad and Slate are the current defaults for a light and a dark device. Open "try it full screen" to hold and tap on the real page.</p>
+      <div class="controls" role="group" aria-label="View">
+        <button type="button" id="show-xray" aria-pressed="true">x-ray on</button>
+        <button type="button" id="show-rest" aria-pressed="false">at rest</button>
+        <button type="button" id="replay">replay write-in</button>
+      </div>
+    </header>
+    <section aria-labelledby="h-light"><h2 id="h-light">light papers</h2><div class="grid" id="light"></div></section>
+    <section aria-labelledby="h-dark"><h2 id="h-dark">dark papers</h2><div class="grid" id="dark"></div></section>
+  </div>
+
+  <template id="sheet">
+    <div class="sheet">
+      <div class="tb xr" aria-hidden="true">
+        <div class="tb-head"><span class="tb-name">not-padgtp</span><span class="tb-rev">rev 0 · 2026</span></div>
+        <div class="tb-row"><span class="tb-k">desktop</span><span>open source · <u>source code ↗</u></span></div>
+        <div class="tb-row"><span class="tb-k">ink</span><span><i class="sw blue"></i>yours · <i class="sw graphite"></i>the app's</span></div>
+      </div>
+      <!-- The prototype's plane, cropped to the drawing. Letterforms unchanged. -->
+      <svg class="art" viewBox="104 84 386 360" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <g class="brand-letter">
+          <g transform="translate(160 121) rotate(-5)"><path d="M -11 11 C -10 0 -8 -12 -5 -13 C -2 -14 -3 7 0 8 C 4 8 8 -8 11 -13" /></g>
+          <g transform="translate(225 121) rotate(3)"><path d="M 6 -6 C 10 -5 12 0 9 5 C 6 10 -5 10 -9 5 C -13 -1 -6 -8 1 -8 C 3 -8 5 -7 6 -6 Z" /></g>
+          <g transform="translate(290 121) rotate(-4)"><path d="M 1 -15 C 1 -5 1 3 2 8 C 3 13 7 10 10 7 M -8 -4 C -2 -5 5 -5 10 -6" /></g>
+          <g transform="translate(290 186) rotate(3)"><path d="M -6 -5 C -6 2 -7 13 -5 20 M -5 -4 C -2 -10 9 -7 10 0 C 11 7 0 10 -5 3" /></g>
+          <g transform="translate(355 186) rotate(-2)"><path d="M 6 -5 C 2 -11 -8 -7 -10 0 C -13 11 -2 11 5 2 M 7 -7 C 5 0 6 5 9 8" /></g>
+          <g transform="translate(420 186) rotate(4)"><path d="M 8 -17 C 6 -9 3 -3 3 2 C -1 -7 -9 -5 -10 3 C -11 13 -1 12 4 3 M 6 -8 C 3 2 5 9 10 9" /></g>
+        </g>
+        <g class="xr">
+          <g class="construction">
+            <g class="pop" style="--d:640ms"><path class="hidden" d="M 447 172 L 447 412" /></g>
+            <path class="witness pen" pathLength="1" style="--d:700ms;--dur:90ms" d="M 433 190 H 442" />
+            <path class="witness pen" pathLength="1" style="--d:770ms;--dur:90ms" d="M 433 263 H 442" />
+            <path class="witness pen" pathLength="1" style="--d:840ms;--dur:90ms" d="M 433 335 H 442" />
+            <path class="witness pen" pathLength="1" style="--d:910ms;--dur:90ms" d="M 433 406 H 442" />
+            <g class="pop" style="--d:720ms"><circle class="node" cx="447" cy="190" r="2" /></g>
+            <g class="pop" style="--d:790ms"><circle class="node" cx="447" cy="263" r="2" /></g>
+            <g class="pop" style="--d:860ms"><circle class="node" cx="447" cy="335" r="2" /></g>
+            <g class="pop" style="--d:930ms"><circle class="node" cx="447" cy="406" r="2" /></g>
+            <!-- a leader from the note below to the foot of the registration line -->
+            <path class="leader pen" pathLength="1" style="--d:960ms;--dur:300ms" d="M 112 438 L 330 438 L 444 414" />
+            <g class="pop" style="--d:1220ms"><circle class="lnode" cx="447" cy="412" r="3" /></g>
+          </g>
+          <g transform="translate(420 260) rotate(-5)"><g class="reveal-letter">
+            <path class="pen" pathLength="1" style="--d:0ms;--dur:260ms" d="M 10 -11 C 3 -15 -8 -9 -10 0 C -11 10 0 13 8 7 C 9 5 9 1 9 -1 L -1 0" />
+          </g></g>
+          <g transform="translate(420 332) rotate(2)"><g class="reveal-letter">
+            <path class="pen" pathLength="1" style="--d:250ms;--dur:120ms" d="M -12 -10 Q 0 -12 12 -10" />
+            <path class="pen" pathLength="1" style="--d:350ms;--dur:130ms" d="M 1 -10 Q -1 2 0 13" />
+          </g></g>
+          <g transform="translate(420 402) rotate(-3)"><g class="reveal-letter">
+            <path class="pen" pathLength="1" style="--d:470ms;--dur:240ms" d="M -7 12 C -6 3 -7 -7 -7 -12 C 0 -14 11 -12 11 -4 C 11 3 1 4 -6 2" />
+          </g></g>
+        </g>
+      </svg>
+      <p class="note xr" aria-hidden="true"><span class="lead">the rest lives in the x-ray.</span> <span class="rest">it draws when you hesitate and gets out of your way when you write.</span></p>
+      <div class="foot" aria-hidden="true">
+        <div class="input-line xr"></div>
+        <span class="hint">hold to x-ray · tap to keep</span>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    (() => {
+      // Same list as the generated CSS above and in index.html.
+      const THEMES = [
+        { id: 'notepad', name: 'Notepad', mode: 'light', paper: '#ffffff', blue: '#1978cf', ink: '#202027', kl: 1, kt: 1, about: 'the prototype. pure white, nothing between you and the text.' },
+        { id: 'vellum', name: 'Vellum', mode: 'light', paper: '#f1f4f2', blue: '#1a6cbf', ink: '#1f2523', kl: 1.1, kt: 1, about: 'drafting film. a cool off-white that takes the glare off without warming the page.' },
+        { id: 'graph', name: 'Graph', mode: 'light', paper: '#fbfcfd', grid: '#e4eaf1', blue: '#1870c6', ink: '#1d2330', kl: 1.15, kt: 1.05, about: "engineering paper. the grid gives the x-ray's marks something to register against." },
+        { id: 'frost', name: 'Frost', mode: 'light', paper: '#e9eff6', blue: '#1560b0', ink: '#18202c', kl: 1.15, kt: 1.05, about: 'pale blue-grey. calm, and the blue ink still stands apart from the paper.' },
+        { id: 'contrast-light', name: 'High contrast', mode: 'light', paper: '#ffffff', blue: '#0a56a6', ink: '#000000', kl: 1.55, kt: 1.3, about: 'for bright sun and low vision. the faint marks are pushed darker.' },
+        { id: 'slate', name: 'Slate', mode: 'dark', paper: '#16181c', blue: '#5ea9f4', ink: '#e7e9ed', kl: 1.55, kt: 1.15, about: 'a neutral dark. chalk-white app ink, the blue lifted so it stays readable.' },
+        { id: 'carbon', name: 'Carbon', mode: 'dark', paper: '#000000', blue: '#4b9cfb', ink: '#dadbde', kl: 1.6, kt: 1.15, about: 'true black for OLED phones. the pixels are off, only the ink is lit.' },
+        { id: 'night', name: 'Night drafting', mode: 'dark', paper: '#0e1622', grid: '#172231', blue: '#71b4ff', ink: '#dde6f1', kl: 1.5, kt: 1.12, about: 'a navy drawing board with a faint grid. moody, but the blue ink sits closer to the paper.' },
+        { id: 'dusk', name: 'Dusk', mode: 'dark', paper: '#25272c', blue: '#7ab6ef', ink: '#d3d5da', kl: 1.4, kt: 1.1, about: 'soft charcoal. lower contrast, easier on the eyes late at night.' },
+        { id: 'contrast-dark', name: 'High contrast dark', mode: 'dark', paper: '#000000', blue: '#80c2ff', ink: '#ffffff', kl: 1.9, kt: 1.35, about: 'maximum separation. the faint marks are pushed brighter.' }
+      ];
+      const DEFAULTS = { notepad: 'default light', slate: 'default dark' };
+      const HOME = document.querySelector('meta[name="npg-home"]').content;
+
+      // ---- WCAG contrast, with faint marks blended onto the paper at their real opacity ----
+      const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+      const mix = (fg, bg, a) => fg.map((c, i) => Math.round(c * a + bg[i] * (1 - a)));
+      const lum = (c) => {
+        const [r, g, b] = c.map((v) => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
+        return .2126 * r + .7152 * g + .0722 * b;
+      };
+      const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + .05) / (y + .05); };
+      const hex = (c) => '#' + c.map((v) => v.toString(16).padStart(2, '0')).join('');
+
+      const tpl = document.getElementById('sheet');
+      for (const t of THEMES) {
+        const P = rgb(t.paper), I = rgb(t.ink), B = rgb(t.blue);
+        const a = (base, k) => Math.min(1, base * k);
+        const rows = [
+          ['paper', t.paper, null, null],
+          ['your ink', t.blue, ratio(B, P), 3],
+          ["app's ink", t.ink, ratio(I, P), 4.5],
+          ['x-ray note text', hex(mix(I, P, a(.58, t.kt))), ratio(mix(I, P, a(.58, t.kt)), P), 4.5],
+          ['hint at rest', hex(mix(I, P, a(.5, t.kt))), ratio(mix(I, P, a(.5, t.kt)), P), 4.5],
+          ['leader lines', hex(mix(I, P, a(.36, t.kl))), ratio(mix(I, P, a(.36, t.kl)), P), null],
+          ['witness ticks', hex(mix(I, P, a(.17, t.kl))), ratio(mix(I, P, a(.17, t.kl)), P), null]
+        ];
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.setAttribute('aria-labelledby', 'n-' + t.id);
+        const sheet = tpl.content.firstElementChild.cloneNode(true);
+        sheet.dataset.paper = t.id;
+        card.appendChild(sheet);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.innerHTML = `
+          <h3 id="n-${t.id}">${t.name} <span class="tag">${t.mode}</span>${DEFAULTS[t.id] ? `<span class="tag default">${DEFAULTS[t.id]}</span>` : ''}</h3>
+          <p>${t.about}</p>
+          <table>
+            <caption class="sr-only" style="position:absolute;left:-9999px">${t.name} colours and contrast against the paper</caption>
+            <tbody>${rows.map(([label, c, r, min]) => `
+              <tr><th scope="row"><span class="chip" style="background:${c}"></span>${label}</th>
+                <td>${c}</td>
+                <td class="num${min && r < min ? ' low' : ''}">${r ? r.toFixed(1) + ':1' + (min && r < min ? ' low' : '') : ''}</td></tr>`).join('')}
+            </tbody>
+          </table>
+          <a class="try" href="${HOME}#theme-${t.id}">try it full screen →</a>`;
+        card.appendChild(meta);
+        document.getElementById(t.mode).appendChild(card);
+      }
+
+      // ---- view controls ----
+      const desk = document.getElementById('desk');
+      const on = document.getElementById('show-xray'), rest = document.getElementById('show-rest');
+      const set = (v) => {
+        desk.classList.toggle('is-on', v);
+        on.setAttribute('aria-pressed', String(v));
+        rest.setAttribute('aria-pressed', String(!v));
+      };
+      on.addEventListener('click', () => set(true));
+      rest.addEventListener('click', () => set(false));
+      document.getElementById('replay').addEventListener('click', () => {
+        set(false);
+        setTimeout(() => { void desk.offsetWidth; set(true); }, 220);
+      });
+    })();
+  </script>
+</body>
+</html>

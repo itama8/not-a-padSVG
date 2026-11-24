@@ -1,4 +1,4 @@
-# not-padgtp
+# not-padgtp — after the [Plotter](https://github.com/pasqualevitiello/plotter) project by Pasquale Vitiello ([plotter.pasqualevitiello.com](https://plotter.pasqualevitiello.com))
 
 not-padgtp is a workshop for building a composable SVG UI library. We use
 small, self-contained experiments to develop one interaction at a time. The
