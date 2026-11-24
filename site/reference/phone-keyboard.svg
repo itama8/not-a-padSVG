@@ -127,7 +127,7 @@
       <text class="alternate" x="384" y="62">0</text>
     </g>
   </g>
-  <g aria-label="Middle letter row">
+  <g aria-label="Middle letter row" data-symbol-offset="-19">
     <g data-key="KeyA">
       <rect class="key-outline" x="31" y="107" width="34" height="44" rx="5"/>
       <text class="key-legend" x="48" y="136">a</text>
@@ -174,10 +174,16 @@
       <text class="alternate" x="365" y="117">)</text>
     </g>
   </g>
+  <g data-key="SymbolExtra" data-symbol-only="" style="display: none">
+    <rect class="key-outline" x="354" y="107" width="34" height="44" rx="5"/>
+    <text class="key-legend" x="371" y="136">/</text>
+  </g>
   <g aria-label="Bottom letter row">
     <g data-key="Shift" class="utility">
       <rect class="key-outline" x="12" y="162" width="53" height="44" rx="5"/>
       <use class="icon" href="#shift" x="28.5" y="174" width="20" height="20"/>
+      <path class="icon caps-mark" d="M34.5 197h8" style="display: none"/>
+      <text class="key-legend" x="38.5" y="189" style="display: none">More</text>
     </g>
     <g data-key="KeyZ">
       <rect class="key-outline" x="69" y="162" width="34" height="44" rx="5"/>

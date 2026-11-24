@@ -9,20 +9,68 @@ const selection = { value: 'abc', start: 1, end: 2 };
 test('keyboard modes and Shift determine the next key value', () => {
   const typing = createPhoneKeyboardTyping();
   typing.activate('Shift', selection);
-  assert.equal(typing.letterValue('KeyQ'), 'Q');
+  assert.equal(typing.keyValue('KeyQ'), 'Q');
   assert.deepEqual(typing.activate('KeyQ', selection), {
     type: 'replace', text: 'Q', start: 1, end: 2,
   });
-  assert.equal(typing.letterValue('KeyQ'), 'q');
+  assert.equal(typing.keyValue('KeyQ'), 'q');
   assert.equal(typing.supportsHold('KeyQ', '1'), true);
   assert.equal(typing.activate('KeyQ', selection, { held: true, alternate: '1' }).text, '1');
 
   typing.activate('Symbols', selection);
-  assert.equal(typing.letterValue('KeyQ'), '1');
+  assert.equal(typing.keyValue('KeyQ'), '1');
   assert.equal(typing.supportsHold('KeyQ', '1'), false);
   typing.activate('Emoji', selection);
-  assert.equal(typing.letterValue('KeyQ'), '😀');
+  assert.equal(typing.keyValue('KeyQ'), '😀');
   assert.equal(createPhoneKeyboardTyping().mode, 'letters');
+});
+
+test('rapid Shift taps lock capitals until Shift is tapped again', () => {
+  const typing = createPhoneKeyboardTyping();
+  const shift = now => typing.activate('Shift', selection, { now });
+  shift(0);
+  shift(301);
+  assert.equal(typing.shift, 'off');
+
+  shift(500);
+  shift(650);
+  assert.equal(typing.shift, 'locked');
+  assert.equal(typing.activate('KeyA', selection).text, 'A');
+  assert.equal(typing.activate('KeyB', selection).text, 'B');
+  typing.activate('Symbols', selection);
+  assert.equal(typing.activate('KeyA', selection).text, '@');
+  assert.equal(typing.activate('KeyC', selection).text, 'C');
+  shift(900);
+  assert.equal(typing.activate('KeyD', selection).text, 'd');
+});
+
+test('both symbol pages have the reference key order and return to letters on insertion', () => {
+  const typing = createPhoneKeyboardTyping();
+  const activate = id => typing.activate(id, selection);
+  const row = ids => Array.from(ids, letter => typing.keyValue('Key' + letter)).join('');
+  activate('Symbols');
+  assert.equal(row('QWERTYUIOP'), '1234567890');
+  assert.equal(row('ASDFGHJKL') + typing.keyValue('SymbolExtra'), '@#₹_&-+()/');
+  assert.equal(row('ZXCVBNM'), '*"\x27:;!?');
+  assert.equal(activate('Space').text, ' ');
+  assert.equal(activate('Enter').text, '\n');
+  activate('Backspace');
+  assert.equal(typing.mode, 'symbols');
+
+  activate('Shift');
+  assert.equal(row('QWERTYUIOP'), '~`|•√π÷×§Δ');
+  assert.equal(row('ASDFGHJKL') + typing.keyValue('SymbolExtra'), '€¥$¢^°={}\\');
+  assert.equal(row('ZXCVBNM'), '%©®™✓[]');
+  assert.equal(typing.keyValue('Period'), '>');
+  assert.deepEqual(activate('Comma'), { type: 'replace', text: '<', start: 1, end: 2 });
+  assert.equal(typing.mode, 'letters');
+
+  activate('Symbols');
+  activate('Shift');
+  activate('Shift');
+  assert.equal(activate('SymbolExtra').text, '/');
+  assert.equal(typing.mode, 'letters');
+  assert.equal(typing.keyValue('SymbolExtra'), undefined);
 });
 
 test('Backspace deletes a selection or a whole grapheme, and Enter adds a line', () => {

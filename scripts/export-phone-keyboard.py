@@ -18,6 +18,6 @@ def replace_once(source, marker, replacement):
 
 
 typing = replace_once(typing, "export function createPhoneKeyboardTyping(", "function createPhoneKeyboardTyping(")
-module = replace_once(module, "import { createPhoneKeyboardTyping } from './typing.js';", typing.rstrip())
+module = replace_once(module, "import { createPhoneKeyboardTyping } from './typing.js?v=1.4.0';", typing.rstrip())
 module = replace_once(module, "const embeddedArtwork = null;", f"const embeddedArtwork = {json.dumps(svg, ensure_ascii=False)};")
 print(module, end="")

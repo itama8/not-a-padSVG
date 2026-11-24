@@ -1,4 +1,4 @@
-import { createPhoneKeyboardTyping } from './typing.js';
+import { createPhoneKeyboardTyping } from './typing.js?v=1.4.0';
 
 // The export script embeds the same SVG for hosts that load from a local file.
 const embeddedArtwork = null;
@@ -93,6 +93,12 @@ const styles = `
     fill: var(--keyboard-accent, currentColor); fill-opacity: .23;
     stroke: var(--keyboard-accent, currentColor); stroke-opacity: .9;
   }
+  .board svg [data-shift="once"] .key-outline,
+  .board svg [data-shift="locked"] .key-outline {
+    fill: var(--keyboard-accent, currentColor); fill-opacity: .16;
+    stroke: var(--keyboard-accent, currentColor); stroke-opacity: .9;
+  }
+  .board[data-symbols] svg :is([data-key="Comma"], [data-key="Period"]) .key-legend { font-size: 21px; }
   .key-preview {
     position: absolute; z-index: 1; transform: translate(-50%, calc(-100% - 5px));
     display: grid; place-items: center; min-width: 36px; height: 36px; padding: 0 6px;
@@ -112,7 +118,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.3.2';
+export const phoneKeyboardVersion = '1.4.0';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -130,6 +136,7 @@ function makeLauncher(artwork) {
   outline.setAttribute('vector-effect', 'non-scaling-stroke');
   svg.append(outline);
   for (const cap of artwork.querySelectorAll('.key-outline')) {
+    if (cap.closest('[data-symbol-only]')) continue;
     const mark = document.createElementNS(svgNamespace, 'rect');
     const [x, y, width, height] = ['x', 'y', 'width', 'height'].map(name => Number(cap.getAttribute(name)));
     mark.setAttribute('x', x + 3);
@@ -193,9 +200,11 @@ export async function mountPhoneKeyboard(host, {
   artwork.setAttribute('aria-hidden', 'true');
   board.append(artwork);
 
+  const symbolRows = artwork.querySelectorAll('[data-symbol-offset]');
   const keys = new Map();
   for (const cap of artwork.querySelectorAll('[data-key]')) {
     const { key } = cap.dataset;
+    const symbolOffset = Number(cap.closest('[data-symbol-offset]')?.dataset.symbolOffset ?? 0);
     const outline = cap.querySelector('rect');
     const [x, y, width, height] = ['x', 'y', 'width', 'height'].map(name => Number(outline.getAttribute(name)));
     const button = document.createElement('button');
@@ -209,32 +218,62 @@ export async function mountPhoneKeyboard(host, {
     });
     const legend = cap.querySelector('.key-legend');
     const altLegend = cap.querySelector('.alternate');
-    keys.set(key, { button, cap, legend, altLegend, alt: altLegend?.textContent,
-      previewX: `${(x + width / 2) / 4}%`, previewY: `${(y - cropTop) / (282 - cropTop) * 100}%` });
+    keys.set(key, { button, cap, legend, altLegend, alt: altLegend?.textContent, x, width,
+      symbolOffset, symbolOnly: cap.hasAttribute('data-symbol-only'),
+      previewY: `${(y - cropTop) / (282 - cropTop) * 100}%` });
     board.append(button);
   }
 
   let open = false, saving = false;
+  // A contact started on an old layer must never type the key now underneath it.
+  let layerRevision = 0;
   let previewContact, previewTimer;
   const typing = createPhoneKeyboardTyping();
 
   function updateKeys() {
-    const { mode, shift } = typing;
+    const { mode, shift, isSymbols } = typing;
+    board.toggleAttribute('data-symbols', isSymbols);
+    for (const row of symbolRows) {
+      if (isSymbols) row.setAttribute('transform', `translate(${row.dataset.symbolOffset} 0)`);
+      else row.removeAttribute('transform');
+    }
     for (const [id, key] of keys) {
-      const value = typing.letterValue(id);
+      if (key.symbolOnly) {
+        key.button.hidden = !isSymbols;
+        key.cap.style.display = isSymbols ? '' : 'none';
+      }
+      if (key.symbolOffset) {
+        const offset = isSymbols ? key.symbolOffset : 0;
+        key.button.style.left = `${(key.x + offset - 2) / 4}%`;
+      }
+      const value = typing.keyValue(id);
       if (value === undefined) continue;
       key.legend.textContent = value;
-      key.altLegend.style.display = mode === 'letters' ? '' : 'none';
-      key.button.setAttribute('aria-label', mode === 'letters' ? `${value}, hold for ${key.alt}` : value);
+      if (key.altLegend) key.altLegend.style.display = mode === 'letters' ? '' : 'none';
+      key.button.setAttribute('aria-label', mode === 'letters' && key.alt ? `${value}, hold for ${key.alt}` : value);
     }
     const symbolsKey = keys.get('Symbols');
-    symbolsKey.legend.textContent = mode === 'symbols' ? 'ABC' : '?123';
-    symbolsKey.button.setAttribute('aria-label', mode === 'symbols' ? 'Letters' : 'Symbols');
+    symbolsKey.legend.textContent = isSymbols ? 'ABC' : '?123';
+    symbolsKey.button.setAttribute('aria-label', isSymbols ? 'Letters' : 'Symbols');
     for (const [id, label] of Object.entries({
-      Shift: 'Shift', Backspace: 'Backspace, hold to delete repeatedly',
-      Comma: 'Comma', Emoji: 'Emoji', Space: 'Space', Period: 'Period', Enter: 'Enter, new line',
+      Backspace: 'Backspace, hold to delete repeatedly', Emoji: 'Emoji', Space: 'Space', Enter: 'Enter, new line',
     })) keys.get(id).button.setAttribute('aria-label', label);
-    keys.get('Shift').button.setAttribute('aria-pressed', String(shift));
+    keys.get('Comma').button.setAttribute('aria-label', mode === 'moreSymbols' ? 'Less than' : 'Comma');
+    keys.get('Period').button.setAttribute('aria-label', mode === 'moreSymbols' ? 'Greater than' : 'Period');
+    keys.get('SymbolExtra')?.button.setAttribute('aria-label', mode === 'moreSymbols' ? 'Backslash' : 'Slash');
+    const shiftKey = keys.get('Shift');
+    shiftKey.cap.dataset.shift = mode === 'letters' ? shift : 'off';
+    shiftKey.legend.style.display = isSymbols ? '' : 'none';
+    shiftKey.legend.textContent = mode === 'moreSymbols' ? '?123' : 'More';
+    shiftKey.cap.querySelector('use').style.display = isSymbols ? 'none' : '';
+    shiftKey.cap.querySelector('.caps-mark').style.display = mode === 'letters' && shift === 'locked' ? '' : 'none';
+    if (isSymbols) {
+      shiftKey.button.removeAttribute('aria-pressed');
+      shiftKey.button.setAttribute('aria-label', mode === 'symbols' ? 'More symbols' : 'Numbers and symbols');
+    } else {
+      shiftKey.button.setAttribute('aria-pressed', String(mode === 'letters' && shift !== 'off'));
+      shiftKey.button.setAttribute('aria-label', mode === 'letters' && shift === 'locked' ? 'Shift, Caps Lock on' : 'Shift');
+    }
     keys.get('Emoji').button.setAttribute('aria-pressed', String(mode === 'emoji'));
   }
 
@@ -242,6 +281,7 @@ export async function mountPhoneKeyboard(host, {
     if (open === next || (saving && !next)) return;
     open = next;
     if (!open) {
+      typing.resetShiftTap();
       for (const key of keys.values()) key.clearPress();
       hidePreview();
     }
@@ -284,6 +324,7 @@ export async function mountPhoneKeyboard(host, {
     if (action?.type === 'replace') {
       input.setRangeText(action.text, action.start, action.end, 'end');
     }
+    if (mode !== typing.mode) layerRevision++;
     if (mode !== typing.mode || shift !== typing.shift) updateKeys();
     if (root.activeElement !== input) input.focus({ preventScroll: true });
   }
@@ -299,7 +340,8 @@ export async function mountPhoneKeyboard(host, {
     if (!glyph) return;
     previewContact = contact;
     preview.textContent = glyph;
-    preview.style.left = key.previewX;
+    const offset = typing.isSymbols ? key.symbolOffset : 0;
+    preview.style.left = `${(key.x + offset + key.width / 2) / 4}%`;
     preview.style.top = key.previewY;
     preview.hidden = false;
   }
@@ -313,8 +355,8 @@ export async function mountPhoneKeyboard(host, {
   for (const [id, key] of keys) {
     const { button, cap, alt } = key;
     const contacts = new Map();
-    let motion, pointerClick = false;
-    const glyph = () => typing.letterValue(id) ?? (id === 'Comma' || id === 'Period' ? key.legend.textContent : '');
+    let motion, pointerClick;
+    const glyph = () => typing.keyValue(id);
 
     function currentDisplacement() {
       if (!motion) return 0;
@@ -356,7 +398,7 @@ export async function mountPhoneKeyboard(host, {
     key.clearPress = () => {
       for (const contact of contacts.values()) clearTimeout(contact.timer);
       contacts.clear();
-      pointerClick = false;
+      pointerClick = undefined;
       key.stopMotion();
       cap.removeAttribute('data-down');
     };
@@ -372,10 +414,11 @@ export async function mountPhoneKeyboard(host, {
       contacts.delete(event.pointerId);
       clearTimeout(contact.timer);
       if (!contacts.size) releaseKey({ cancelled });
-      releasePreview(contact, cancelled);
-      if (cancelled || contact.held) return;
+      const stale = contact.layer !== layerRevision;
+      releasePreview(contact, cancelled || stale);
+      if (cancelled || contact.held || stale) return;
       if (contact.touch) activate(id);
-      else pointerClick = true;
+      else pointerClick = contact.layer;
     }
 
     // Suppress legacy touch-generated mouse events, including clicks without touch metadata.
@@ -383,14 +426,14 @@ export async function mountPhoneKeyboard(host, {
     button.addEventListener('pointerdown', event => {
       if (event.button !== 0 || !open || saving || contacts.has(event.pointerId)) return;
       event.preventDefault(); // Keep the text selection while using a drawn key.
-      pointerClick = false;
-      const contact = { touch: event.pointerType === 'touch', held: false, timer: undefined };
+      pointerClick = undefined;
+      const contact = { layer: layerRevision, touch: event.pointerType === 'touch', held: false, timer: undefined };
       if (!contacts.size) pressKey();
       contacts.set(event.pointerId, contact);
       showPreview(key, glyph(), contact);
       if (typing.supportsHold(id, alt)) {
         function hold() {
-          if (saving) return;
+          if (saving || contact.layer !== layerRevision) return;
           contact.held = true;
           if (alt && previewContact === contact) showPreview(key, alt, contact);
           activate(id, true);
@@ -422,8 +465,8 @@ export async function mountPhoneKeyboard(host, {
         }
       } else {
         // A pointer click needs a completed mouse or pen press on this key.
-        if (!pointerClick) return;
-        pointerClick = false;
+        if (pointerClick !== layerRevision) return;
+        pointerClick = undefined;
       }
       activate(id);
     });

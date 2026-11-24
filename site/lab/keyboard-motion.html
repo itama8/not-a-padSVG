@@ -29,7 +29,8 @@
   <p class="lab-lede">
     <strong>Tests:</strong> keyboard motion in isolation — open spring, key press travel,
     release wobble, and preview bubble. <strong>Try:</strong> open with the keyboard icon,
-    hold Backspace, and tap × to close. Reopen to continue typing the same draft.
+    double-tap Shift to lock capitals, then use ?123 and More to try both symbol pages.
+    Inserting a symbol returns you to letters. Tap × and reopen to check that the draft stays.
   </p>
   <div class="lab-controls">
     <div class="field" style="flex:1">
@@ -43,7 +44,7 @@
   </div>
   <p class="lab-hint">Same component as the home screen: <code>mountPhoneKeyboard(host, { launcher })</code> from <code>site/ui/phone-keyboard/index.js</code>.</p>
   <script type="module">
-    import { mountPhoneKeyboard } from '../ui/phone-keyboard/index.js?v=1.3.2';
+    import { mountPhoneKeyboard } from '../ui/phone-keyboard/index.js?v=1.4.0';
     const launcher = document.querySelector('#launcher');
     await mountPhoneKeyboard(document.querySelector('#phone-keyboard'), { launcher });
     launcher.disabled = false;
