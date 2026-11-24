@@ -1,8 +1,36 @@
 # not-padgtp
 
-### notepad pro-max-ultra-plus-plus
+not-padgtp is a workshop for building a composable SVG UI library. We use
+small, self-contained experiments to develop one interaction at a time. The
+notepad and its X-Ray layer give those experiments a stripped-down showcase.
+As ideas mature, their SVG artwork, rendering, behavior, and component
+declarations become pieces we can reuse in other experiments and apps.
 
-The website lives in [`site/`](site/). It is plain HTML with no build step yet.
+## Try the experiments
+
+Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
+press Alt on desktop or tap the wordmark on a touch screen for X-Ray.
+
+- The [tile lab](https://itama8.github.io/not-padgtp/dev/lab/tiles.html) compares
+  SVG artwork and motion at two sizes.
+- The [scatter lab](https://itama8.github.io/not-padgtp/dev/lab/scatter.html)
+  explores how X-Ray arranges tiles.
+- The [keyboard lab](https://itama8.github.io/not-padgtp/dev/lab/keyboard.html)
+  exercises typing, motion, and clipboard interaction.
+
+## How the library grows
+
+Experiments give us a place to develop SVG artwork, interaction behavior,
+rendering, and metadata in small steps. When a piece proves useful across
+experiments, we extract it so improvements can carry forward.
+
+The folder layout, component declarations, and schemas are experiments too.
+Contributors and agents can propose edits and optimizations by describing the
+case that motivates the change and showing how it works in a lab or showcase.
+
+The website lives in [`site/`](site/) and uses HTML, CSS, and JavaScript with no
+build step. The [development branch](https://github.com/itama8/not-padgtp/tree/dev)
+contains the current experiments and their source.
 
 ## Branches
 
@@ -11,10 +39,11 @@ The website lives in [`site/`](site/). It is plain HTML with no build step yet.
 | `dev` | Where new ideas get built | https://itama8.github.io/not-padgtp/dev/ |
 | `main` | What the public sees | https://itama8.github.io/not-padgtp/ |
 
-A push to either branch rebuilds and deploys both. Promote reviewed public site
-changes to `main`. The tile and scatter labs live under `/dev/`.
+Site changes on either branch rebuild and deploy both versions. The labs live
+under `/dev/`.
 
-`version.txt` on the live site shows which commit of each branch is deployed.
+[Deployment versions](https://itama8.github.io/not-padgtp/version.txt) lists the
+site commit deployed for each branch.
 
 ## Live click counter
 
