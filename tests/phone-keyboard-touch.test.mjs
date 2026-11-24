@@ -246,6 +246,48 @@ test('phone keyboard commits each valid Chromium touch release once', {
     assert.equal(await value(), '');
     await send('Browser.grantPermissions', { origin, permissions: ['clipboardReadWrite', 'clipboardSanitizedWrite'] });
     assert.equal(await evaluate('navigator.clipboard.readText()'), 'first\na');
+
+    await launch();
+    const shift = await point('Shift', 1);
+    const symbols = await point('Symbols', 1);
+    await tap(shift);
+    await tap(shift);
+    assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'Shift, Caps Lock on');
+    await tap(a);
+    await tap(s);
+    assert.equal(await value(), 'AS');
+
+    await tap(symbols);
+    assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'More symbols');
+    assert.equal(await evaluate("key('Shift').hasAttribute('aria-pressed')"), false);
+    const symbolA = await point('KeyA', 1);
+    assert.ok(symbolA.x < a.x);
+    assert.equal(await evaluate("key('SymbolExtra').hidden"), false);
+    assert.ok(await evaluate(`
+      [...keyboard.querySelectorAll('[data-symbol-offset] [data-key], g[data-key="SymbolExtra"]')].every(cap => {
+        const outline = cap.querySelector('rect').getBoundingClientRect();
+        const hit = key(cap.dataset.key).getBoundingClientRect();
+        return Math.abs(outline.x + outline.width / 2 - hit.x - hit.width / 2) < 1;
+      })
+    `));
+    await down(symbolA);
+    const slash = await point('SymbolExtra', 2);
+    await down(slash);
+    await up(slash);
+    await up(symbolA);
+    assert.equal(await value(), 'AS/');
+    assert.equal(await evaluate("key('SymbolExtra').hidden"), true);
+    assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'Shift, Caps Lock on');
+
+    await tap(symbols);
+    await tap(shift);
+    assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'Numbers and symbols');
+    assert.equal(await evaluate("key('KeyT').getAttribute('aria-label')"), '√');
+    await tap(await point('KeyT', 1));
+    await tap(a);
+    await tap(shift);
+    await tap(s);
+    assert.equal(await value(), 'AS/√As');
   } finally {
     socket?.close();
     if (browser.pid && browser.exitCode === null && browser.signalCode === null) {

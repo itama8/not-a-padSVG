@@ -1,34 +1,60 @@
 const letters = 'qwertyuiopasdfghjklzxcvbnm';
-const symbols = Array.from('1234567890@#$%&-+()!?/:;₹=');
+const symbolPages = {
+  symbols: Array.from('1234567890' + '@#₹_&-+()' + "*\"':;!?"),
+  moreSymbols: Array.from('~`|•√π÷×§Δ' + '€¥$¢^°={}' + '%©®™✓[]'),
+};
 const emoji = Array.from('😀😃😄😁😅😂🙂🙃😉😊😍😎🤔😮😢😴😬😐🙄😇👍👎👏🙌🎉🔥');
 const letterKeys = new Map(Array.from(letters, (letter, index) => {
   const upper = letter.toUpperCase();
-  return [`Key${upper}`, { letter, upper, symbol: symbols[index], emoji: emoji[index] }];
+  return [`Key${upper}`, { letter, upper, index }];
 }));
-const fixedKeys = new Map([['Enter', '\n'], ['Space', ' '], ['Period', '.'], ['Comma', ',']]);
+const fixedKeys = new Map([['Enter', '\n'], ['Space', ' ']]);
+const shiftDoubleTapMs = 300;
 
 export function createPhoneKeyboardTyping() {
   let mode = 'letters';
-  let shift = false;
+  let shift = 'off';
+  let lastShiftTap = -Infinity;
   const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
 
-  function letterValue(id) {
+  function keyValue(id) {
+    if (id === 'Comma') return mode === 'moreSymbols' ? '<' : ',';
+    if (id === 'Period') return mode === 'moreSymbols' ? '>' : '.';
+    if (id === 'SymbolExtra') {
+      if (mode === 'symbols') return '/';
+      if (mode === 'moreSymbols') return '\\';
+    }
     const key = letterKeys.get(id);
     if (!key) return undefined;
-    if (mode === 'symbols') return key.symbol;
-    if (mode === 'emoji') return key.emoji;
-    return shift ? key.upper : key.letter;
+    if (symbolPages[mode]) return symbolPages[mode][key.index];
+    if (mode === 'emoji') return emoji[key.index];
+    return shift === 'off' ? key.letter : key.upper;
   }
 
-  function activate(id, { value, start, end }, { held = false, alternate } = {}) {
+  function resetShiftTap() {
+    lastShiftTap = -Infinity;
+  }
+
+  function activate(id, { value, start, end }, { held = false, alternate, now = performance.now() } = {}) {
     if (id === 'Shift') {
-      shift = mode === 'letters' && !shift;
+      if (symbolPages[mode]) {
+        mode = mode === 'symbols' ? 'moreSymbols' : 'symbols';
+      } else if (mode === 'letters') {
+        if (shift === 'off') {
+          shift = 'once';
+          lastShiftTap = now;
+        } else {
+          shift = shift === 'once' && now - lastShiftTap <= shiftDoubleTapMs ? 'locked' : 'off';
+          resetShiftTap();
+        }
+      }
       return;
     }
+    resetShiftTap();
     if (id === 'Symbols' || id === 'Emoji') {
-      const target = id.toLowerCase();
-      mode = mode === target ? 'letters' : target;
-      shift = false;
+      if (id === 'Symbols') mode = symbolPages[mode] ? 'letters' : 'symbols';
+      else mode = mode === 'emoji' ? 'letters' : 'emoji';
+      if (shift === 'once') shift = 'off';
       return;
     }
     if (id === 'Backspace') {
@@ -36,17 +62,20 @@ export function createPhoneKeyboardTyping() {
       return { type: 'replace', text: '', start: start === end ? previous : start, end };
     }
 
-    const letter = letterValue(id);
-    const text = fixedKeys.get(id) ?? (held ? alternate : letter);
+    const glyph = keyValue(id);
+    const text = fixedKeys.get(id) ?? (held ? alternate : glyph);
     if (text === undefined) return;
-    if (letter !== undefined) shift = false;
+    if (symbolPages[mode] && glyph !== undefined) mode = 'letters';
+    if (shift === 'once' && letterKeys.has(id)) shift = 'off';
     return { type: 'replace', text, start, end };
   }
 
   return {
     get mode() { return mode; },
     get shift() { return shift; },
-    letterValue,
+    get isSymbols() { return Boolean(symbolPages[mode]); },
+    keyValue,
+    resetShiftTap,
     supportsHold: (id, alternate) => id === 'Backspace' || (mode === 'letters' && Boolean(alternate)),
     activate,
   };

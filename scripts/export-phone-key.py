@@ -26,6 +26,8 @@ def main():
         parser.error(f"unknown key {args.key!r}. Use --list to see the available IDs.")
 
     key = keys[args.key]
+    if "data-symbol-only" in key.attrib:
+        key.attrib.pop("style", None)
     outline = key.find("svg:rect", NS)
     x, y, width, height = (float(outline.attrib[name]) for name in ("x", "y", "width", "height"))
     # Leave a transparent margin for the outline stroke.
