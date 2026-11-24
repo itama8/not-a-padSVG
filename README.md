@@ -10,7 +10,9 @@ Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
 press Alt on desktop or tap the wordmark on a touch screen for X-Ray.
 The [labs](https://itama8.github.io/not-padgtp/dev/lab/) compare tile artwork
 and motion at two sizes, explore the scatter layout, and exercise typing,
-motion, and clipboard interaction.
+motion, and clipboard interaction. Each lab states what it tests, what to
+try, and what good looks like; see [`site/lab/README.md`](site/lab/README.md)
+for the shared shell and conventions.
 
 The website lives in [`site/`](site/) and uses HTML, CSS, and JavaScript with no
 build step. Serve it over HTTP to load its modules. From the repository root,
@@ -48,10 +50,16 @@ Keeping activation on a focusable native control while swapping SVG artwork
 draws on [Radix’s composition guidance](https://www.radix-ui.com/primitives/docs/guides/composition)
 and [React Aria’s button interaction model](https://react-aria.adobe.com/Button).
 
-## Phone keyboard artwork
+## Phone keyboard
 
-Use the [keyboard lab](site/lab/keyboard.html) to try the home-screen keyboard
-at desktop and phone sizes and check the clipboard.
+Try the [direct keyboard lab](site/lab/keyboard-motion.html) to run the component
+in a small host. The [integration lab](site/lab/keyboard.html) runs it inside
+X-Ray at desktop and phone sizes. Both use the same mount function.
+
+The [typing module](site/ui/phone-keyboard/typing.js) owns Shift, Symbols, Emoji,
+and text edits. The [mount module](site/ui/phone-keyboard/index.js) applies those
+edits to the textarea and manages SVG rendering, motion, focus, and clipboard
+handoff. The SVG supplies the key geometry and alternate legends.
 
 The [phone keyboard SVG](site/reference/phone-keyboard.svg) stores each key as
 a named group. Export any key as a standalone SVG from the repository root
@@ -89,7 +97,8 @@ name. Each status has a distinct corner mark.
 ## Checks
 
 Run `node --test tests/*.test.mjs` from the repository root with Node 22.18 or
-later. The checks cover starting, stopping, and restarting tile autoplay.
+later and Python 3.9 or later. The checks cover tile autoplay, keyboard typing,
+and the standalone keyboard export.
 
 ## Branches
 
