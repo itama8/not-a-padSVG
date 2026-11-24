@@ -10,7 +10,7 @@
   <meta name="description" content="A workshop for building a composable SVG UI library, with small experiments you can try in X-Ray." />
   <link rel="stylesheet" href="./ui/preview-tile.css" />
   <link rel="stylesheet" href="./ui/agents/motion.css" />
-  <link rel="stylesheet" href="./ui/icon-inspection.css" />
+  <link rel="stylesheet" href="./ui/icon-inspection.css?v=2" />
   <link rel="stylesheet" href="./ui/budgeting/motion.css" />
   <link rel="stylesheet" href="./ui/pets/motion.css" />
   <link rel="stylesheet" href="./ui/inventory/motion.css" />
@@ -202,9 +202,9 @@
       opacity: min(1, calc(.52 * var(--kt))); transition: opacity 180ms ease;
       transform-box: view-box; transform-origin: 0 0;
     }
-    #touch-toggle[aria-pressed="true"] .tile-glow,
+    .tile[data-experiment][aria-pressed="true"] .tile-glow,
     .tile[data-experiment="phone-keyboard"][aria-expanded="true"] .tile-glow { opacity: min(1, calc(.22 * var(--kt))); }
-    #touch-toggle[aria-pressed="true"] .tile-hatch,
+    .tile[data-experiment][aria-pressed="true"] .tile-hatch,
     .tile[data-experiment="phone-keyboard"][aria-expanded="true"] .tile-hatch { opacity: min(1, calc(.62 * var(--kl))); }
     #touch-toggle[aria-pressed="true"] .tt-glyph { opacity: 1; }
     #marks .plug { stroke-dasharray: 2 4; opacity: min(1, calc(.2 * var(--kl))); }
@@ -524,6 +524,17 @@
           <rect class="tile-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#tile-hatch)" />
         </svg>
       </button>
+      <button id="zoom-toggle" class="tile" type="button" data-experiment="zoom" data-status="iterating"
+              aria-label="Zoom" title="Zoom" aria-pressed="false" aria-controls="icon-inspection">
+        <svg class="ic" viewBox="0 0 56 56" aria-hidden="true">
+          <rect class="frame" x="2" y="2" width="52" height="52" rx="6"/>
+          <rect class="tile-glow" x="4" y="4" width="48" height="48" rx="4.5"/>
+          <rect class="tile-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#tile-hatch)"/>
+          <g class="inspection-glyph">
+            <circle cx="25" cy="25" r="8"/><path d="m31 31 8 8M21 25h8m-4-4v8"/>
+          </g>
+        </svg>
+      </button>
       <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
         <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
@@ -812,13 +823,7 @@
         </button>
       </div>
 
-      <nav id="links" class="xi station" aria-label="Tools and links">
-        <button id="zoom-toggle" class="pbtn" type="button" aria-label="Zoom" title="Zoom"
-                aria-pressed="false" aria-controls="icon-inspection">
-          <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="10.5" cy="10.5" r="5.75"/><path d="m15 15 5 5M8 10.5h5m-2.5-2.5v5"/>
-          </svg>
-        </button>
+      <nav id="links" class="xi station" aria-label="Links">
         <a class="ilink" data-link="github" href="https://github.com/itama8/not-padgtp" aria-label="Star not-padgtp on GitHub">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="logo-gh" d="M12 0c6.63 0 12 5.276 12 11.79-.001 5.067-3.29 9.567-8.175 11.187-.6.118-.825-.25-.825-.56 0-.398.015-1.665.015-3.242 0-1.105-.375-1.813-.81-2.181 2.67-.295 5.475-1.297 5.475-5.822 0-1.297-.465-2.344-1.23-3.169.12-.295.54-1.503-.12-3.125 0 0-1.005-.324-3.3 1.209a11.32 11.32 0 00-3-.398c-1.02 0-2.04.133-3 .398-2.295-1.518-3.3-1.209-3.3-1.209-.66 1.622-.24 2.83-.12 3.125-.765.825-1.23 1.887-1.23 3.169 0 4.51 2.79 5.527 5.46 5.822-.345.294-.66.81-.765 1.577-.69.31-2.415.81-3.495-.973-.225-.354-.9-1.223-1.845-1.209-1.005.015-.405.56.015.781.51.28 1.095 1.327 1.23 1.666.24.663 1.02 1.93 4.035 1.385 0 .988.015 1.916.015 2.196 0 .31-.225.664-.825.56C3.303 21.374-.003 16.867 0 11.791 0 5.276 5.37 0 12 0z" /><path class="star" d="M 20.5 -1.2 L 21.6 1.1 L 24.1 1.4 L 22.3 3.1 L 22.7 5.6 L 20.5 4.4 L 18.3 5.6 L 18.7 3.1 L 16.9 1.4 L 19.4 1.1 Z" /></svg>
         </a>
@@ -1153,6 +1158,7 @@
       });
       $('.inspection-close', inspectionPanel).addEventListener('click', closeInspection);
       const inspectable = new Set([wantButton, ...links, ...pbtns, ...tiles, ...ais]);
+      inspectable.delete(zoom);
       function interceptIconActivation(event) {
         if (!inspectionTarget) return;
         const control = event.target.closest('.tile, .ai, .pbtn, .ilink, #want');
@@ -1509,13 +1515,14 @@
         const hub = { x: (tile.l + tile.r) / 2, y: (tile.t + tile.b) / 2 };
         // Allow room for the icon's artwork at maximum scale without moving the tile.
         const tileBlocker = grow(tile, 14);
-        const neighbors = [wantButton, papersBox, soonNote, ...tiles, ...ais]
-          .filter(el => !el.contains(inspectionTarget) && !el.closest('.stowed'));
+        const neighbors = [wantButton, linksBox, papersBox, soonNote, ...tiles, ...ais]
+          .filter(el => el !== zoom && !el.contains(inspectionTarget) && !el.closest('.stowed'));
         const neighborBounds = neighbors.map(el => [el, bounds(el)]);
         const w = inspectionPanel.offsetWidth, h = inspectionPanel.offsetHeight;
         const protectedControls = [tileBlocker, ...(keyboardSpace ? [keyboardBlocker()] : [])];
+        if (!zoom.closest('.stowed')) protectedControls.push(grow(bounds(zoom), 4));
         for (const station of [linksBox, papersBox]) {
-          if (station.contains(inspectionTarget) || station === linksBox && !station.closest('.stowed')) {
+          if (station.contains(inspectionTarget)) {
             protectedControls.push(grow(bounds(station), 4));
           }
         }
@@ -1565,7 +1572,7 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        const controls = [wantButton, zoom, ...links, ...pbtns, ...tiles, ...ais];
+        const controls = [wantButton, ...links, ...pbtns, ...tiles, ...ais];
         if (!inspectionPanel.hidden) controls.push(...inspectionPanel.querySelectorAll('.pbtn'));
         for (const el of controls) {
           if (el.closest('.stowed, .inspection-obscured')) continue;

@@ -13,11 +13,6 @@
 #xray .keyboard-launcher-art { transform: var(--inspection-transform, none); }
 #xray [data-zoom-selected] { outline: 1px dashed var(--blue); outline-offset: 3px; }
 [data-zoom-selected] :is(.pen, .pop) { transition: none; }
-#zoom-toggle { width: 44px; }
-#zoom-toggle[aria-pressed="true"] {
-  color: var(--blue);
-  background: color-mix(in srgb, var(--blue) 12%, transparent);
-}
 
 .inspection-row {
   display: grid;
@@ -77,8 +72,6 @@
 .inspection-actions { display: flex; justify-content: flex-end; }
 #icon-inspection .pbtn { width: 44px; }
 :is(.inspection-actions, #zoom-toggle) .inspection-glyph {
-  max-width: 24px;
-  max-height: 24px;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.4;
@@ -86,6 +79,8 @@
   stroke-linejoin: round;
   pointer-events: none;
 }
+
+.inspection-actions .inspection-glyph { max-width: 24px; max-height: 24px; }
 
 @media (max-width: 599px) {
   #icon-inspection { max-width: 240px; }
