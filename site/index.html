@@ -193,18 +193,21 @@
     .ai:hover .ring, .ai.armed .ring, .ai:focus-visible .ring, .ai.play .ring { stroke-width: 1.5; opacity: min(1, calc(.7 * var(--kl))); }
     .ai.play .ic { animation: pulse .45s ease both; }
 
-    /* Fingerprint marks: a working tile whose hatch and glow light while marks are on. */
-    #touch-toggle .tt-glow { fill: var(--blue); opacity: 0; transition: opacity 180ms ease; }
-    #touch-toggle .tt-hatch { opacity: 0; transition: opacity 180ms ease; }
+    /* Working tiles: a hatch and glow fill light while the feature is on. */
+    #tile-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+    #tile-defs path { stroke: var(--blue); stroke-width: .6; }
+    .tile .tile-glow { fill: var(--blue); opacity: 0; transition: opacity 180ms ease; }
+    .tile .tile-hatch { opacity: 0; transition: opacity 180ms ease; }
     #touch-toggle .tt-glyph {
       fill: none; stroke: var(--ink); stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
       opacity: min(1, calc(.52 * var(--kt))); transition: opacity 180ms ease;
       transform-box: view-box; transform-origin: 0 0;
     }
-    #touch-toggle[aria-pressed="true"] .tt-glow { opacity: min(1, calc(.22 * var(--kt))); }
-    #touch-toggle[aria-pressed="true"] .tt-hatch { opacity: min(1, calc(.62 * var(--kl))); }
+    #touch-toggle[aria-pressed="true"] .tile-glow,
+    .tile[data-experiment="phone-keyboard"][aria-expanded="true"] .tile-glow { opacity: min(1, calc(.22 * var(--kt))); }
+    #touch-toggle[aria-pressed="true"] .tile-hatch,
+    .tile[data-experiment="phone-keyboard"][aria-expanded="true"] .tile-hatch { opacity: min(1, calc(.62 * var(--kl))); }
     #touch-toggle[aria-pressed="true"] .tt-glyph { opacity: 1; }
-    #touch-toggle pattern path { stroke: var(--blue); stroke-width: .6; }
     #marks .plug { stroke-dasharray: 2 4; opacity: min(1, calc(.2 * var(--kl))); }
     #marks .plug.out { animation: plug-out .5s linear 3; opacity: min(1, calc(.45 * var(--kl))); }
     #marks .plug.in { animation: plug-in .4s linear 2; opacity: min(1, calc(.5 * var(--kl))); }
@@ -402,6 +405,15 @@
       <path id="paper-margin" class="margin" d="" />
     </svg>
 
+    <!-- A shared hatch and glow for working tiles that are currently on. -->
+    <svg id="tile-defs" aria-hidden="true" focusable="false">
+      <defs>
+        <pattern id="tile-hatch" patternUnits="userSpaceOnUse" width="4.2" height="4.2" patternTransform="rotate(38)">
+          <path d="M 0 0 V 4.2" />
+        </pattern>
+      </defs>
+    </svg>
+
     <div class="stage">
       <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint-desc">
         <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
@@ -508,6 +520,8 @@
               aria-label="Phone keyboard. Iterating." title="Phone keyboard · Iterating">
         <svg class="ic" viewBox="0 0 56 56" aria-hidden="true">
           <rect class="frame" x="2" y="2" width="52" height="52" rx="6"/>
+          <rect class="tile-glow" x="4" y="4" width="48" height="48" rx="4.5" />
+          <rect class="tile-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#tile-hatch)" />
         </svg>
       </button>
       <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
@@ -764,14 +778,9 @@
       <button id="touch-toggle" class="tile" type="button" data-experiment="fingerprints" data-status="iterating"
               aria-label="Fingerprint marks. Iterating." aria-pressed="false" title="Fingerprint marks · Iterating">
         <svg class="ic" viewBox="0 0 56 56" aria-hidden="true">
-          <defs>
-            <pattern id="touch-hatch" patternUnits="userSpaceOnUse" width="4.2" height="4.2" patternTransform="rotate(38)">
-              <path d="M 0 0 V 4.2" />
-            </pattern>
-          </defs>
           <rect class="frame" x="2" y="2" width="52" height="52" rx="6" />
-          <rect class="tt-glow" x="4" y="4" width="48" height="48" rx="4.5" />
-          <rect class="tt-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#touch-hatch)" />
+          <rect class="tile-glow" x="4" y="4" width="48" height="48" rx="4.5" />
+          <rect class="tile-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#tile-hatch)" />
           <g class="tt-glyph" transform="translate(28 28) scale(1.7) translate(-12 -12)"></g>
         </svg>
       </button>
