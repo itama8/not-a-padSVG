@@ -61,9 +61,7 @@
 .inspection-nodes { fill: var(--ink); stroke: var(--paper); opacity: .7; }
 .inspection-thumb { stroke: var(--blue); fill: var(--paper); stroke-width: 1.5; }
 .inspection-slider:has(input:focus-visible) .inspection-thumb { stroke-width: 3; }
-.inspection-tether, .inspection-pulse { stroke: var(--blue); opacity: 0; }
-.inspection-tether { stroke-width: 2.5; }
-.inspection-pulse { transform-box: fill-box; transform-origin: center; }
+.inspection-tether { stroke: var(--blue); stroke-width: 2.5; opacity: 0; }
 .inspection-slider[data-snapped] .inspection-tether { opacity: .75; }
 .inspection-slider[data-snapped] .inspection-thumb { fill: var(--blue); }
 

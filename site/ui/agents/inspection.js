@@ -1,11 +1,27 @@
 import { roundedRectPath, playTilePreview } from '../preview-tile.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
-const trackStart = 10, trackLength = 84, sliderWidth = 104;
+const trackStart = 10, trackLength = 84, trackEnd = trackStart + trackLength;
+const trackY = 22, sliderWidth = 104;
 const snapDistance = 5, releaseDistance = 10;
+const rippleHalfWidth = 11, rippleDuration = 320;
 
 function trackPosition({ min, max }, value) {
   return trackStart + trackLength * ((value - min) / (max - min));
+}
+
+function trackPath(end, wave) {
+  if (!wave) return `M ${trackStart} ${trackY} H ${end}`;
+
+  const yAt = x => {
+    const phase = (Math.abs(x - wave.origin) - wave.travel) / rippleHalfWidth;
+    if (Math.abs(phase) >= 1) return trackY;
+    const envelope = Math.cos(phase * Math.PI / 2) ** 2;
+    return (trackY - wave.amplitude * Math.cos(phase * Math.PI * 2) * envelope).toFixed(2);
+  };
+  let path = `M ${trackStart} ${yAt(trackStart)}`;
+  for (let x = trackStart + 2; x < end; x += 2) path += ` L ${x} ${yAt(x)}`;
+  return `${path} L ${end} ${yAt(end)}`;
 }
 
 export function mountHelperInspection(panel, tile) {
@@ -50,9 +66,8 @@ export function mountHelperInspection(panel, tile) {
     field.input.value = value;
     field.input.setAttribute('aria-valuetext', field.unit ? `${value} ${field.unit}` : String(value));
     field.output.textContent = field.source(value);
-    const x = trackPosition(field, value);
-    field.progress.setAttribute('x2', x);
-    field.thumb.setAttribute('cx', x);
+    field.thumb.setAttribute('cx', trackPosition(field, value));
+    field.paintTrack();
   }
 
   function reset() {
@@ -70,22 +85,21 @@ export function mountHelperInspection(panel, tile) {
     row.innerHTML = `<code><span></span></code>
       <span class="inspection-slider">
         <svg viewBox="0 0 104 44" aria-hidden="true">
-          <line x1="10" x2="94" y1="22" y2="22"/>
-          <line class="inspection-progress" x1="10" y1="22" y2="22"/>
+          <path class="inspection-rail"/>
+          <path class="inspection-progress"/>
           <g class="inspection-nodes"></g>
           <line class="inspection-tether" y1="22" y2="22"/>
-          <circle class="inspection-pulse" cy="22" r="6"/>
           <circle class="inspection-thumb" cy="22" r="5"/>
         </svg>
         <input type="range" aria-label="${field.label}" min="${field.min}" max="${field.max}" step="${field.step}">
       </span>`;
     field.output = row.querySelector('code span');
     field.input = row.querySelector('input');
-    field.progress = row.querySelector('.inspection-progress');
     field.thumb = row.querySelector('.inspection-thumb');
     const slider = row.querySelector('.inspection-slider');
+    const rail = slider.querySelector('.inspection-rail');
+    const progress = slider.querySelector('.inspection-progress');
     const tether = slider.querySelector('.inspection-tether');
-    const pulse = slider.querySelector('.inspection-pulse');
     const nodes = row.querySelector('.inspection-nodes');
     for (const value of field.nodes) {
       const node = document.createElementNS(svgNS, 'circle');
@@ -103,29 +117,49 @@ export function mountHelperInspection(panel, tile) {
       return true;
     };
     let drag;
-    let spring, ripple;
+    let spring, ripple, rippleFrame;
+    field.paintTrack = (now = performance.now()) => {
+      let wave;
+      if (ripple) {
+        const elapsed = Math.max(0, now - ripple.started) / rippleDuration;
+        if (elapsed < 1 && !reduceMotion.matches) {
+          const extent = Math.max(ripple.origin - trackStart, trackEnd - ripple.origin);
+          wave = {
+            origin: ripple.origin,
+            travel: elapsed * (extent + rippleHalfWidth),
+            amplitude: 4 * (1 - .75 * elapsed),
+          };
+        } else {
+          ripple = null;
+        }
+      }
+      rail.setAttribute('d', trackPath(trackEnd, wave));
+      progress.setAttribute('d', trackPath(trackPosition(field, field.value), wave));
+    };
+    function animateTrack(now) {
+      field.paintTrack(now);
+      if (ripple) rippleFrame = requestAnimationFrame(animateTrack);
+    }
     function respondToNode(node, from, snapped, pointerType) {
       if (pointerType !== 'mouse') navigator.vibrate?.(snapped ? 16 : 9);
       if (reduceMotion.matches) return;
 
       spring?.cancel();
-      ripple?.cancel();
+      cancelAnimationFrame(rippleFrame);
       const to = trackPosition(field, field.value);
       spring = field.thumb.animate([
         { transform: `translateX(${from - to}px)` },
         { transform: `translateX(${(to - from) * .17}px)`, offset: .55 },
         { transform: 'none' },
       ], { duration: 180, easing: 'ease-out' });
-      pulse.setAttribute('cx', trackPosition(field, node));
-      ripple = pulse.animate([
-        { opacity: .7, transform: 'scale(.75)' },
-        { opacity: 0, transform: 'scale(2)' },
-      ], { duration: 220, easing: 'ease-out' });
+      const started = performance.now();
+      ripple = { origin: trackPosition(field, node), started };
+      animateTrack(started);
     }
     const dragTo = event => {
       if (drag?.id !== event.pointerId) return;
       const { left, width } = field.input.getBoundingClientRect();
-      const pointer = Math.max(trackStart, Math.min(trackStart + trackLength, (event.clientX - left) * sliderWidth / width));
+      const pointer = Math.max(trackStart, Math.min(trackEnd, (event.clientX - left) * sliderWidth / width));
       const raw = field.min + (pointer - trackStart) / trackLength * (field.max - field.min);
       const previousNode = drag.node;
       if (previousNode === undefined) {
