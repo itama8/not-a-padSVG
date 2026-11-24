@@ -2,6 +2,32 @@ import { createPhoneKeyboardTyping } from './typing.js';
 
 // The export script embeds the same SVG for hosts that load from a local file.
 const embeddedArtwork = null;
+/*!
+ * Send artwork from Omakase v2's invocation-send (Heroicons 2.2.0 paper-airplane).
+ * MIT License. Copyright (c) Tailwind Labs, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+const sendArtwork = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+  fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"/>
+</svg>`;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const cropTop = 44;
 const duration = 220;
@@ -50,7 +76,9 @@ const styles = `
     line-height: 1.4; touch-action: pan-y; user-select: text; }
   .composer button { min-width: 44px; min-height: 44px; padding: 0 8px; border: 0;
     border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
-  .composer .send { color: var(--keyboard-paper, Canvas); background: var(--keyboard-accent, CanvasText); }
+  .composer .send { display: grid; place-items: center;
+    color: var(--keyboard-paper, Canvas); background: var(--keyboard-accent, CanvasText); }
+  .composer .send svg { display: block; width: 20px; height: 20px; }
   .composer .close { background: transparent; font-size: 24px; font-weight: 400; line-height: 1; }
   .board { position: relative; }
   .board svg { display: block; width: 100%; height: auto; pointer-events: none; }
@@ -84,7 +112,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.3.0';
+export const phoneKeyboardVersion = '1.3.1';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -138,7 +166,7 @@ export async function mountPhoneKeyboard(host, {
       <div class="surface">
         <div class="composer">
           <textarea aria-label="Text to copy" inputmode="none"></textarea>
-          <button class="send" type="button">Send</button>
+          <button class="send" type="button" aria-label="Send" title="Send">${sendArtwork}</button>
           <button class="close" type="button" aria-label="Close keyboard">×</button>
         </div>
         <p class="error" role="status" hidden></p>
