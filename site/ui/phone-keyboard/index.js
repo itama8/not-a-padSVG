@@ -72,7 +72,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.1.0';
+export const phoneKeyboardVersion = '1.2.0';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -101,12 +101,15 @@ function makeLauncher(artwork) {
     mark.setAttribute('opacity', cap.closest('.return') ? '1' : '.58');
     svg.append(mark);
   }
+  svg.classList.add('keyboard-launcher-art');
   return svg;
 }
 
 export async function mountPhoneKeyboard(host, {
   copyText = text => navigator.clipboard.writeText(text),
   onReserve = () => {},
+  launcher: externalLauncher,
+  restoreFocus,
 } = {}) {
   const source = embeddedArtwork ?? await (artworkRequest ??= fetch(new URL('../../reference/phone-keyboard.svg', import.meta.url))
     .then(response => {
@@ -116,7 +119,7 @@ export async function mountPhoneKeyboard(host, {
   const artwork = document.importNode(new DOMParser().parseFromString(source, 'image/svg+xml').documentElement, true);
   const root = host.attachShadow({ mode: 'open' });
   root.innerHTML = `<style>${styles}</style>
-    <button class="launcher" type="button" aria-label="Open keyboard" aria-expanded="false" aria-controls="panel"></button>
+    ${externalLauncher ? '' : '<button class="launcher" type="button" aria-label="Open keyboard" aria-controls="panel"></button>'}
     <section class="panel" id="panel" aria-label="Keyboard" inert>
       <div class="surface">
         <textarea aria-label="Text to copy" inputmode="none"></textarea>
@@ -124,14 +127,16 @@ export async function mountPhoneKeyboard(host, {
         <div class="board"><div class="key-preview" aria-hidden="true" hidden></div></div>
       </div>
     </section>`;
-  const launcher = root.querySelector('.launcher');
+  const launcher = externalLauncher ?? root.querySelector('.launcher');
   const panel = root.querySelector('.panel');
   const input = root.querySelector('textarea');
   const error = root.querySelector('.error');
   const board = root.querySelector('.board');
   const preview = root.querySelector('.key-preview');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  launcher.append(makeLauncher(artwork));
+  const launcherArt = makeLauncher(artwork);
+  launcher.append(launcherArt);
+  launcher.setAttribute('aria-expanded', 'false');
 
   artwork.querySelector('.suggestions').remove();
   artwork.querySelector('.board-outline').setAttribute('y', cropTop + 1);
@@ -194,9 +199,10 @@ export async function mountPhoneKeyboard(host, {
     panel.toggleAttribute('data-open', open);
     panel.inert = !open;
     launcher.setAttribute('aria-expanded', String(open));
-    launcher.setAttribute('aria-label', open ? 'Close keyboard' : 'Open keyboard');
+    if (!externalLauncher) launcher.setAttribute('aria-label', open ? 'Close keyboard' : 'Open keyboard');
     onReserve(open ? panel.getBoundingClientRect() : null);
     if (open) input.focus({ preventScroll: true });
+    else if (restoreFocus) restoreFocus();
     else launcher.focus({ preventScroll: true });
   }
 
@@ -315,10 +321,11 @@ export async function mountPhoneKeyboard(host, {
       held = false;
     });
   }
-  launcher.addEventListener('click', () => setOpen(!open));
+  const listeners = new AbortController();
+  launcher.addEventListener('click', () => setOpen(!open), { signal: listeners.signal });
   launcher.addEventListener('keydown', event => {
     if (event.key === 'Escape' && open) setOpen(false);
-  });
+  }, { signal: listeners.signal });
   panel.addEventListener('keydown', event => {
     if (event.isComposing) return;
     if (event.key === 'Escape') {
@@ -340,10 +347,13 @@ export async function mountPhoneKeyboard(host, {
     close: () => setOpen(false),
     launcherRect: () => launcher.getBoundingClientRect(),
     destroy() {
+      listeners.abort();
       observer.disconnect();
       for (const key of keys.values()) key.clearPress();
       hidePreview();
       if (open) onReserve(null);
+      launcherArt.remove();
+      launcher.removeAttribute('aria-expanded');
       root.replaceChildren();
     },
   };

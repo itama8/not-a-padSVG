@@ -26,14 +26,21 @@ and motion, as a single ES module.
 python3 scripts/export-phone-keyboard.py > phone-keyboard.mjs
 ```
 
-Import `mountPhoneKeyboard(host, { copyText, onReserve })` from that module.
-Place the host in the area where the launcher and keyboard should appear.
+Import `mountPhoneKeyboard(host, { copyText, onReserve, launcher, restoreFocus })`
+from that module. Place the host in the area where the keyboard should appear.
+Pass an existing button as `launcher` to draw the keyboard icon in it, and
+optionally supply `restoreFocus` to choose where focus goes on close.
 The component mounts its own DOM and stylesheet. It calls `onReserve(rect)`
 on open and resize, and `onReserve(null)` on close. The host owns surrounding
 layout and can supply an async `copyText` handler. The default uses the browser
 clipboard. Set `--keyboard-ink`, `--keyboard-paper`, and `--keyboard-accent`
 on the host to match its theme. The exported module embeds the SVG, so a
 renderer bundler such as Omakase's can import it without copying extra assets.
+
+On the home screen, working experiments use X-Ray tiles with a
+`data-experiment` ID and `data-status` of `concept`, `planned`, `cooking`,
+`iterating`, or `added-to-library`. Include the status in the tile's accessible
+name. Each status has a distinct corner mark.
 
 ## Branches
 

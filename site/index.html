@@ -170,6 +170,21 @@
       cursor: pointer; pointer-events: none; outline: none; -webkit-tap-highlight-color: transparent;
     }
     .tile.stowed, .ai.stowed { visibility: hidden; }
+    .tile[data-status="concept"] { --status-mark: '○'; --status-ink: var(--ink); }
+    .tile[data-status="planned"] { --status-mark: '–'; --status-ink: #527eb5; }
+    .tile[data-status="cooking"] { --status-mark: '•'; --status-ink: #bd8044; }
+    .tile[data-status="iterating"] { --status-mark: '◐'; --status-ink: #258e83; }
+    .tile[data-status="added-to-library"] { --status-mark: '✓'; --status-ink: #598e5b; }
+    .tile[data-status]::after {
+      content: var(--status-mark); position: absolute; inset: 1px 3px auto auto;
+      pointer-events: none; font: 10px/1 system-ui, sans-serif;
+      color: color-mix(in srgb, var(--status-ink) 70%, var(--ink));
+      opacity: .68;
+    }
+    .tile[data-experiment] { display: grid; place-items: center; }
+    .tile[data-experiment] > .ic { position: absolute; inset: 0; }
+    .tile[data-experiment] > .keyboard-launcher-art { position: relative; width: 58%; height: auto; pointer-events: none; }
+    .tile[data-experiment] .frame { stroke-dasharray: none; }
 
     /* AI badges: any model or agent can plug into the agents hub. Dashed = proposed. */
     .ai {
@@ -529,6 +544,12 @@
     <section id="xray" class="xr" aria-label="X-ray">
       <p class="sr-only">A supercharged notepad: plain text and a tiny UI. Everything else lives in this x-ray layer, which appears when you hesitate. Hold to peek, then follow a path to an action; tap to keep it on. On a desktop, hold or tap Alt. On your phone there is no system keyboard: the app draws its own input surface. Open source on desktop: star it on GitHub. Each reveal shows a few of the tasks to come: lists, calendar and meetings, daily notes, AI agents, meal plans, wedding plans, workouts, technical explanations, random stuff, budgeting, journaling, travel and vacation planning, date planning, pets, family, a calculator, recipes, a lab book, inventory, a phonebook and RSS. Any AI can plug in: OpenAI, Claude, Gemini, Meta Llama, Mistral, DeepSeek, Grok, Qwen, Hugging Face, OpenRouter, GitHub Copilot and Codex work today; Perplexity, Cursor, Claude Code, Ollama and your own AI are coming. This reveal shows:</p>
 
+      <button class="tile" type="button" data-experiment="phone-keyboard" data-status="iterating"
+              aria-label="Phone keyboard. Iterating." title="Phone keyboard · Iterating">
+        <svg class="ic" viewBox="0 0 56 56" aria-hidden="true">
+          <rect class="frame" x="2" y="2" width="52" height="52" rx="6"/>
+        </svg>
+      </button>
       <button class="tile" type="button" data-task="lists" aria-label="Lists. Coming soon. Play a preview.">
         <svg class="ic" viewBox="-7 -7 62 62" aria-hidden="true">
           <g class="pop"><rect class="frame" x="-6" y="-6" width="60" height="60" rx="5" /></g>
@@ -929,6 +950,8 @@
       const moveLine = move.children[0], moveHead = move.children[1];
       const xray = $('#xray'), linksBox = $('#links');
       const tiles = [...xray.querySelectorAll('.tile')];
+      const experimentTiles = tiles.filter(tile => tile.hasAttribute('data-experiment'));
+      const keyboardTile = $('[data-experiment="phone-keyboard"]');
       const papersBox = $('#papers');
       const wantButton = $('#want');
       const pbtns = [...papersBox.querySelectorAll('.pbtn')];
@@ -1029,6 +1052,20 @@
         t._t = setTimeout(() => t.classList.remove('play'), 2300);
       };
       tiles.forEach((t) => {
+        if (t.hasAttribute('data-experiment')) {
+          t.addEventListener('click', () => {
+            if (state === 'peek') {
+              if (altDown) altDown.alone = false;
+              setState('kept');
+            }
+            pauseDemo();
+          });
+          return;
+        }
+        if (!t.dataset.status) {
+          t.dataset.status = 'concept';
+          t.setAttribute('aria-label', t.getAttribute('aria-label').replace('Coming soon.', 'Concept.'));
+        }
         t.addEventListener('click', () => { play(t); pauseDemo(); });
         t.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') play(t); });
       });
@@ -1055,7 +1092,7 @@
         const tick = () => {
           if (state !== 'kept') return;
           if (performance.now() > demoPause) {
-            const vis = order.filter((t) => !t.classList.contains('stowed'));
+            const vis = order.filter((t) => !t.classList.contains('stowed') && !t.hasAttribute('data-experiment'));
             if (vis.length) play(vis[demoI++ % vis.length]);
           }
           demoT = setTimeout(tick, 2400);
@@ -1143,7 +1180,6 @@
         return (x - c.x) ** 2 + (y - c.y) ** 2 < c.rad * c.rad;
       };
       const underThumb = (r, thumb) => thumb.some((z) => (z.rad ? hitCircle(r, z) : hit(r, z)));
-      const bounds = (r) => ({ l: r.left, t: r.top, r: r.right, b: r.bottom });
 
       function measure() {
         const ps = getComputedStyle(probe);
@@ -1239,7 +1275,6 @@
         wr.setAttribute('width', x1 - x0 + 4); wr.setAttribute('height', 16);
 
         const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 26, t: p.y - 26, r: p.x + 26, b: p.y + 26 }];
-        if (keyboard) blockers.push(grow(bounds(keyboard.launcherRect()), 6));
 
         // Links: top right, out of the way.
         const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
@@ -1280,7 +1315,9 @@
         const rng = ScatterLayout.randomFromSeed(SEED);
         const shuffle = (items) => ScatterLayout.shuffle(items, rng);
         const nTiles = M.wide ? 14 : 10, nAis = M.wide ? 8 : 6;
-        const showTiles = shuffle([agentsTile, ...shuffle(tiles.filter((t) => t !== agentsTile)).slice(0, nTiles - 1)]);
+        const experiments = experimentTiles.length < nTiles ? experimentTiles : shuffle([...experimentTiles]).slice(0, nTiles - 1);
+        const previews = tiles.filter(t => t !== agentsTile && !t.hasAttribute('data-experiment'));
+        const showTiles = shuffle([agentsTile, ...experiments, ...shuffle(previews).slice(0, nTiles - 1 - experiments.length)]);
         const showAis = shuffle(ais).slice(0, nAis);
         const anySoon = showAis.some((b) => b.classList.contains('soon'));
 
@@ -1382,7 +1419,8 @@
 
         order = [];
         tiles.forEach((t) => { if (!showTiles.includes(t)) { t.classList.add('stowed'); t.tabIndex = -1; t._r = null; } });
-        showTiles.forEach((t, i) => {
+        [...experiments, ...showTiles.filter(t => !experiments.includes(t))].forEach(t => {
+          const i = showTiles.indexOf(t);
           const r = scatter ? ScatterLayout.bounds(targets[i], size / 2)
             : place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
           t.classList.toggle('stowed', !r);     // never under the thumb: stow instead
@@ -1541,13 +1579,13 @@
         move.hidden = true;
         disarm();
         if (target && p.dist >= TAP_PX) {
-          if (target.classList.contains('tile')) { setState('kept'); play(target); pauseDemo(); }
+          if (target.classList.contains('tile')) { setState('kept'); target.click(); }
           else if (target === wantButton || target.classList.contains('pbtn') || target.classList.contains('ai')) { setState('kept'); target.click(); }
           else if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
           else { target.click(); setState(p.from === 'kept' ? 'kept' : 'off'); }
         } else if (tap) {
           setState(p.from === 'off' ? 'kept' : 'off');
-        } else if (p.from === 'off') {
+        } else if (p.from === 'off' && state === 'peek') {
           setState('off');
         }
         used();
@@ -1636,13 +1674,14 @@
         }
       }
 
-      import('./ui/phone-keyboard/index.js?v=1.1.0')
+      import('./ui/phone-keyboard/index.js?v=1.2.0')
         .then(({ mountPhoneKeyboard, phoneKeyboardMotion }) => mountPhoneKeyboard(keyboardHost, {
+          launcher: keyboardTile,
+          restoreFocus: () => (state === 'off' ? mark : keyboardTile).focus({ preventScroll: true }),
           onReserve: rect => reserveKeyboard(rect, phoneKeyboardMotion),
         }))
         .then(controller => {
           keyboard = controller;
-          if (state !== 'off') layout(lastPress);
         })
         .catch(error => console.error(error));
 

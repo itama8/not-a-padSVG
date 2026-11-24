@@ -20,6 +20,12 @@
     iframe { display: block; box-sizing: border-box; width: 100%; margin: 0 auto;
              height: clamp(540px, 74dvh, 800px); border: 1px solid GrayText; }
     iframe[data-viewport="phone"] { width: min(100%, 392px); height: clamp(400px, calc(100dvh - 225px), 762px); }
+    @media (max-width: 639px) {
+      body { display: grid; grid-template-rows: auto auto auto minmax(320px, 1fr);
+             height: calc(100dvh - 24px); margin: 12px auto; }
+      .controls { gap: 8px 12px; margin: 10px 0; }
+      iframe[data-viewport="phone"] { height: 100%; }
+    }
   </style>
 </head>
 <body>
@@ -39,8 +45,8 @@
       <input type="text" placeholder="Paste copied text here" autocomplete="off">
     </label>
   </div>
-  <p>Open the keyboard in the preview, type a line, then press the teal Return key. Paste above to check the result.</p>
-  <iframe id="preview" src="../index.html?v=1.1.0" title="Interactive not-padgtp home screen" allow="clipboard-write"></iframe>
+  <p>Find the keyboard tile among the scattered icons. Type a line, tap the teal Return key, then paste above to check the result.</p>
+  <iframe id="preview" src="../index.html?v=1.2.0" title="Interactive not-padgtp home screen" allow="clipboard-write"></iframe>
   <script>
     const preview = document.querySelector('#preview');
     const viewport = document.querySelector('#viewport');
