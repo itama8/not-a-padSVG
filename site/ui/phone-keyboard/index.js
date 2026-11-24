@@ -475,7 +475,7 @@ export async function mountPhoneKeyboard(host, {
   reducedMotion.addEventListener('change', event => {
     if (event.matches) for (const key of keys.values()) key.stopMotion();
   }, { signal: listeners.signal });
-  launcher.addEventListener('click', () => setOpen(true), { signal: listeners.signal });
+  launcher.addEventListener('click', () => setOpen(!open), { signal: listeners.signal });
   close.addEventListener('click', () => setOpen(false), { signal: listeners.signal });
   send.addEventListener('click', () => void finish(), { signal: listeners.signal });
   launcher.addEventListener('keydown', event => {
