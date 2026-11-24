@@ -1,0 +1,15 @@
+.inventory-beam {
+  opacity: 0;
+}
+
+@keyframes inventory-scan {
+  0%, 100% { opacity: 0; transform: none; }
+  8% { opacity: 1; }
+  30% { transform: translateY(12px); }
+  50% { opacity: 1; transform: none; }
+  58% { opacity: 0; }
+}
+
+.play .inventory-beam {
+  animation: inventory-scan 2s ease-in-out both;
+}

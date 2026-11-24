@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Labs · not-padgtp</title>
+  <link rel="stylesheet" href="./lab.css">
+</head>
+<body class="lab">
+  <p class="lab-crumbs"><a href="../index.html">not-padgtp</a> / <span aria-current="page">Labs</span></p>
+  <div class="lab-head">
+    <h1>Labs</h1>
+  </div>
+  <p class="lab-lede">
+    Small experiments, one interaction at a time. Each lab names
+    <strong>what it tests</strong>, <strong>what to try</strong>, and
+    <strong>what good looks like</strong> — so a visitor can judge the idea
+    in under a minute without reading the source.
+  </p>
+  <ul class="lab-index">
+    <li><a href="./tiles.html"><strong>Tile artwork</strong><span>Compares budgeting, agents, inventory, and pets artwork at 108px and real 54px phone size. Tests: reads at both sizes, motion replays, currency sign. Good: the idea survives 54px.</span></a></li>
+    <li><a href="./scatter.html"><strong>Desktop scatter</strong><span>Explores X-Ray tile layout: mood, relaxation, density, balance. Tests: 14 tiles + 8 badges fit a 1280×800 stage without covering the wordmark. Good: balanced, clear of blockers, reproducible by seed.</span></a></li>
+    <li><a href="./keyboard.html"><strong>Keyboard integration</strong><span>The phone keyboard inside the real home screen. Tests: find the keyboard tile, type a line, Return copies it. Good: typing, motion, and clipboard all work at desktop and phone widths.</span></a></li>
+    <li><a href="./keyboard-motion.html"><strong>Direct keyboard</strong><span>The keyboard alone, no home screen. Tests: open, press, spring release, preview bubble. Good: motion timing and the launcher icon in isolation.</span></a></li>
+  </ul>
+  <p class="lab-meta">Source: <code>site/lab/</code> · shared shell: <code>lab.css</code> + <code>lab.js</code> · reusable pieces live in <code>site/ui/</code>.</p>
+</body>
+</html>

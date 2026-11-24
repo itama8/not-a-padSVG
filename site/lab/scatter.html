@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Desktop scatter lab · not-padgtp</title>
+  <link rel="stylesheet" href="./lab.css">
+  <style>
+    #stage { aspect-ratio: 8 / 5; }
+    #stage iframe {
+      position: absolute; inset: 0; width: 1280px; height: 800px;
+      border: 0; transform-origin: top left; background: Canvas;
+    }
+  </style>
+  <script defer src="../scatter-layout.js"></script>
+  <script defer src="scatter.js"></script>
+</head>
+<body class="lab">
+  <p class="lab-crumbs"><a href="./index.html">Labs</a> / <span aria-current="page">Desktop scatter</span></p>
+  <div class="lab-head">
+    <h1>Desktop scatter</h1>
+    <nav aria-label="Labs"><a href="keyboard.html">Keyboard lab</a> · <a href="tiles.html">Tile artwork</a></nav>
+  </div>
+  <p class="lab-lede">
+    <strong>Tests:</strong> the X-Ray layout engine at 1280×800 — 14 tiles + 8 badges
+    placed clear of the wordmark. <strong>Try:</strong> pick a mood, drag the sliders,
+    hit <em>New seed</em> a few times. <strong>Good:</strong> tiles sit on the paper grid,
+    nothing covers the wordmark, and the status line reports a balanced layout with a small offset.
+  </p>
+  <form class="lab-controls" id="controls">
+    <fieldset>
+      <legend><label for="mood">Mood</label></legend>
+      <select id="mood">
+        <option value="loose">Loose</option>
+        <option value="swarm">Swarm</option>
+        <option value="drift">Drift</option>
+        <option value="ring">Ring</option>
+      </select>
+    </fieldset>
+    <div class="field">
+      <span id="steps-label">Relaxation <output for="steps" id="steps-value"></output></span>
+      <input id="steps" type="range" min="0" max="4" step="1" aria-labelledby="steps-label">
+    </div>
+    <div class="field">
+      <span id="density-label">Density <output for="density" id="density-value"></output></span>
+      <input id="density" type="range" min="0" max="100" step="5" aria-labelledby="density-label">
+    </div>
+    <div class="field">
+      <span id="balance-label">Balance tolerance <output for="balance" id="balance-value"></output></span>
+      <input id="balance" type="range" min="5" max="25" step="1" aria-labelledby="balance-label">
+    </div>
+    <div class="lab-actions">
+      <button type="button" id="new-seed">New seed</button>
+    </div>
+  </form>
+  <p class="lab-status" id="status" role="status">Loading the x-ray preview…</p>
+  <div class="lab-stage" id="stage">
+    <iframe id="preview" src="../index.html" title="Desktop x-ray layout preview" inert></iframe>
+  </div>
+  <p class="lab-hint">Ring mood pins tiles to a ring, so the sliders disable except balance. Append <code>?seed=123</code> to share an exact layout. Engine: <code>site/scatter-layout.js</code>.</p>
+</body>
+</html>

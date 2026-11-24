@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Direct keyboard · not-padgtp</title>
+  <link rel="stylesheet" href="./lab.css">
+  <style>
+    .kb-wrap { position: relative; min-height: 380px; max-width: 392px; margin: 0 auto; }
+    #launcher {
+      position: absolute; z-index: 1; inset-block-start: 0; inset-inline-end: 0;
+      display: grid; place-items: center; width: 44px; height: 44px; padding: 6px;
+      color: inherit; background: transparent; border: 1px solid GrayText;
+      border-radius: 8px; cursor: pointer;
+    }
+    #launcher svg { width: 100%; }
+    #phone-keyboard { position: absolute; inset: 0; --keyboard-accent: #136e65; }
+    @media (prefers-color-scheme: dark) { #phone-keyboard { --keyboard-accent: #8dd8d0; } }
+  </style>
+</head>
+<body class="lab" style="max-width:560px">
+  <p class="lab-crumbs"><a href="./index.html">Labs</a> / <span aria-current="page">Direct keyboard</span></p>
+  <div class="lab-head">
+    <h1>Direct keyboard</h1>
+    <nav aria-label="Labs"><a href="keyboard.html">X-Ray integration</a></nav>
+  </div>
+  <p class="lab-lede">
+    <strong>Tests:</strong> keyboard motion in isolation — open spring, key press travel,
+    release wobble, and preview bubble. <strong>Try:</strong> open with the keyboard icon,
+    hold Backspace, and tap × to close. Reopen to continue typing the same draft.
+  </p>
+  <div class="lab-controls">
+    <div class="field" style="flex:1">
+      <span><label for="paste">Clipboard check</label></span>
+      <textarea id="paste" rows="2" placeholder="Paste copied text here" autocomplete="off"></textarea>
+    </div>
+  </div>
+  <div class="lab-stage kb-wrap">
+    <button id="launcher" type="button" aria-label="Open phone keyboard" disabled></button>
+    <div id="phone-keyboard"></div>
+  </div>
+  <p class="lab-hint">Same component as the home screen: <code>mountPhoneKeyboard(host, { launcher })</code> from <code>site/ui/phone-keyboard/index.js</code>.</p>
+  <script type="module">
+    import { mountPhoneKeyboard } from '../ui/phone-keyboard/index.js?v=1.3.2';
+    const launcher = document.querySelector('#launcher');
+    await mountPhoneKeyboard(document.querySelector('#phone-keyboard'), { launcher });
+    launcher.disabled = false;
+  </script>
+</body>
+</html>

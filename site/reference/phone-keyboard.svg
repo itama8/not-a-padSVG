@@ -1,0 +1,248 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 282" role="img" aria-labelledby="title description">
+  <title id="title">Phone keyboard</title>
+  <desc id="description">Lowercase QWERTY phone keyboard with a prediction strip and long-press symbols.</desc>
+  <style>
+    svg {
+      color: var(--keyboard-ink, #e7e9ed);
+      font-family: "Cal Sans", system-ui, sans-serif;
+      font-weight: 400;
+      shape-rendering: geometricPrecision;
+    }
+    @media (prefers-color-scheme: light) {
+      svg { color: var(--keyboard-ink, #202027); }
+    }
+    .board-outline, .key-outline, .divider {
+      fill: none;
+      stroke: currentColor;
+      vector-effect: non-scaling-stroke;
+    }
+    .board-outline, .divider { stroke-opacity: .22; }
+    .key-outline { stroke-opacity: .38; }
+    .key-legend, .alternate, .suggestions text { fill: currentColor; }
+    .key-legend, .suggestions text { text-anchor: middle; }
+    .key-legend { font-size: 21px; }
+    .alternate { font-size: 8px; opacity: .7; text-anchor: end; }
+    .utility .key-legend, .suggestions text { font-size: 13px; }
+    .utility .key-legend, .utility .icon, .suggestions { opacity: .78; }
+    .icon {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+  <defs>
+    <symbol id="tools" viewBox="0 0 20 20">
+      <rect x="3" y="3" width="5" height="5" rx="1"/>
+      <rect x="12" y="3" width="5" height="5" rx="1"/>
+      <rect x="3" y="12" width="5" height="5" rx="1"/>
+      <rect x="12" y="12" width="5" height="5" rx="1"/>
+    </symbol>
+    <symbol id="mic" viewBox="0 0 20 20">
+      <rect x="7" y="2.5" width="6" height="10" rx="3"/>
+      <path d="M4.5 9.5a5.5 5.5 0 0 0 11 0M10 15v2.5m-2.5 0h5"/>
+    </symbol>
+    <symbol id="smile" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7.5"/>
+      <path d="M7 12a3.5 3.5 0 0 0 6 0M7.25 7.5h.1m5.3 0h.1"/>
+    </symbol>
+    <symbol id="star-eyes" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7.5"/>
+      <path d="M7 12a3.5 3.5 0 0 0 6 0M7 6v4M5 8h4m4-2v4m-2-2h4"/>
+    </symbol>
+    <symbol id="clock" viewBox="0 0 20 20">
+      <circle cx="10" cy="10" r="7.5"/>
+      <path d="M10 5.5V10l-2 2.5"/>
+    </symbol>
+    <symbol id="shift" viewBox="0 0 20 20">
+      <path d="m2 10 8-7 8 7h-4.5v6.5h-7V10Z"/>
+    </symbol>
+    <symbol id="backspace" viewBox="0 0 20 20">
+      <path d="M7.5 4h10v12h-10L2 10Z M9 7.5l5 5m0-5-5 5"/>
+    </symbol>
+    <symbol id="return" viewBox="0 0 20 20">
+      <path d="M17.5 5v3a2 2 0 0 1-2 2H2.5m5-5-5 5 5 5"/>
+    </symbol>
+  </defs>
+  <rect class="board-outline" x="1" y="1" width="398" height="280" rx="12"/>
+  <g class="suggestions" aria-hidden="true">
+    <use class="icon" href="#tools" x="22" y="18" width="18" height="18"/>
+    <text x="97" y="31">of</text>
+    <text x="192" y="31">is</text>
+    <use class="icon" href="#star-eyes" x="261" y="18" width="18" height="18"/>
+    <use class="icon" href="#clock" x="304" y="18" width="18" height="18"/>
+    <use class="icon" href="#mic" x="354" y="17" width="20" height="20"/>
+    <path class="divider" d="M144 17v20m105-20v20m43-20v20m43-20v20"/>
+  </g>
+  <g aria-label="Top letter row">
+    <g data-key="KeyQ">
+      <rect class="key-outline" x="12" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="29" y="81">q</text>
+      <text class="alternate" x="42" y="62">1</text>
+    </g>
+    <g data-key="KeyW">
+      <rect class="key-outline" x="50" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="67" y="81">w</text>
+      <text class="alternate" x="80" y="62">2</text>
+    </g>
+    <g data-key="KeyE">
+      <rect class="key-outline" x="88" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="105" y="81">e</text>
+      <text class="alternate" x="118" y="62">3</text>
+    </g>
+    <g data-key="KeyR">
+      <rect class="key-outline" x="126" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="143" y="81">r</text>
+      <text class="alternate" x="156" y="62">4</text>
+    </g>
+    <g data-key="KeyT">
+      <rect class="key-outline" x="164" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="181" y="81">t</text>
+      <text class="alternate" x="194" y="62">5</text>
+    </g>
+    <g data-key="KeyY">
+      <rect class="key-outline" x="202" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="219" y="81">y</text>
+      <text class="alternate" x="232" y="62">6</text>
+    </g>
+    <g data-key="KeyU">
+      <rect class="key-outline" x="240" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="257" y="81">u</text>
+      <text class="alternate" x="270" y="62">7</text>
+    </g>
+    <g data-key="KeyI">
+      <rect class="key-outline" x="278" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="295" y="81">i</text>
+      <text class="alternate" x="308" y="62">8</text>
+    </g>
+    <g data-key="KeyO">
+      <rect class="key-outline" x="316" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="333" y="81">o</text>
+      <text class="alternate" x="346" y="62">9</text>
+    </g>
+    <g data-key="KeyP">
+      <rect class="key-outline" x="354" y="52" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="371" y="81">p</text>
+      <text class="alternate" x="384" y="62">0</text>
+    </g>
+  </g>
+  <g aria-label="Middle letter row">
+    <g data-key="KeyA">
+      <rect class="key-outline" x="31" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="48" y="136">a</text>
+      <text class="alternate" x="61" y="117">@</text>
+    </g>
+    <g data-key="KeyS">
+      <rect class="key-outline" x="69" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="86" y="136">s</text>
+      <text class="alternate" x="99" y="117">#</text>
+    </g>
+    <g data-key="KeyD">
+      <rect class="key-outline" x="107" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="124" y="136">d</text>
+      <text class="alternate" x="137" y="117">₹</text>
+    </g>
+    <g data-key="KeyF">
+      <rect class="key-outline" x="145" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="162" y="136">f</text>
+      <text class="alternate" x="175" y="117">_</text>
+    </g>
+    <g data-key="KeyG">
+      <rect class="key-outline" x="183" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="200" y="136">g</text>
+      <text class="alternate" x="213" y="117">&amp;</text>
+    </g>
+    <g data-key="KeyH">
+      <rect class="key-outline" x="221" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="238" y="136">h</text>
+      <text class="alternate" x="251" y="117">−</text>
+    </g>
+    <g data-key="KeyJ">
+      <rect class="key-outline" x="259" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="276" y="136">j</text>
+      <text class="alternate" x="289" y="117">+</text>
+    </g>
+    <g data-key="KeyK">
+      <rect class="key-outline" x="297" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="314" y="136">k</text>
+      <text class="alternate" x="327" y="117">(</text>
+    </g>
+    <g data-key="KeyL">
+      <rect class="key-outline" x="335" y="107" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="352" y="136">l</text>
+      <text class="alternate" x="365" y="117">)</text>
+    </g>
+  </g>
+  <g aria-label="Bottom letter row">
+    <g data-key="Shift" class="utility">
+      <rect class="key-outline" x="12" y="162" width="53" height="44" rx="5"/>
+      <use class="icon" href="#shift" x="28.5" y="174" width="20" height="20"/>
+    </g>
+    <g data-key="KeyZ">
+      <rect class="key-outline" x="69" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="86" y="191">z</text>
+      <text class="alternate" x="99" y="172">*</text>
+    </g>
+    <g data-key="KeyX">
+      <rect class="key-outline" x="107" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="124" y="191">x</text>
+      <text class="alternate" x="137" y="172">"</text>
+    </g>
+    <g data-key="KeyC">
+      <rect class="key-outline" x="145" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="162" y="191">c</text>
+      <text class="alternate" x="175" y="172">'</text>
+    </g>
+    <g data-key="KeyV">
+      <rect class="key-outline" x="183" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="200" y="191">v</text>
+      <text class="alternate" x="213" y="172">:</text>
+    </g>
+    <g data-key="KeyB">
+      <rect class="key-outline" x="221" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="238" y="191">b</text>
+      <text class="alternate" x="251" y="172">;</text>
+    </g>
+    <g data-key="KeyN">
+      <rect class="key-outline" x="259" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="276" y="191">n</text>
+      <text class="alternate" x="289" y="172">!</text>
+    </g>
+    <g data-key="KeyM">
+      <rect class="key-outline" x="297" y="162" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="314" y="191">m</text>
+      <text class="alternate" x="327" y="172">?</text>
+    </g>
+    <g data-key="Backspace" class="utility">
+      <rect class="key-outline" x="335" y="162" width="53" height="44" rx="5"/>
+      <use class="icon" href="#backspace" x="351.5" y="174" width="20" height="20"/>
+    </g>
+  </g>
+  <g aria-label="Controls">
+    <g data-key="Symbols" class="utility">
+      <rect class="key-outline" x="12" y="217" width="53" height="44" rx="5"/>
+      <text class="key-legend" x="38.5" y="246">?123</text>
+    </g>
+    <g data-key="Comma" class="utility">
+      <rect class="key-outline" x="69" y="217" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="86" y="246">,</text>
+    </g>
+    <g data-key="Emoji" class="utility">
+      <rect class="key-outline" x="107" y="217" width="34" height="44" rx="5"/>
+      <use class="icon" href="#smile" x="114" y="229" width="20" height="20"/>
+    </g>
+    <g data-key="Space" class="utility">
+      <rect class="key-outline" x="145" y="217" width="148" height="44" rx="5"/>
+      <text class="key-legend" x="219" y="246">English</text>
+    </g>
+    <g data-key="Period" class="utility">
+      <rect class="key-outline" x="297" y="217" width="34" height="44" rx="5"/>
+      <text class="key-legend" x="314" y="246">.</text>
+    </g>
+    <g data-key="Enter" class="utility return">
+      <rect class="key-outline" x="335" y="217" width="53" height="44" rx="5"/>
+      <use class="icon" href="#return" x="351.5" y="229" width="20" height="20"/>
+    </g>
+  </g>
+</svg>
