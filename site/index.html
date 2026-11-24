@@ -10,7 +10,7 @@
   <meta name="description" content="A workshop for building a composable SVG UI library, with small experiments you can try in X-Ray." />
   <link rel="stylesheet" href="./ui/preview-tile.css" />
   <link rel="stylesheet" href="./ui/agents/motion.css" />
-  <link rel="stylesheet" href="./ui/agents/inspection.css?v=2" />
+  <link rel="stylesheet" href="./ui/agents/inspection.css?v=3" />
   <link rel="stylesheet" href="./ui/budgeting/motion.css" />
   <link rel="stylesheet" href="./ui/pets/motion.css" />
   <link rel="stylesheet" href="./ui/inventory/motion.css" />
@@ -878,7 +878,7 @@
     import { pets, walksArtwork } from './ui/pets/walks.js';
     import { inventory, scanArtwork } from './ui/inventory/scan.js';
     import { agents, helperArtwork } from './ui/agents/helper.js';
-    import { mountHelperInspection } from './ui/agents/inspection.js?v=2';
+    import { mountHelperInspection } from './ui/agents/inspection.js?v=3';
     import { drawPreviewTile, playTilePreview, preparePenStrokes } from './ui/preview-tile.js';
     import { touchprintGlyph } from './ui/touchprint/artwork.js';
 
@@ -1559,7 +1559,7 @@
 
       // ---- pointer: hold to peek, tap to keep ----
       const TAP_MS = 280, TAP_PX = 12;
-      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want, .inspection-slider input';
+      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want, .inspection-slider';
       let press = null, nextHold = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
@@ -1567,7 +1567,7 @@
         // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
         if (e.pointerType === 'mouse' || e.button !== 0) return;
         const control = e.target.closest(controlSelector);
-        if (control?.type === 'range') {
+        if (control?.classList.contains('inspection-slider')) {
           if (press) {
             press.usedSecondFinger = true;
             move.hidden = true;

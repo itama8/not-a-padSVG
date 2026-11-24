@@ -1,23 +1,15 @@
 import { roundedRectPath, playTilePreview } from '../preview-tile.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
+const trackStart = 10, trackLength = 84, sliderWidth = 104;
+const snapDistance = 5, releaseDistance = 10;
 
 function trackPosition({ min, max }, value) {
-  return 10 + 84 * ((value - min) / (max - min));
-}
-
-function snapValue(field, value) {
-  // Catch for about two pixels, then ease back to the pointer within six pixels.
-  const span = field.max - field.min;
-  const hold = span * .025, reach = span * .075;
-  const node = field.nodes.find(stop => Math.abs(value - stop) < reach);
-  if (node === undefined) return value;
-  const delta = value - node;
-  const travel = Math.max(0, Math.abs(delta) - hold);
-  return node + Math.sign(delta) * travel * reach / (reach - hold);
+  return trackStart + trackLength * ((value - min) / (max - min));
 }
 
 export function mountHelperInspection(panel, tile) {
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const artwork = tile.querySelector('svg');
   const head = artwork.querySelector('[data-helper-head]');
   const dimensions = ['x', 'y', 'width', 'height'].map(name => Number(head.getAttribute(name)));
@@ -81,6 +73,8 @@ export function mountHelperInspection(panel, tile) {
           <line x1="10" x2="94" y1="22" y2="22"/>
           <line class="inspection-progress" x1="10" y1="22" y2="22"/>
           <g class="inspection-nodes"></g>
+          <line class="inspection-tether" y1="22" y2="22"/>
+          <circle class="inspection-pulse" cy="22" r="6"/>
           <circle class="inspection-thumb" cy="22" r="5"/>
         </svg>
         <input type="range" aria-label="${field.label}" min="${field.min}" max="${field.max}" step="${field.step}">
@@ -89,6 +83,9 @@ export function mountHelperInspection(panel, tile) {
     field.input = row.querySelector('input');
     field.progress = row.querySelector('.inspection-progress');
     field.thumb = row.querySelector('.inspection-thumb');
+    const slider = row.querySelector('.inspection-slider');
+    const tether = slider.querySelector('.inspection-tether');
+    const pulse = slider.querySelector('.inspection-pulse');
     const nodes = row.querySelector('.inspection-nodes');
     for (const value of field.nodes) {
       const node = document.createElementNS(svgNS, 'circle');
@@ -106,31 +103,71 @@ export function mountHelperInspection(panel, tile) {
       return true;
     };
     let drag;
+    let spring, ripple;
+    function respondToNode(node, from, snapped, pointerType) {
+      if (pointerType !== 'mouse') navigator.vibrate?.(snapped ? 16 : 9);
+      if (reduceMotion.matches) return;
+
+      spring?.cancel();
+      ripple?.cancel();
+      const to = trackPosition(field, field.value);
+      spring = field.thumb.animate([
+        { transform: `translateX(${from - to}px)` },
+        { transform: `translateX(${(to - from) * .17}px)`, offset: .55 },
+        { transform: 'none' },
+      ], { duration: 180, easing: 'ease-out' });
+      pulse.setAttribute('cx', trackPosition(field, node));
+      ripple = pulse.animate([
+        { opacity: .7, transform: 'scale(.75)' },
+        { opacity: 0, transform: 'scale(2)' },
+      ], { duration: 220, easing: 'ease-out' });
+    }
     const dragTo = event => {
       if (drag?.id !== event.pointerId) return;
       const { left, width } = field.input.getBoundingClientRect();
-      const fraction = ((event.clientX - left) * 104 / width - 10) / 84;
-      const value = field.min + fraction * (field.max - field.min);
-      if (update(snapValue(field, value))) drag.changed = true;
+      const pointer = Math.max(trackStart, Math.min(trackStart + trackLength, (event.clientX - left) * sliderWidth / width));
+      const raw = field.min + (pointer - trackStart) / trackLength * (field.max - field.min);
+      const previousNode = drag.node;
+      if (previousNode === undefined) {
+        drag.node = field.nodes.find(value => Math.abs(pointer - trackPosition(field, value)) <= snapDistance);
+      } else if (Math.abs(pointer - trackPosition(field, previousNode)) >= releaseDistance) {
+        drag.node = undefined;
+      }
+
+      const attached = drag.node !== undefined;
+      slider.toggleAttribute('data-snapped', attached);
+      if (attached) {
+        tether.setAttribute('x1', trackPosition(field, drag.node));
+        tether.setAttribute('x2', pointer);
+      }
+      const previousValue = field.value;
+      const changed = update(drag.node ?? raw);
+      drag.changed ||= changed;
+      if (previousNode !== drag.node && (changed || previousNode !== undefined)) {
+        respondToNode(drag.node ?? previousNode, trackPosition(field, previousValue), attached, event.pointerType);
+      } else if (changed) {
+        spring?.cancel();
+      }
     };
-    field.input.addEventListener('pointerdown', event => {
+    slider.addEventListener('pointerdown', event => {
       if (event.button !== 0 || drag) return;
       event.preventDefault();
       field.input.focus({ preventScroll: true });
-      field.input.setPointerCapture(event.pointerId);
+      slider.setPointerCapture(event.pointerId);
       drag = { id: event.pointerId, changed: false };
       dragTo(event);
     });
-    field.input.addEventListener('pointermove', dragTo);
+    slider.addEventListener('pointermove', dragTo);
     const stopDrag = event => {
       if (drag?.id !== event.pointerId) return;
       if (event.type === 'pointerup') dragTo(event);
       const { changed } = drag;
       drag = null;
+      slider.removeAttribute('data-snapped');
       if (changed) field.commit?.();
     };
-    field.input.addEventListener('pointerup', stopDrag);
-    field.input.addEventListener('lostpointercapture', stopDrag);
+    slider.addEventListener('pointerup', stopDrag);
+    slider.addEventListener('lostpointercapture', stopDrag);
     field.input.addEventListener('input', () => update(field.input.valueAsNumber));
     field.input.addEventListener('change', () => field.commit?.());
     field.input.addEventListener('keydown', event => {
