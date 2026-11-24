@@ -7,13 +7,17 @@ const easing = 'cubic-bezier(.2,.7,.2,1)';
 const letters = 'qwertyuiopasdfghjklzxcvbnm';
 const symbols = Array.from('1234567890@#$%&-+()!?/:;₹=');
 const emoji = Array.from('😀😃😄😁😅😂🙂🙃😉😊😍😎🤔😮😢😴😬😐🙄😇👍👎👏🙌🎉🔥');
+const pressDuration = 55;
 const releaseDuration = 240;
-const releaseFrames = Array.from({ length: 17 }, (_, index) => {
-  if (index === 16) return { transform: 'none' };
+const pressTravel = 2;
+const releaseDisplacements = Array.from({ length: 17 }, (_, index) => {
+  if (index === 16) return 0;
   const t = releaseDuration / 1000 * index / 16;
   // Displacement of an underdamped spring released from rest.
-  const displacement = Math.exp(-17 * t) * (Math.cos(30 * t) + 17 / 30 * Math.sin(30 * t));
-  return { transform: `translateY(${2 * displacement}px) scale(${1 - .12 * displacement})` };
+  return Math.exp(-17 * t) * (Math.cos(30 * t) + 17 / 30 * Math.sin(30 * t));
+});
+const capFrame = displacement => ({
+  transform: `translateY(${pressTravel * displacement}px) scale(${1 - .12 * displacement})`,
 });
 let artworkRequest;
 
@@ -47,7 +51,6 @@ const styles = `
     .hit:hover { background: color-mix(in srgb, currentColor 5%, transparent); }
   }
   .board svg [data-key] { transform-box: fill-box; transform-origin: center; }
-  .board svg [data-key][data-down] { transform: translateY(2px) scale(.88); transition: transform 55ms ease-out; }
   .board svg [data-key][data-down] .key-outline {
     fill: var(--keyboard-accent, currentColor); fill-opacity: .23;
     stroke: var(--keyboard-accent, currentColor); stroke-opacity: .9;
@@ -67,7 +70,6 @@ const styles = `
   [hidden] { display: none; }
   @media (prefers-reduced-motion: reduce) {
     .surface, .panel[data-open] .surface { transition: none; }
-    .board svg [data-key][data-down] { transform: none; transition: none; }
   }
 `;
 
@@ -267,25 +269,53 @@ export async function mountPhoneKeyboard(host, {
 
   for (const [id, key] of keys) {
     const { button, cap, alt } = key;
-    let pointer, timer, rebound, held = false;
+    let pointer, timer, motion, held = false;
     const glyph = () => key.value ?? (id === 'Comma' || id === 'Period' ? key.legend.textContent : '');
+
+    function currentDisplacement() {
+      if (!motion) return 0;
+      const transform = getComputedStyle(cap).transform;
+      // Translation and scale follow the same displacement, including spring overshoot.
+      return transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).f / pressTravel;
+    }
+    key.stopMotion = () => {
+      motion?.cancel();
+      motion = null;
+    };
+    function reboundKey() {
+      const displacement = currentDisplacement();
+      key.stopMotion();
+      if (reducedMotion.matches || !displacement) return;
+      const frames = releaseDisplacements.map(value => capFrame(value * displacement));
+      const rebound = cap.animate(frames, { duration: releaseDuration });
+      motion = rebound;
+      rebound.onfinish = () => { if (motion === rebound) motion = null; };
+    }
     function pressKey() {
-      rebound?.cancel();
+      const displacement = currentDisplacement();
+      key.stopMotion();
       cap.setAttribute('data-down', '');
+      if (!reducedMotion.matches) {
+        motion = cap.animate([capFrame(displacement), capFrame(1)], {
+          duration: pressDuration, easing: 'ease-out', fill: 'forwards',
+        });
+      }
       showPreview(key, glyph());
     }
-    function releaseKey(cancelled = false) {
+    function releaseKey({ cancelled = false, finishPress = false } = {}) {
       cap.removeAttribute('data-down');
-      if (!reducedMotion.matches && !cancelled) {
-        rebound = cap.animate(releaseFrames, { duration: releaseDuration });
-      }
+      if (cancelled) key.stopMotion();
+      else if (finishPress && motion) {
+        const press = motion;
+        press.onfinish = () => { if (motion === press) reboundKey(); };
+      } else reboundKey();
       if (previewKey !== key) return;
       if (cancelled) hidePreview();
       else previewTimer = setTimeout(hidePreview, 135);
     }
     key.clearPress = () => {
       clearTimeout(timer);
-      rebound?.cancel();
+      key.stopMotion();
       cap.removeAttribute('data-down');
       pointer = null;
       held = false;
@@ -309,19 +339,23 @@ export async function mountPhoneKeyboard(host, {
         if (event.pointerId !== pointer) return;
         clearTimeout(timer);
         pointer = null;
-        releaseKey(name !== 'pointerup');
+        releaseKey({ cancelled: name !== 'pointerup' });
       });
     }
     button.addEventListener('click', event => {
       if (event.detail === 0 && !saving) {
         pressKey();
-        releaseKey();
+        // Keyboard and assistive clicks have no pointerdown to start the press.
+        releaseKey({ finishPress: true });
       }
       if (!held || event.detail === 0) activate(id);
       held = false;
     });
   }
   const listeners = new AbortController();
+  reducedMotion.addEventListener('change', event => {
+    if (event.matches) for (const key of keys.values()) key.stopMotion();
+  }, { signal: listeners.signal });
   launcher.addEventListener('click', () => setOpen(!open), { signal: listeners.signal });
   launcher.addEventListener('keydown', event => {
     if (event.key === 'Escape' && open) setOpen(false);

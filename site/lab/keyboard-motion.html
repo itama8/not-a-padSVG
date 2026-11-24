@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Direct keyboard · not-padgtp</title>
+  <style>
+    :root { color-scheme: light dark; font: 14px/1.5 ui-monospace, monospace; }
+    body { max-width: 392px; margin: 0 auto; padding: 12px; box-sizing: border-box;
+           min-height: 100dvh; display: grid; grid-template-rows: auto auto 1fr; gap: 12px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+    h1 { margin: 0; font-size: 18px; }
+    label { display: grid; }
+    input { min-height: 34px; font: inherit; }
+    main { position: relative; min-height: 340px; }
+    #launcher { position: absolute; z-index: 1; inset-block-start: 0; inset-inline-end: 0;
+                display: grid; place-items: center; width: 44px; height: 44px;
+                padding: 6px; color: inherit; background: transparent;
+                border: 1px solid GrayText; border-radius: 8px; cursor: pointer; }
+    #launcher svg { width: 100%; }
+    #phone-keyboard { position: absolute; inset: 0; --keyboard-accent: #136e65; }
+    @media (prefers-color-scheme: dark) {
+      #phone-keyboard { --keyboard-accent: #8dd8d0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Direct keyboard</h1>
+    <a href="keyboard.html">X-Ray integration</a>
+  </header>
+  <label>Clipboard check
+    <input type="text" placeholder="Paste copied text here" autocomplete="off">
+  </label>
+  <main>
+    <button id="launcher" type="button" aria-label="Toggle phone keyboard" disabled></button>
+    <div id="phone-keyboard"></div>
+  </main>
+  <script type="module">
+    import { mountPhoneKeyboard } from '../ui/phone-keyboard/index.js';
+
+    const launcher = document.querySelector('#launcher');
+    await mountPhoneKeyboard(document.querySelector('#phone-keyboard'), { launcher });
+    launcher.disabled = false;
+  </script>
+</body>
+</html>
