@@ -10,7 +10,7 @@
   <meta name="description" content="A workshop for building a composable SVG UI library, with small experiments you can try in X-Ray." />
   <link rel="stylesheet" href="./ui/preview-tile.css" />
   <link rel="stylesheet" href="./ui/agents/motion.css" />
-  <link rel="stylesheet" href="./ui/agents/inspection.css?v=5" />
+  <link rel="stylesheet" href="./ui/icon-inspection.css" />
   <link rel="stylesheet" href="./ui/budgeting/motion.css" />
   <link rel="stylesheet" href="./ui/pets/motion.css" />
   <link rel="stylesheet" href="./ui/inventory/motion.css" />
@@ -514,7 +514,7 @@
 
     <!-- The x-ray. No visible words; screen readers get them from the labels. -->
     <section id="xray" class="xr" aria-label="X-ray">
-      <p class="sr-only">A showcase for a composable SVG interface library. X-Ray holds small experiments in artwork, motion, and interaction. Hold Alt to peek or tap Alt to keep X-Ray open. On a touch screen, hold or tap the wordmark. Select a tile to try its preview or open the phone keyboard.</p>
+      <p class="sr-only">A showcase for a composable SVG interface library. X-Ray holds small experiments in artwork, motion, and interaction. Hold Alt to peek or tap Alt to keep X-Ray open. On a touch screen, hold or tap the wordmark. Select a tile to try its preview or open the phone keyboard. Turn on Zoom to edit an icon in place.</p>
 
       <button class="tile" type="button" data-experiment="phone-keyboard" data-status="iterating"
               aria-label="Phone keyboard. Iterating." title="Phone keyboard · Iterating">
@@ -812,7 +812,13 @@
         </button>
       </div>
 
-      <nav id="links" class="xi station" aria-label="Links">
+      <nav id="links" class="xi station" aria-label="Tools and links">
+        <button id="zoom-toggle" class="pbtn" type="button" aria-label="Zoom" title="Zoom"
+                aria-pressed="false" aria-controls="icon-inspection">
+          <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="10.5" cy="10.5" r="5.75"/><path d="m15 15 5 5M8 10.5h5m-2.5-2.5v5"/>
+          </svg>
+        </button>
         <a class="ilink" data-link="github" href="https://github.com/itama8/not-padgtp" aria-label="Star not-padgtp on GitHub">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="logo-gh" d="M12 0c6.63 0 12 5.276 12 11.79-.001 5.067-3.29 9.567-8.175 11.187-.6.118-.825-.25-.825-.56 0-.398.015-1.665.015-3.242 0-1.105-.375-1.813-.81-2.181 2.67-.295 5.475-1.297 5.475-5.822 0-1.297-.465-2.344-1.23-3.169.12-.295.54-1.503-.12-3.125 0 0-1.005-.324-3.3 1.209a11.32 11.32 0 00-3-.398c-1.02 0-2.04.133-3 .398-2.295-1.518-3.3-1.209-3.3-1.209-.66 1.622-.24 2.83-.12 3.125-.765.825-1.23 1.887-1.23 3.169 0 4.51 2.79 5.527 5.46 5.822-.345.294-.66.81-.765 1.577-.69.31-2.415.81-3.495-.973-.225-.354-.9-1.223-1.845-1.209-1.005.015-.405.56.015.781.51.28 1.095 1.327 1.23 1.666.24.663 1.02 1.93 4.035 1.385 0 .988.015 1.916.015 2.196 0 .31-.225.664-.825.56C3.303 21.374-.003 16.867 0 11.791 0 5.276 5.37 0 12 0z" /><path class="star" d="M 20.5 -1.2 L 21.6 1.1 L 24.1 1.4 L 22.3 3.1 L 22.7 5.6 L 20.5 4.4 L 18.3 5.6 L 18.7 3.1 L 16.9 1.4 L 19.4 1.1 Z" /></svg>
         </a>
@@ -839,13 +845,13 @@
       </button>
       <span id="want-total" class="sr-only"></span>
       <span id="want-status" class="sr-only" role="status">connecting</span>
-      <section id="helper-inspection" aria-label="Helper SVG source" hidden>
+      <section id="icon-inspection" aria-label="Icon SVG source" hidden>
         <div class="inspection-source"></div>
         <div class="inspection-actions">
           <button class="pbtn inspection-reset" type="button" aria-label="Reset SVG values" title="Reset SVG values">
             <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2 6m-2-6V5m0 6h6"/></svg>
           </button>
-          <button class="pbtn inspection-close" type="button" aria-label="Close SVG source" title="Close SVG source">
+          <button class="pbtn inspection-close" type="button" aria-label="Close Zoom" title="Close Zoom">
             <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
           </button>
         </div>
@@ -876,7 +882,8 @@
     import { pets, walksArtwork } from './ui/pets/walks.js';
     import { inventory, scanArtwork } from './ui/inventory/scan.js';
     import { agents, helperArtwork } from './ui/agents/helper.js';
-    import { mountHelperInspection } from './ui/agents/inspection.js?v=5';
+    import { createHelperInspection } from './ui/agents/inspection.js?v=6';
+    import { createIconFields, mountIconInspection } from './ui/icon-inspection.js';
     import { drawPreviewTile, playTilePreview, preparePenStrokes } from './ui/preview-tile.js';
     import { touchprintGlyph } from './ui/touchprint/artwork.js';
 
@@ -909,15 +916,13 @@
       drawPreviewTile($('#inventory-tile'), inventory, scanArtwork);
       const agentsTile = $('#agents-tile');
       drawPreviewTile(agentsTile, agents, helperArtwork);
-      const helperPanel = $('#helper-inspection');
-      const helperInspection = mountHelperInspection(helperPanel, agentsTile);
-      const helperGuide = $('#inspection-guide');
-      const helperClose = $('.inspection-close', helperPanel);
-      const helperTileLabel = `${agents.label}. Inspect Helper SVG.`;
-      agentsTile.setAttribute('aria-label', helperTileLabel);
-      agentsTile.title = 'Inspect Helper SVG';
-      agentsTile.setAttribute('aria-controls', helperPanel.id);
-      agentsTile.setAttribute('aria-expanded', 'false');
+      const inspectionPanel = $('#icon-inspection');
+      const zoom = $('#zoom-toggle');
+      const inspector = mountIconInspection(inspectionPanel);
+      const helperInspection = createHelperInspection(agentsTile);
+      const inspectionFields = new WeakMap([[agentsTile, helperInspection.fields]]);
+      const inspectionGuide = $('#inspection-guide');
+      let inspectionTarget = null;
       const tiles = [...xray.querySelectorAll('.tile')];
       const experimentTiles = tiles.filter(tile => tile.hasAttribute('data-experiment'));
       const keyboardTile = $('[data-experiment="phone-keyboard"]');
@@ -1021,16 +1026,9 @@
           t.dataset.status = 'concept';
           t.setAttribute('aria-label', t.getAttribute('aria-label').replace('Coming soon.', 'Concept.'));
         }
-        if (t === agentsTile) {
-          t.addEventListener('click', event => {
-            if (helperPanel.hidden) openHelperInspection(event);
-            else helperInspection.play();
-          });
-        } else {
-          t.addEventListener('click', () => { play(t); pauseDemo(); });
-        }
+        t.addEventListener('click', () => { play(t); pauseDemo(); });
         t.addEventListener('pointerenter', (e) => {
-          if (e.pointerType === 'mouse' && state === 'kept') play(t);
+          if (e.pointerType === 'mouse' && state === 'kept' && !inspectionTarget) play(t);
         });
       });
 
@@ -1044,7 +1042,7 @@
           if (l) { l.classList.remove('out', 'in'); void l.getBBox(); l.classList.add('in'); setTimeout(() => l.classList.remove('in'), 900); }
           setTimeout(() => play(agentsTile), 650);      // a request in, then the hub dispatches
         });
-        b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') { const l = plugOf.get(b); if (l) { l.classList.add('in'); setTimeout(() => l.classList.remove('in'), 900); } } });
+        b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept' && !inspectionTarget) { const l = plugOf.get(b); if (l) { l.classList.add('in'); setTimeout(() => l.classList.remove('in'), 900); } } });
       });
 
       let order = tiles, demoT = 0, demoI = 0, demoPause = 0;
@@ -1057,7 +1055,7 @@
           if (state !== 'kept') return;
           if (performance.now() > demoPause) {
             const vis = order.filter((t) => !t.classList.contains('stowed') && !t.hasAttribute('data-experiment'));
-            if (vis.length && helperPanel.hidden) play(vis[demoI++ % vis.length]);
+            if (vis.length && inspectionPanel.hidden) play(vis[demoI++ % vis.length]);
           }
           demoT = setTimeout(tick, 2400);
         };
@@ -1088,7 +1086,7 @@
       let state = 'off';
       const setState = (s) => {
         const prev = state;
-        const dismissInspection = s === 'off' && !helperPanel.hidden;
+        const dismissInspection = s === 'off' && inspectionTarget;
         // Restore any obscured controls and close X-Ray in the same frame.
         if (dismissInspection) app.classList.add('instant');
         state = s;
@@ -1099,7 +1097,7 @@
         if (s === 'off') {
           if (dismissInspection) {
             mark.focus({ preventScroll: true });
-            closeHelperInspection();
+            closeInspection();
           }
           move.hidden = true;
           disarm();
@@ -1113,32 +1111,58 @@
         }
       };
 
-      function openHelperInspection(event) {
-        agentsTile.classList.remove('play');
-        if (altDown) altDown.alone = false;
-        helperPanel.hidden = false;
-        placeHelperSource(measure());
-        if (helperPanel.hidden) return;
-        agentsTile.setAttribute('aria-label', 'Replay Helper');
-        agentsTile.title = 'Replay Helper';
-        agentsTile.setAttribute('aria-expanded', 'true');
-        setState('kept');
-        if (event.detail === 0) $('input', helperPanel).focus({ preventScroll: true });
+      function selectInspectionTarget(target) {
+        inspectionTarget?.removeAttribute('data-zoom-selected');
+        inspectionTarget = target;
+        target.setAttribute('data-zoom-selected', '');
+        if (!inspectionFields.has(target)) inspectionFields.set(target, createIconFields(target));
+        inspector.show(inspectionFields.get(target));
+        const name = target.getAttribute('aria-label')?.split(/[.:]/, 1)[0] ?? 'Icon';
+        inspectionPanel.setAttribute('aria-label', `${name} SVG source`);
       }
 
-      function closeHelperInspection() {
-        const restoreFocus = helperPanel.contains(document.activeElement);
-        agentsTile.setAttribute('aria-label', helperTileLabel);
-        agentsTile.title = 'Inspect Helper SVG';
-        agentsTile.setAttribute('aria-expanded', 'false');
-        helperPanel.hidden = true;
-        helperGuide.setAttribute('hidden', '');
+      function inspect(target, event) {
+        if (altDown) altDown.alone = false;
+        selectInspectionTarget(target);
+        zoom.setAttribute('aria-pressed', 'true');
+        inspectionPanel.hidden = false;
+        placeInspection(measure());
+        if (!inspectionTarget) return;
+        setState('kept');
+        if (event.detail === 0) $('input', inspectionPanel).focus({ preventScroll: true });
+      }
+
+      function closeInspection() {
+        const restoreFocus = inspectionPanel.contains(document.activeElement);
+        inspectionTarget?.removeAttribute('data-zoom-selected');
+        inspectionTarget = null;
+        inspector.close();
+        zoom.setAttribute('aria-pressed', 'false');
+        inspectionPanel.hidden = true;
+        inspectionGuide.setAttribute('hidden', '');
         xray.querySelectorAll('.inspection-obscured').forEach(el => el.classList.remove('inspection-obscured'));
         if (restoreFocus && state !== 'off') {
-          (agentsTile.classList.contains('stowed') ? mark : agentsTile).focus({ preventScroll: true });
+          (zoom.closest('.stowed') ? mark : zoom).focus({ preventScroll: true });
         }
       }
-      helperClose.addEventListener('click', closeHelperInspection);
+
+      zoom.addEventListener('click', event => {
+        if (state === 'off') return;
+        if (inspectionTarget) closeInspection();
+        else inspect(agentsTile, event);
+      });
+      $('.inspection-close', inspectionPanel).addEventListener('click', closeInspection);
+      const inspectable = new Set([wantButton, ...links, ...pbtns, ...tiles, ...ais]);
+      function interceptIconActivation(event) {
+        if (!inspectionTarget) return;
+        const control = event.target.closest('.tile, .ai, .pbtn, .ilink, #want');
+        if (!inspectable.has(control)) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        inspect(control, event);
+      }
+      xray.addEventListener('click', interceptIconActivation, true);
+      xray.addEventListener('auxclick', interceptIconActivation, true);
 
       // ---- paper ruling, registered to the wordmark's plane ----
       const isDark = () => prefs.scheme ? prefs.scheme === 'dark'
@@ -1464,52 +1488,62 @@
           aiLinks.appendChild(g);
           plugOf.set(b, line);
         });
-        if (!helperPanel.hidden) placeHelperSource(M);
+        if (inspectionTarget) placeInspection(M);
       }
 
-      function placeHelperSource(M) {
+      function placeInspection(M) {
         xray.querySelectorAll('.inspection-obscured').forEach(el => el.classList.remove('inspection-obscured'));
-        if (agentsTile.classList.contains('stowed')) {
-          closeHelperInspection();
-          return;
+        if (inspectionTarget.closest('.stowed')) {
+          if (agentsTile.closest('.stowed')) {
+            closeInspection();
+            return;
+          }
+          selectInspectionTarget(agentsTile);
         }
 
         const bounds = el => {
           const { left: l, top: t, right: r, bottom: b } = el.getBoundingClientRect();
           return { l, t, r, b };
         };
-        const tile = bounds(agentsTile);
+        const tile = bounds(inspectionTarget);
         const hub = { x: (tile.l + tile.r) / 2, y: (tile.t + tile.b) / 2 };
-        // Allow room for Helper's artwork at maximum scale without moving the tile.
+        // Allow room for the icon's artwork at maximum scale without moving the tile.
         const tileBlocker = grow(tile, 14);
-        const neighbors = [wantButton, linksBox, papersBox, soonNote, ...tiles, ...ais]
-          .filter(el => el !== agentsTile && !el.closest('.stowed'));
+        const neighbors = [wantButton, papersBox, soonNote, ...tiles, ...ais]
+          .filter(el => !el.contains(inspectionTarget) && !el.closest('.stowed'));
         const neighborBounds = neighbors.map(el => [el, bounds(el)]);
-        const w = helperPanel.offsetWidth, h = helperPanel.offsetHeight;
-        const clear = [tileBlocker, ...M.inks.map(rect => grow(rect, 8)), ...(keyboardSpace ? [keyboardBlocker()] : [])];
+        const w = inspectionPanel.offsetWidth, h = inspectionPanel.offsetHeight;
+        const protectedControls = [tileBlocker, ...(keyboardSpace ? [keyboardBlocker()] : [])];
+        for (const station of [linksBox, papersBox]) {
+          if (station.contains(inspectionTarget) || station === linksBox && !station.closest('.stowed')) {
+            protectedControls.push(grow(bounds(station), 4));
+          }
+        }
+        const clear = [...protectedControls, ...M.inks.map(rect => grow(rect, 8))];
         const overlapPenalty = candidate => neighborBounds.reduce((cost, [el, rect]) => {
           if (!hit(candidate, grow(rect, 3))) return cost;
           return cost + (el.classList.contains('station') ? 90 : 35);
         }, 0);
-        const spot = search(M, w, h, hub, clear, [], overlapPenalty)
-          ?? search({ ...M, stripY: keyboardSpace ? M.stripY : M.vh - M.safe.b }, w, h, hub, [tileBlocker, ...(keyboardSpace ? [keyboardBlocker()] : [])], [], overlapPenalty);
+        const spot = search(M, w, h, hub, [...clear, ...neighborBounds.map(([, rect]) => grow(rect, 3))], [])
+          ?? search(M, w, h, hub, clear, [], overlapPenalty)
+          ?? search({ ...M, stripY: keyboardSpace ? M.stripY : M.vh - M.safe.b }, w, h, hub, protectedControls, [], overlapPenalty);
         if (!spot) {
-          closeHelperInspection();
+          closeInspection();
           return;
         }
         for (const [el, rect] of neighborBounds) {
           if (hit(spot, rect)) el.classList.add('inspection-obscured');
         }
 
-        helperPanel.style.transform = `translate(${spot.l}px, ${spot.t}px)`;
+        inspectionPanel.style.transform = `translate(${spot.l}px, ${spot.t}px)`;
         const x = Math.max(spot.l, Math.min(spot.r, hub.x));
         const y = Math.max(spot.t, Math.min(spot.b, hub.y));
         const edge = Math.min((tile.r - tile.l) / (2 * Math.abs(x - hub.x)),
                               (tile.b - tile.t) / (2 * Math.abs(y - hub.y)));
         const startX = hub.x + (x - hub.x) * edge;
         const startY = hub.y + (y - hub.y) * edge;
-        helperGuide.setAttribute('d', `M ${startX} ${startY} L ${x} ${y}`);
-        helperGuide.removeAttribute('hidden');
+        inspectionGuide.setAttribute('d', `M ${startX} ${startY} L ${x} ${y}`);
+        inspectionGuide.removeAttribute('hidden');
       }
 
       function reveal(press, next) {
@@ -1531,8 +1565,8 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        const controls = [wantButton, ...links, ...pbtns, ...tiles, ...ais];
-        if (!helperPanel.hidden) controls.push(...helperPanel.querySelectorAll('.pbtn'));
+        const controls = [wantButton, zoom, ...links, ...pbtns, ...tiles, ...ais];
+        if (!inspectionPanel.hidden) controls.push(...inspectionPanel.querySelectorAll('.pbtn'));
         for (const el of controls) {
           if (el.closest('.stowed, .inspection-obscured')) continue;
           const r = el.getBoundingClientRect();
@@ -1632,7 +1666,7 @@
         move.hidden = true;
         disarm();
         if (target && p.dist >= TAP_PX) {
-          if (target.classList.contains('tile')) { setState('kept'); target.click(); }
+          if (target.classList.contains('tile') || inspectionTarget && inspectable.has(target)) { setState('kept'); target.click(); }
           else if (target === wantButton || target.classList.contains('pbtn') || target.classList.contains('ai')) { setState('kept'); target.click(); }
           else if ('placeholder' in target.dataset) { setState('kept'); target.click(); }
           else { target.click(); setState(p.from === 'kept' ? 'kept' : 'off'); }

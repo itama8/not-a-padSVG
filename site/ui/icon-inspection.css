@@ -1,4 +1,4 @@
-#helper-inspection {
+#icon-inspection {
   position: absolute;
   left: 0;
   top: 0;
@@ -9,8 +9,15 @@
 #inspection-guide[hidden] { display: none; }
 #marks #inspection-guide { stroke: var(--blue); stroke-dasharray: 2 4; opacity: .5; }
 .inspection-obscured { visibility: hidden; }
-.helper-scale { transform-box: view-box; transform-origin: center; }
-#agents-tile[aria-expanded="true"] :is(.pen, .pop) { transition: none; }
+.inspection-artwork, .ic .inspection-artwork, .ic .helper-scale { transform-box: view-box; transform-origin: center; }
+#xray .keyboard-launcher-art { transform: var(--inspection-transform, none); }
+#xray [data-zoom-selected] { outline: 1px dashed var(--blue); outline-offset: 3px; }
+[data-zoom-selected] :is(.pen, .pop) { transition: none; }
+#zoom-toggle { width: 44px; }
+#zoom-toggle[aria-pressed="true"] {
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
 
 .inspection-row {
   display: grid;
@@ -68,12 +75,12 @@
 .inspection-slider[data-snapped] .inspection-thumb { fill: var(--blue); }
 
 .inspection-actions { display: flex; justify-content: flex-end; }
-#helper-inspection .pbtn { width: 44px; }
-.inspection-actions .inspection-glyph {
+#icon-inspection .pbtn { width: 44px; }
+:is(.inspection-actions, #zoom-toggle) .inspection-glyph {
   max-width: 24px;
   max-height: 24px;
   fill: none;
-  stroke: var(--ink);
+  stroke: currentColor;
   stroke-width: 1.4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -81,15 +88,15 @@
 }
 
 @media (max-width: 599px) {
-  #helper-inspection { max-width: 240px; }
+  #icon-inspection { max-width: 240px; }
 }
 
 @media (max-height: 500px) {
-  #helper-inspection {
+  #icon-inspection {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     width: min(268px, calc(100vw - 32px));
   }
-  #helper-inspection[hidden] { display: none; }
+  #icon-inspection[hidden] { display: none; }
   .inspection-actions { flex-direction: column; justify-content: flex-start; }
 }
