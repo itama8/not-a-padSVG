@@ -4,7 +4,7 @@ const svgNS = 'http://www.w3.org/2000/svg';
 const trackStart = 10, trackLength = 84, trackEnd = trackStart + trackLength;
 const trackY = 22, sliderWidth = 104;
 const snapDistance = 5, releaseDistance = 10;
-const rippleHalfWidth = 11, rippleDuration = 320;
+const rippleDuration = 640;
 
 function trackPosition({ min, max }, value) {
   return trackStart + trackLength * ((value - min) / (max - min));
@@ -12,16 +12,24 @@ function trackPosition({ min, max }, value) {
 
 function trackPath(end, wave) {
   if (!wave) return `M ${trackStart} ${trackY} H ${end}`;
-
-  const yAt = x => {
-    const phase = (Math.abs(x - wave.origin) - wave.travel) / rippleHalfWidth;
-    if (Math.abs(phase) >= 1) return trackY;
-    const envelope = Math.cos(phase * Math.PI / 2) ** 2;
-    return (trackY - wave.amplitude * Math.cos(phase * Math.PI * 2) * envelope).toFixed(2);
-  };
+  const yAt = x => (trackY + wave(x)).toFixed(2);
   let path = `M ${trackStart} ${yAt(trackStart)}`;
   for (let x = trackStart + 2; x < end; x += 2) path += ` L ${x} ${yAt(x)}`;
   return `${path} L ${end} ${yAt(end)}`;
+}
+
+// The draft-selection pluck from Omakase v2's invocation-card-review timeline.
+function draftRipple(origin, t) {
+  const strength = Math.min(1, t / .1) * Math.exp(-3.4 * t) * (1 - t);
+  const spread = 16 + 46 * t;
+  return {
+    strength,
+    wave(x) {
+      const distance = Math.abs(x - origin);
+      return 5 * strength * Math.exp(-((distance / spread) ** 2))
+        * Math.cos(2 * Math.PI * (distance / 44 - 2.1 * t));
+    },
+  };
 }
 
 export function mountHelperInspection(panel, tile) {
@@ -79,14 +87,21 @@ export function mountHelperInspection(panel, tile) {
   }
 
   const source = panel.querySelector('.inspection-source');
-  for (const field of fields) {
+  for (const [index, field] of fields.entries()) {
     const row = document.createElement('div');
     row.className = 'inspection-row';
+    const glowId = `helper-slider-glow-${index}`;
     row.innerHTML = `<code><span></span></code>
       <span class="inspection-slider">
         <svg viewBox="0 0 104 44" aria-hidden="true">
+          <linearGradient id="${glowId}" gradientUnits="userSpaceOnUse" y1="0" y2="0">
+            <stop offset="0" stop-opacity="0"/>
+            <stop offset=".5"/>
+            <stop offset="1" stop-opacity="0"/>
+          </linearGradient>
           <path class="inspection-rail"/>
           <path class="inspection-progress"/>
+          <path class="inspection-rail-glow" stroke="url(#${glowId})"/>
           <g class="inspection-nodes"></g>
           <line class="inspection-tether" y1="22" y2="22"/>
           <circle class="inspection-thumb" cy="22" r="5"/>
@@ -99,6 +114,8 @@ export function mountHelperInspection(panel, tile) {
     const slider = row.querySelector('.inspection-slider');
     const rail = slider.querySelector('.inspection-rail');
     const progress = slider.querySelector('.inspection-progress');
+    const glow = slider.querySelector('.inspection-rail-glow');
+    const gradient = slider.querySelector('linearGradient');
     const tether = slider.querySelector('.inspection-tether');
     const nodes = row.querySelector('.inspection-nodes');
     for (const value of field.nodes) {
@@ -119,21 +136,19 @@ export function mountHelperInspection(panel, tile) {
     let drag;
     let spring, ripple, rippleFrame;
     field.paintTrack = (now = performance.now()) => {
-      let wave;
+      let strength = 0, wave;
       if (ripple) {
         const elapsed = Math.max(0, now - ripple.started) / rippleDuration;
         if (elapsed < 1 && !reduceMotion.matches) {
-          const extent = Math.max(ripple.origin - trackStart, trackEnd - ripple.origin);
-          wave = {
-            origin: ripple.origin,
-            travel: elapsed * (extent + rippleHalfWidth),
-            amplitude: 4 * (1 - .75 * elapsed),
-          };
+          ({ strength, wave } = draftRipple(ripple.origin, elapsed));
         } else {
           ripple = null;
         }
       }
-      rail.setAttribute('d', trackPath(trackEnd, wave));
+      const path = trackPath(trackEnd, wave);
+      rail.setAttribute('d', path);
+      glow.setAttribute('d', path);
+      glow.style.opacity = strength;
       progress.setAttribute('d', trackPath(trackPosition(field, field.value), wave));
     };
     function animateTrack(now) {
@@ -153,7 +168,10 @@ export function mountHelperInspection(panel, tile) {
         { transform: 'none' },
       ], { duration: 180, easing: 'ease-out' });
       const started = performance.now();
-      ripple = { origin: trackPosition(field, node), started };
+      const origin = trackPosition(field, node);
+      gradient.setAttribute('x1', origin - 80);
+      gradient.setAttribute('x2', origin + 80);
+      ripple = { origin, started };
       animateTrack(started);
     }
     const dragTo = event => {

@@ -58,6 +58,8 @@
 }
 
 .inspection-slider .inspection-progress { stroke: var(--blue); }
+.inspection-slider .inspection-rail-glow { stroke-width: 1.6; opacity: 0; }
+.inspection-slider stop { stop-color: var(--blue); }
 .inspection-nodes { fill: var(--ink); stroke: var(--paper); opacity: .7; }
 .inspection-thumb { stroke: var(--blue); fill: var(--paper); stroke-width: 1.5; }
 .inspection-slider:has(input:focus-visible) .inspection-thumb { stroke-width: 3; }
