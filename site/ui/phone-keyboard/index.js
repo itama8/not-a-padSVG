@@ -1,4 +1,4 @@
-import { createPhoneKeyboardTyping } from './typing.js?v=1.4.0';
+import { createPhoneKeyboardTyping } from './typing.js?v=1.4.1';
 
 // The export script embeds the same SVG for hosts that load from a local file.
 const embeddedArtwork = null;
@@ -118,7 +118,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.4.0';
+export const phoneKeyboardVersion = '1.4.1';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);

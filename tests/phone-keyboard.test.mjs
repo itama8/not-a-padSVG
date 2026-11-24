@@ -44,7 +44,7 @@ test('rapid Shift taps lock capitals until Shift is tapped again', () => {
   assert.equal(typing.activate('KeyD', selection).text, 'd');
 });
 
-test('both symbol pages have the reference key order and return to letters on insertion', () => {
+test('both symbol pages have the reference key order and only non-digit symbols return to letters', () => {
   const typing = createPhoneKeyboardTyping();
   const activate = id => typing.activate(id, selection);
   const row = ids => Array.from(ids, letter => typing.keyValue('Key' + letter)).join('');
@@ -52,6 +52,8 @@ test('both symbol pages have the reference key order and return to letters on in
   assert.equal(row('QWERTYUIOP'), '1234567890');
   assert.equal(row('ASDFGHJKL') + typing.keyValue('SymbolExtra'), '@#₹_&-+()/');
   assert.equal(row('ZXCVBNM'), '*"\x27:;!?');
+  assert.equal(Array.from('QWERTYUIOP', letter => activate('Key' + letter).text).join(''), '1234567890');
+  assert.equal(typing.mode, 'symbols');
   assert.equal(activate('Space').text, ' ');
   assert.equal(activate('Enter').text, '\n');
   activate('Backspace');
