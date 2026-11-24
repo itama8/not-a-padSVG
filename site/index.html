@@ -70,8 +70,6 @@
       max-height: min(67dvh, 500px); overflow: visible;
     }
     #app[data-composing] { touch-action: auto; }
-    #app[data-composing] .stage { bottom: var(--keyboard-space); }
-    #app[data-composing] .art { width: min(96vw, 560px, calc(var(--keyboard-room) * 560 / 440)); }
     #app[data-composing] #hint { visibility: hidden; }
     #phone-keyboard {
       position: absolute; z-index: 4;
@@ -850,6 +848,7 @@
       const app = $('#app'), mark = $('#mark'), art = $('.art'), probe = $('#probe');
       const stage = $('.stage'), keyboardHost = $('#phone-keyboard');
       let keyboard, keyboardSpace = null;
+      let stageShift = { x: 0, y: 0 };
       const pressG = $('#press'), move = $('#move');
       const moveLine = move.children[0], moveHead = move.children[1];
       const xray = $('#xray'), linksBox = $('#links');
@@ -1079,13 +1078,13 @@
         const ar = { width: art.clientWidth, height: art.clientHeight,
                      left: mark.offsetLeft, top: mark.offsetTop };
         const s = Math.min(ar.width / 560, ar.height / 440);
-        const ox = ar.left + (ar.width - 560 * s) / 2, oy = ar.top + (ar.height - 440 * s) / 2;
+        const ox = ar.left + stageShift.x + (ar.width - 560 * s) / 2, oy = ar.top + stageShift.y + (ar.height - 440 * s) / 2;
         const P = (x, y) => ({ x: ox + x * s, y: oy + y * s });
         const box = (x0, y0, x1, y1) => { const a = P(x0, y0), b = P(x1, y1); return { l: a.x, t: a.y, r: b.x, b: b.y }; };
         const ink = box(138, 98, 462, 420);
         const inks = [box(143, 101, 306, 137), box(278, 163, 438, 212), box(404, 166, 453, 418)];
         const g = Math.max(16, safe.l), gr = Math.max(16, safe.r);
-        const stripY = keyboardSpace ? keyboardSpace.top - 10 : vh - safe.b - 46;
+        const stripY = vh - safe.b - 46;
         const wide = vw >= 720 && vh >= 520;
         return { vw, vh, safe, g, gr, P, s, ink, inks, stripY, wide };
       }
@@ -1165,6 +1164,8 @@
 
         const blockers = [...M.inks.map((k) => grow(k, 12)), { l: p.x - 26, t: p.y - 26, r: p.x + 26, b: p.y + 26 }];
 
+        if (keyboardSpace) blockers.push(keyboardBlocker());
+
         // Links: top right, out of the way.
         const lw = linksBox.offsetWidth, lh = linksBox.offsetHeight;
         const lr = search(M, lw, lh, { x: M.vw - M.gr - lw / 2, y: M.safe.t + 12 + lh / 2 }, blockers, thumb);
@@ -1235,7 +1236,7 @@
         const o = M.P(447, 132);
         const c = { x: (M.ink.l + M.ink.r) / 2, y: (M.ink.t + M.ink.b) / 2 };
         let scatter;
-        if (M.wide && !press && !keyboardSpace) {
+        if (M.wide && !press) {
           const area = { l: M.g, t: M.safe.t + 10, r: M.vw - M.gr, b: M.stripY - 10 };
           // Keep tile sampling work bounded on ultrawide screens. Badges still use every ruling.
           const stride = Math.ceil(Math.max(1, Math.sqrt(M.vw * M.stripY / (cell ** 2 * 5000))));
@@ -1246,7 +1247,7 @@
             tileCount: showTiles.length, badgeCount: showAis.length
           }, { ...ScatterLayout.MOODS[desktopMood], mood: desktopMood }, SEED);
         }
-        app.dataset.layout = keyboardSpace ? 'composing' : scatter ? desktopMood : compactLayout;
+        app.dataset.layout = scatter ? desktopMood : compactLayout;
         const placed = [];
         const place = (w, h, anchor, ring, spread, key, gap) => {
           let best = null, bestScore = Infinity;
@@ -1273,13 +1274,6 @@
         if (scatter) {
           const hubFirst = [agentsTile, ...showTiles.filter((tile) => tile !== agentsTile)];
           for (const [i, tile] of hubFirst.entries()) targets[showTiles.indexOf(tile)] = scatter.points[i];
-        } else if (keyboardSpace) {
-          const columns = Math.max(1, Math.min(n, Math.floor((M.vw - M.g - M.gr) / (size + cell))));
-          for (let i = 0; i < n; i++) {
-            const x = M.g + (i % columns + .5) * (M.vw - M.g - M.gr) / columns;
-            const y = M.safe.t + size / 2 + 12 + Math.floor(i / columns) * (size + cell);
-            targets.push({ x, y });
-          }
         } else if (compactLayout === 'ring') {
           const a0 = rng() * Math.PI * 2;
           const rx = (M.ink.r - M.ink.l) / 2 + size * .9, ry = (M.ink.b - M.ink.t) / 2 + size * .9;
@@ -1317,7 +1311,7 @@
           t._r = r;
           if (!r) return;
           order.push(t);
-          const tilt = keyboardSpace ? 0 : (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
+          const tilt = (noise(tiles.indexOf(t) + 1, 0, 0) - .5) * 9;
           t.style.width = t.style.height = size + 'px';
           const x = scatter ? r.l : Math.round(r.l), y = scatter ? r.t : Math.round(r.t);
           t.style.transform = `translate(${x}px, ${y}px) rotate(${tilt.toFixed(1)}deg)`;
@@ -1531,8 +1525,41 @@
       // The keyboard supplies its measured space. The home screen keeps its own seed and rules.
       const motion = new Map();
       const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      const keyboardBlocker = () => grow({ l: keyboardSpace.left, t: keyboardSpace.top,
+        r: keyboardSpace.right, b: keyboardSpace.bottom }, 12);
+
+      function fitWordmarkAroundKeyboard() {
+        stageShift = { x: 0, y: 0 };
+        stage.style.translate = '';
+        art.style.width = '';
+        if (!keyboardSpace) return;
+        const M = measure(), ink = M.ink, obstacle = keyboardBlocker();
+        if (!hit(ink, obstacle)) return;
+        // Try each free rectangle. Preserve size first, then choose the shortest move.
+        const edges = { l: M.g, t: M.safe.t + 12, r: M.vw - M.gr, b: M.vh - M.safe.b - 12 };
+        const regions = [
+          { ...edges, b: obstacle.t }, { ...edges, t: obstacle.b },
+          { ...edges, r: obstacle.l }, { ...edges, l: obstacle.r },
+        ].filter(r => r.r > r.l && r.b > r.t);
+        const width = ink.r - ink.l, height = ink.b - ink.t;
+        const cx = (ink.l + ink.r) / 2, cy = (ink.t + ink.b) / 2;
+        const choices = regions.map(r => {
+          const scale = Math.min(1, (r.r - r.l) / width, (r.b - r.t) / height);
+          const x = Math.max(r.l + width * scale / 2, Math.min(cx, r.r - width * scale / 2));
+          const y = Math.max(r.t + height * scale / 2, Math.min(cy, r.b - height * scale / 2));
+          return { scale, x, y, distance: Math.hypot(x - cx, y - cy) };
+        }).sort((a, b) => b.scale - a.scale || a.distance - b.distance);
+        const best = choices[0];
+        if (!best) return;
+        art.style.width = `${M.s * 560 * best.scale}px`;
+        const resized = measure().ink;
+        stageShift = { x: best.x - (resized.l + resized.r) / 2,
+          y: best.y - (resized.t + resized.b) / 2 };
+        stage.style.translate = `${stageShift.x}px ${stageShift.y}px`;
+      }
+
       function reserveKeyboard(rect, timing) {
-        if (rect?.top === keyboardSpace?.top && rect?.height === keyboardSpace?.height) return;
+        if (['top', 'left', 'width', 'height'].every(key => rect?.[key] === keyboardSpace?.[key])) return;
         const elements = state === 'off' ? [art] : [art, ...xray.querySelectorAll('.station, .tile, .ai'), soonNote];
         const previous = new Map(elements.filter(el => !el.classList.contains('stowed'))
           .map(el => [el, el.getBoundingClientRect()]));
@@ -1540,10 +1567,7 @@
         motion.clear();
         keyboardSpace = rect;
         app.toggleAttribute('data-composing', Boolean(rect));
-        if (rect) {
-          app.style.setProperty('--keyboard-space', `${app.clientHeight - rect.top + 8}px`);
-          app.style.setProperty('--keyboard-room', `${Math.max(24, rect.top - stage.offsetTop - 16)}px`);
-        }
+        fitWordmarkAroundKeyboard();
         alignPaper();
         if (state !== 'off') layout(lastPress);
         if (reducedMotion.matches) return;
@@ -1579,6 +1603,7 @@
       addEventListener('resize', () => {
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
+          fitWordmarkAroundKeyboard();
           alignPaper();
           if (state === 'off') return;
           app.classList.add('instant');

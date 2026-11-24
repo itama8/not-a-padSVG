@@ -23,7 +23,7 @@ async function until(probe) {
   assert.fail('Chromium or the keyboard lab did not become ready');
 }
 
-test('phone keyboard commits each valid Chromium touch release once', {
+test('phone keyboard touch input, launcher toggle, and responsive showcase placement', {
   skip: !chromiumAvailable && 'Chromium is unavailable',
 }, async () => {
   const server = createServer(async (request, response) => {
@@ -235,6 +235,9 @@ test('phone keyboard commits each valid Chromium touch release once', {
     const open = () => evaluate("keyboard.querySelector('.panel').hasAttribute('data-open')");
     const launch = () => evaluate("document.querySelector('#launcher').click()");
     await launch();
+    assert.equal(await open(), false);
+    assert.equal(await value(), 'first\na');
+    await launch();
     assert.equal(await open(), true);
     await tap(await actionPoint('.close'));
     assert.equal(await open(), false);
@@ -296,6 +299,67 @@ test('phone keyboard commits each valid Chromium touch release once', {
     await tap(shift);
     await tap(s);
     assert.equal(await value(), 'AS10/√As');
+
+    // The same component is hosted by X-Ray. Exercise actual launcher clicks and
+    // obstacle placement across roomy, narrow, and short viewports.
+    await send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: 'Math.random = () => .42' });
+    for (const [width, height] of [[2000, 1091], [1440, 1200], [390, 844], [844, 390], [320, 568], [768, 1024]]) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+      await send('Page.navigate', { url: origin + '/index.html' });
+      await until(() => evaluate(`document.querySelector('[data-experiment="phone-keyboard"]')?.getAttribute('aria-expanded') === 'false'`));
+      await evaluate("document.querySelector('#mark').click()");
+      const before = await evaluate("document.querySelector('.art').getBoundingClientRect().toJSON()");
+      const clickLauncher = async () => {
+        const r = await evaluate(`document.querySelector('[data-experiment="phone-keyboard"]').getBoundingClientRect().toJSON()`);
+        const point = { x: r.x + r.width / 2, y: r.y + r.height / 2, button: 'left', clickCount: 1 };
+        await send('Input.dispatchMouseEvent', { type: 'mousePressed', ...point });
+        await send('Input.dispatchMouseEvent', { type: 'mouseReleased', ...point });
+      };
+      await clickLauncher();
+      assert.equal(await evaluate("document.querySelector('#app').hasAttribute('data-composing')"), true, `${width}×${height} opens`);
+      const placement = await evaluate(`(() => {
+        const panel = document.querySelector('#phone-keyboard').shadowRoot.querySelector('.panel').getBoundingClientRect();
+        const controls = [...document.querySelectorAll('#xray .tile, #xray .ai, #xray .station')]
+          .filter(el => !el.classList.contains('stowed'));
+        const intersects = r => r.left < panel.right && r.right > panel.left && r.top < panel.bottom && r.bottom > panel.top;
+        return {
+          overlaps: controls.filter(el => intersects(el.getBoundingClientRect())).map(el => el.getAttribute('aria-label') || el.id),
+          beside: controls.some(el => el.getBoundingClientRect().bottom > panel.top),
+          inkClear: (() => {
+            const matrix = document.querySelector('.art').getScreenCTM();
+            const a = new DOMPoint(138, 98).matrixTransform(matrix);
+            const b = new DOMPoint(462, 420).matrixTransform(matrix);
+            return !intersects({ left: a.x, top: a.y, right: b.x, bottom: b.y });
+          })(),
+          art: document.querySelector('.art').getBoundingClientRect().toJSON(),
+          panel: panel.toJSON(),
+        };
+      })()`);
+      assert.equal(placement.inkClear, true, `${width}×${height} keeps wordmark ink clear`);
+      assert.deepEqual(placement.overlaps, [], `${width}×${height} leaves the keyboard clear`);
+      if (width >= 1400) assert.equal(placement.beside, true, 'roomy screens use the space beside the keyboard');
+      if (width === 1440) assert.deepEqual(placement.art, before, 'wordmark stays put when already clear');
+      if (width === 1440) {
+        for (const [nextWidth, nextHeight] of [[390, 844], [844, 390], [1440, 1200]]) {
+          await send('Emulation.setDeviceMetricsOverride', {
+            width: nextWidth, height: nextHeight, deviceScaleFactor: 1, mobile: false,
+          });
+          await delay(80); // ResizeObserver and the host's animation frame both finish.
+          assert.equal(await evaluate(`(() => {
+            const panel = document.querySelector('#phone-keyboard').shadowRoot.querySelector('.panel').getBoundingClientRect();
+            const svg = document.querySelector('.art');
+            const matrix = svg.getScreenCTM();
+            const a = new DOMPoint(138, 98).matrixTransform(matrix);
+            const b = new DOMPoint(462, 420).matrixTransform(matrix);
+            return b.x <= panel.left || a.x >= panel.right || b.y <= panel.top || a.y >= panel.bottom;
+          })()`), true, 'resizing the open keyboard keeps wordmark ink clear');
+        }
+      }
+      await clickLauncher();
+      assert.equal(await evaluate("document.querySelector('#app').hasAttribute('data-composing')"), false, `${width}×${height} closes`);
+      assert.deepEqual(await evaluate("document.querySelector('.art').getBoundingClientRect().toJSON()"), before, 'close restores the wordmark');
+    }
   } finally {
     socket?.close();
     if (browser.pid && browser.exitCode === null && browser.signalCode === null) {
