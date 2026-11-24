@@ -1,6 +1,8 @@
-# not-padgtp — after the [Plotter](https://github.com/pasqualevitiello/plotter) project by Pasquale Vitiello ([plotter.pasqualevitiello.com](https://plotter.pasqualevitiello.com))
+# not-padgtp
 
-not-padgtp is a workshop for building a composable SVG UI library. We use
+not-padgtp is a workshop for building a composable SVG UI library, inspired by
+Pasquale Vitiello’s [Plotter project](https://plotter.pasqualevitiello.com)
+([source repository](https://github.com/pasqualevitiello/plotter)). We use
 small, self-contained experiments to develop one interaction at a time. The
 notepad and its X-Ray layer give those experiments a stripped-down showcase.
 As ideas mature, their SVG artwork, rendering, behavior, and component
