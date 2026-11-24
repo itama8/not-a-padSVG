@@ -1,8 +1,52 @@
 # not-padgtp
 
-A supercharged notepad: plain text, a tiny UI, and an x-ray you hold to see.
+not-padgtp is a workshop for building a composable SVG UI library. We use
+small, self-contained experiments to develop one interaction at a time. The
+notepad and its X-Ray layer give those experiments a stripped-down showcase.
+As ideas mature, their SVG artwork, rendering, behavior, and component
+declarations become pieces we can reuse in other experiments and apps.
 
-The website lives in [`site/`](site/). It is plain HTML with no build step yet.
+Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
+press Alt on desktop or tap the wordmark on a touch screen for X-Ray.
+The [labs](https://itama8.github.io/not-padgtp/dev/lab/) compare tile artwork
+and motion at two sizes, explore the scatter layout, and exercise typing,
+motion, and clipboard interaction.
+
+The website lives in [`site/`](site/) and uses HTML, CSS, and JavaScript with no
+build step. Serve it over HTTP to load its modules. From the repository root,
+run `python3 -m http.server --bind 127.0.0.1 --directory site 8000` and open
+`http://127.0.0.1:8000/`.
+
+## How experiments become reusable
+
+Budgeting is the first example of the current organization. Its
+[declaration](site/ui/budgeting/definition.js) names the experiment, its
+status, and its artwork variants. The [SVG artwork](site/ui/budgeting/artwork.js)
+and [motion styles](site/ui/budgeting/motion.css) supply the visuals.
+The [preview tile](site/ui/preview-tile.js) renders the artwork into a native
+button and provides the shared replay behavior. The showcase uses Payday split.
+The lab uses the same renderer and behavior for Payday split and Ring and coins
+at 54 and 108 pixels. The pages still own layout, autoplay, and hover policy.
+The [Pets walks preview](site/ui/pets/walks.js) uses the same renderer.
+Its SVG and paw-step motion are shared by X-Ray and both lab sizes.
+The [Inventory scan preview](site/ui/inventory/scan.js) shares its artwork
+and scanner motion the same way. The lab keeps the other Inventory treatments
+available for comparison.
+The [AI Agents Helper](site/ui/agents/helper.js) uses this pattern too. X-Ray
+owns the links to AI badges. Both pages import the same
+[base tile styles](site/ui/preview-tile.css) for ink, frames, and replay effects.
+
+The folder layout, declarations, and schemas are experiments too. Contributors
+and agents can propose edits and optimizations as real use cases expose gaps.
+See [contributor and agent guidance](AGENTS.md) for what to capture in a proposal.
+
+The declaration and renderer split draws on
+[Vercel Labs’ json-render catalog and registry](https://github.com/vercel-labs/json-render/blob/9d3dfc8917c1c6aa5568acbe0969523f3307376c/README.md#quick-start).
+Keeping metadata next to a named source item draws on
+[shadcn/ui’s registry](https://ui.shadcn.com/docs/registry/registry-item-json).
+Keeping activation on a focusable native control while swapping SVG artwork
+draws on [Radix’s composition guidance](https://www.radix-ui.com/primitives/docs/guides/composition)
+and [React Aria’s button interaction model](https://react-aria.adobe.com/Button).
 
 ## Phone keyboard artwork
 
@@ -41,6 +85,11 @@ On the home screen, working experiments use X-Ray tiles with a
 `data-experiment` ID and `data-status` of `concept`, `planned`, `cooking`,
 `iterating`, or `added-to-library`. Include the status in the tile's accessible
 name. Each status has a distinct corner mark.
+
+## Checks
+
+Run `node --test tests/*.test.mjs` from the repository root with Node 22.18 or
+later. The checks cover starting, stopping, and restarting tile autoplay.
 
 ## Branches
 

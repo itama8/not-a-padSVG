@@ -1,0 +1,48 @@
+/* Plotter pen: every revealed stroke is written in, never faded in.
+   pathLength="1" on each path; offset 1.02 hides the start cap too. */
+.pen { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; transition: stroke-dashoffset 0s linear 170ms; }
+.is-on .pen {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--dur, 220ms) cubic-bezier(.55, .05, .35, 1) var(--d, 0ms);
+}
+.wipe-y, .wipe-x { transform-box: fill-box; transition: transform 0s linear 170ms; }
+.wipe-y { transform-origin: 50% 0; transform: scaleY(0); }
+.wipe-x { transform-origin: 0 50%; transform: scaleX(0); }
+.is-on .wipe-y, .is-on .wipe-x {
+  transform: none; transition: transform var(--dur, 320ms) cubic-bezier(.4, 0, .2, 1) var(--d, 0ms);
+}
+.pop { opacity: 0; transition: opacity 0s linear 170ms; }
+.is-on .pop { opacity: 1; transition: opacity 160ms ease var(--d, 0ms); }
+/* Shared icon ink: graphite for the app's structure, blue for what you put in. */
+.ic { display: block; width: 100%; height: 100%; overflow: visible; }
+.ic * { transform-box: fill-box; transform-origin: center; }
+/* The SVG transform attribute is a CSS transform too, so the rule above would pivot a logo's
+   scale on its own ink. Logos scale about the icon's 24x24 box instead. */
+.ic .logo-g { transform-box: view-box; transform-origin: 0 0; }
+.ic .g { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; opacity: min(1, calc(.82 * var(--kt))); }
+.ic .g.faint { opacity: min(1, calc(.4 * var(--kl))); }
+.ic .b { fill: none; stroke: var(--blue); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ic .gf { fill: var(--ink); stroke: none; opacity: min(1, calc(.6 * var(--kt))); }
+.ic .bf { fill: var(--blue); stroke: none; }
+
+.tile .frame {
+  fill: var(--paper); stroke: var(--ink); stroke-width: 1; stroke-dasharray: 3 5;
+  vector-effect: non-scaling-stroke; opacity: min(1, calc(.34 * var(--kl)));
+  transition: opacity 120ms;
+}
+.tile:hover .frame, .tile.armed .frame, .tile:focus-visible .frame, .tile.play .frame {
+  stroke-dasharray: none; opacity: min(1, calc(.6 * var(--kl)));
+}
+.tile:focus-visible .frame { stroke-width: 1.5; }
+
+.fx { stroke-dasharray: 1 2; stroke-dashoffset: 1.02; }
+@keyframes draw-hold { 0% { stroke-dashoffset: 1.02 } 22%, 82% { stroke-dashoffset: 0 } 100% { stroke-dashoffset: 1.02 } }
+.play .tick { animation: draw-hold 2s ease both; animation-delay: var(--ad, 0s); }
+@keyframes pulse { 0%, 100% { transform: none } 50% { transform: scale(1.4) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pen, .is-on .pen { stroke-dashoffset: 0; transition: none !important; }
+  .wipe-y, .wipe-x, .is-on .wipe-y, .is-on .wipe-x { transform: none; transition: none !important; }
+  .pop, .is-on .pop { transition: none !important; }
+  .play * { animation-duration: 1ms !important; animation-iteration-count: 1 !important; }
+}

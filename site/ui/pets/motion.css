@@ -1,0 +1,15 @@
+.ic .paw-step {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  opacity: min(1, calc(.3 * var(--kl)));
+}
+
+@keyframes paw-step {
+  0%, 100% { opacity: min(1, calc(.3 * var(--kl))); }
+  12%, 80% { opacity: 1; }
+}
+
+.play .paw-step {
+  animation: paw-step 1.2s ease both;
+  animation-delay: var(--ad, 0s);
+}
