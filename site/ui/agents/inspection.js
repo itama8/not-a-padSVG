@@ -2,16 +2,20 @@ import { roundedRectPath, playTilePreview } from '../preview-tile.js';
 
 const svgNS = 'http://www.w3.org/2000/svg';
 
-const glyphs = {
-  radius: '<rect x="4" y="4" width="16" height="16" rx="5"/><path d="M4 12V8a4 4 0 0 1 4-4h4"/>',
-  scale: '<rect x="8" y="8" width="8" height="8" rx="1"/><path d="M4 9V4h5m6 0h5v5m0 6v5h-5m-6 0H4v-5"/>',
-  motion: '<path d="M2 13h4l3-7 5 13 3-6h5"/>',
-  minus: '<path d="M6 12h12"/>',
-  plus: '<path d="M6 12h12m-6-6v12"/>',
-  play: '<path d="m8 5 11 7-11 7Z"/>',
-  reset: '<path d="M4 11a8 8 0 1 1 2 6m-2-6V5m0 6h6"/>',
-};
-const glyph = name => `<svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true">${glyphs[name]}</svg>`;
+function trackPosition({ min, max }, value) {
+  return 10 + 84 * ((value - min) / (max - min));
+}
+
+function snapValue(field, value) {
+  // Catch for about two pixels, then ease back to the pointer within six pixels.
+  const span = field.max - field.min;
+  const hold = span * .025, reach = span * .075;
+  const node = field.nodes.find(stop => Math.abs(value - stop) < reach);
+  if (node === undefined) return value;
+  const delta = value - node;
+  const travel = Math.max(0, Math.abs(delta) - hold);
+  return node + Math.sign(delta) * travel * reach / (reach - hold);
+}
 
 export function mountHelperInspection(panel, tile) {
   const artwork = tile.querySelector('svg');
@@ -29,29 +33,20 @@ export function mountHelperInspection(panel, tile) {
   sourceMark.setAttribute('d', 'M37 6l-2 2 2 2m7-4 2 2-2 2m-3-5-2 6');
   artwork.append(sourceMark);
 
-  function button(icon, label, action) {
-    const control = document.createElement('button');
-    control.type = 'button';
-    control.className = 'pbtn';
-    control.setAttribute('aria-label', label);
-    control.title = label;
-    control.innerHTML = glyph(icon);
-    control.addEventListener('click', () => {
-      if (control.getAttribute('aria-disabled') !== 'true') action();
-    });
-    return control;
-  }
-
   const fields = [
-    { icon: 'radius', label: 'Corner radius', initial: initialRadius, min: 0, max: 10, step: 2,
+    { label: 'Corner radius', initial: initialRadius, min: 0, max: 10, step: .1, keyboardStep: .5, nodes: [2, initialRadius],
       source: value => `rx="${value}"`,
       apply: value => scale.querySelector('[data-helper-head]').setAttribute('d', roundedRectPath(...dimensions, value)) },
-    { icon: 'scale', label: 'Scale', initial: 1, min: .5, max: 1.5, step: .25,
-      source: value => `transform="scale(${value})"`,
+    { label: 'Scale', initial: 1, min: .5, max: 1.5, step: .01, keyboardStep: .05, nodes: [.75, 1, 1.25],
+      source: value => `scale(${value})`,
       apply: value => scale.setAttribute('transform', `scale(${value})`) },
-    { icon: 'motion', label: 'Animation duration', initial: 2000, min: 500, max: 3500, step: 500,
+    { label: 'Animation duration', initial: 2000, min: 500, max: 3500, step: 10, keyboardStep: 100,
+      nodes: [1000, 2000, 3000], unit: 'milliseconds', commit: play,
       source: value => `animation-duration: ${value}ms`,
-      apply: value => { tile.style.setProperty('--helper-duration', `${value}ms`); play(); } },
+      apply: value => {
+        tile.style.setProperty('--helper-duration', `${value}ms`);
+        if (!tile.classList.contains('play')) play();
+      } },
   ];
 
   function play() {
@@ -60,9 +55,12 @@ export function mountHelperInspection(panel, tile) {
 
   function render(field, value) {
     field.value = value;
+    field.input.value = value;
+    field.input.setAttribute('aria-valuetext', field.unit ? `${value} ${field.unit}` : String(value));
     field.output.textContent = field.source(value);
-    field.minus.setAttribute('aria-disabled', String(value <= field.min));
-    field.plus.setAttribute('aria-disabled', String(value >= field.max));
+    const x = trackPosition(field, value);
+    field.progress.setAttribute('x2', x);
+    field.thumb.setAttribute('cx', x);
   }
 
   function reset() {
@@ -75,23 +73,76 @@ export function mountHelperInspection(panel, tile) {
 
   const source = panel.querySelector('.inspection-source');
   for (const field of fields) {
-    const change = steps => {
-      const value = field.value + steps * field.step;
-      render(field, value);
-      field.apply(value);
-    };
     const row = document.createElement('div');
     row.className = 'inspection-row';
-    row.innerHTML = `${glyph(field.icon)}<code><output aria-label="${field.label}"></output></code>`;
-    field.output = row.querySelector('output');
-    field.minus = button('minus', `Decrease ${field.label.toLowerCase()}`, () => change(-1));
-    field.plus = button('plus', `Increase ${field.label.toLowerCase()}`, () => change(1));
-    row.append(field.minus, field.plus);
+    row.innerHTML = `<code><span></span></code>
+      <span class="inspection-slider">
+        <svg viewBox="0 0 104 44" aria-hidden="true">
+          <line x1="10" x2="94" y1="22" y2="22"/>
+          <line class="inspection-progress" x1="10" y1="22" y2="22"/>
+          <g class="inspection-nodes"></g>
+          <circle class="inspection-thumb" cy="22" r="5"/>
+        </svg>
+        <input type="range" aria-label="${field.label}" min="${field.min}" max="${field.max}" step="${field.step}">
+      </span>`;
+    field.output = row.querySelector('code span');
+    field.input = row.querySelector('input');
+    field.progress = row.querySelector('.inspection-progress');
+    field.thumb = row.querySelector('.inspection-thumb');
+    const nodes = row.querySelector('.inspection-nodes');
+    for (const value of field.nodes) {
+      const node = document.createElementNS(svgNS, 'circle');
+      node.setAttribute('cx', trackPosition(field, value));
+      node.setAttribute('cy', '22');
+      node.setAttribute('r', '2');
+      nodes.append(node);
+    }
+    const update = raw => {
+      const clamped = Math.max(field.min, Math.min(field.max, raw));
+      const value = Number((Math.round(clamped / field.step) * field.step).toFixed(2));
+      if (value === field.value) return false;
+      render(field, value);
+      field.apply(value);
+      return true;
+    };
+    let drag;
+    const dragTo = event => {
+      if (drag?.id !== event.pointerId) return;
+      const { left, width } = field.input.getBoundingClientRect();
+      const fraction = ((event.clientX - left) * 104 / width - 10) / 84;
+      const value = field.min + fraction * (field.max - field.min);
+      if (update(snapValue(field, value))) drag.changed = true;
+    };
+    field.input.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || drag) return;
+      event.preventDefault();
+      field.input.focus({ preventScroll: true });
+      field.input.setPointerCapture(event.pointerId);
+      drag = { id: event.pointerId, changed: false };
+      dragTo(event);
+    });
+    field.input.addEventListener('pointermove', dragTo);
+    const stopDrag = event => {
+      if (drag?.id !== event.pointerId) return;
+      if (event.type === 'pointerup') dragTo(event);
+      const { changed } = drag;
+      drag = null;
+      if (changed) field.commit?.();
+    };
+    field.input.addEventListener('pointerup', stopDrag);
+    field.input.addEventListener('lostpointercapture', stopDrag);
+    field.input.addEventListener('input', () => update(field.input.valueAsNumber));
+    field.input.addEventListener('change', () => field.commit?.());
+    field.input.addEventListener('keydown', event => {
+      const delta = { ArrowLeft: -1, ArrowDown: -1, ArrowRight: 1, ArrowUp: 1 }[event.key];
+      if (!delta) return;
+      event.preventDefault();
+      if (update(field.value + delta * field.keyboardStep)) field.commit?.();
+    });
     source.append(row);
     render(field, field.initial);
   }
 
-  const replay = button('play', 'Replay Helper', play);
-  panel.querySelector('.inspection-actions').prepend(replay, button('reset', 'Reset SVG values', reset));
+  panel.querySelector('.inspection-reset').addEventListener('click', reset);
   return { play };
 }

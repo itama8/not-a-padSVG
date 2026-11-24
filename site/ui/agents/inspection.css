@@ -1,67 +1,22 @@
-#app[data-inspecting-helper] #xray > :not(#helper-inspection),
-#app[data-inspecting-helper] #marks > :not(#move) {
-  visibility: hidden;
-}
-
-#app[data-inspecting-helper] .stage { bottom: 66%; }
-#app[data-inspecting-helper] .art { max-height: 29dvh; }
-
 #helper-inspection {
   position: absolute;
-  inset: 34% max(12px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom))
-         max(12px, env(safe-area-inset-left));
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  gap: 10px;
-}
-
-#helper-inspection[hidden] { display: none; }
-
-.inspection-window {
-  display: grid;
-  place-items: center;
-  position: relative;
-  width: min(100%, 330px);
-  height: clamp(112px, 24dvh, 222px);
-}
-
-.inspection-window > svg { position: absolute; width: 100%; height: 100%; }
-#helper-inspection .tile {
-  position: relative;
-  width: min(35vw, 18dvh, 160px) !important;
-  height: min(35vw, 18dvh, 160px) !important;
-  transform: none !important;
-  visibility: visible;
-}
-
-#helper-inspection .inspection-source-mark { display: none; }
-
-.helper-scale { transform-box: view-box; transform-origin: center; }
-
-.inspection-controls {
-  width: min(100%, 330px);
-  box-sizing: border-box;
-  padding: 2px 6px;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
+  left: 0;
+  top: 0;
+  width: min(282px, calc(100vw - max(16px, env(safe-area-inset-left)) - max(16px, env(safe-area-inset-right))));
   color: var(--ink);
-  background: var(--paper);
 }
 
-.inspection-actions { display: flex; justify-content: flex-end; }
-.inspection-actions > :last-child { margin-inline-start: auto; }
-
-#helper-inspection .pbtn { width: 44px; }
-#helper-inspection .pbtn[aria-disabled="true"] { opacity: .35; cursor: default; }
-#helper-inspection .pbtn[aria-disabled="true"]:hover { background: none; }
+#inspection-guide[hidden] { display: none; }
+#marks #inspection-guide { stroke: var(--blue); stroke-dasharray: 2 4; opacity: .5; }
+.inspection-obscured { visibility: hidden; }
+.helper-scale { transform-box: view-box; transform-origin: center; }
+#agents-tile[aria-expanded="true"] :is(.pen, .pop) { transition: none; }
 
 .inspection-row {
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) 104px;
   align-items: center;
-  gap: 2px;
-  border-block-start: 1px solid var(--rule);
+  gap: 4px;
 }
 
 .inspection-row code {
@@ -70,7 +25,45 @@
   user-select: text;
 }
 
-.inspection-glyph {
+.inspection-slider {
+  display: grid;
+  width: 104px;
+  height: 44px;
+  border-radius: 3px;
+}
+
+.inspection-slider > * { grid-area: 1 / 1; }
+.inspection-slider > input {
+  appearance: none;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: ew-resize;
+}
+
+.is-on .inspection-slider > input { pointer-events: auto; }
+.inspection-slider > input::-webkit-slider-thumb { appearance: none; width: 20px; height: 20px; }
+.inspection-slider > input::-moz-range-thumb { width: 20px; height: 20px; border: 0; }
+
+.inspection-slider > svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--rule);
+  stroke-width: 1;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.inspection-slider .inspection-progress { stroke: var(--blue); }
+.inspection-nodes { fill: var(--ink); stroke: var(--paper); opacity: .7; }
+.inspection-thumb { stroke: var(--blue); fill: var(--paper); stroke-width: 1.5; }
+.inspection-slider:has(input:focus-visible) .inspection-thumb { stroke-width: 3; }
+
+.inspection-actions { display: flex; justify-content: flex-end; }
+#helper-inspection .pbtn { width: 44px; }
+.inspection-actions .inspection-glyph {
   max-width: 24px;
   max-height: 24px;
   fill: none;
@@ -81,15 +74,16 @@
   pointer-events: none;
 }
 
-@media (min-width: 680px), (min-width: 500px) and (max-height: 500px) {
-  #app[data-inspecting-helper] .stage { right: 50%; bottom: 0; }
-  #app[data-inspecting-helper] .art { width: min(49vw, 560px); max-height: 67dvh; }
-  #helper-inspection { inset: max(8px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 26px 50%; }
+@media (max-width: 599px) {
+  #helper-inspection { max-width: 240px; }
 }
 
-@media (max-height: 520px) and (max-width: 499px) {
-  #app[data-inspecting-helper] .stage { bottom: 76%; }
-  #app[data-inspecting-helper] .art { max-height: 24dvh; }
-  #helper-inspection { top: 24%; bottom: 12px; gap: 4px; }
-  .inspection-window { height: 90px; }
+@media (max-height: 500px) {
+  #helper-inspection {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: min(268px, calc(100vw - 32px));
+  }
+  #helper-inspection[hidden] { display: none; }
+  .inspection-actions { flex-direction: column; justify-content: flex-start; }
 }

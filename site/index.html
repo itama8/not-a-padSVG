@@ -10,7 +10,7 @@
   <meta name="description" content="A workshop for building a composable SVG UI library, with small experiments you can try in X-Ray." />
   <link rel="stylesheet" href="./ui/preview-tile.css" />
   <link rel="stylesheet" href="./ui/agents/motion.css" />
-  <link rel="stylesheet" href="./ui/agents/inspection.css" />
+  <link rel="stylesheet" href="./ui/agents/inspection.css?v=2" />
   <link rel="stylesheet" href="./ui/budgeting/motion.css" />
   <link rel="stylesheet" href="./ui/pets/motion.css" />
   <link rel="stylesheet" href="./ui/inventory/motion.css" />
@@ -507,6 +507,7 @@
         <path class="station-path" data-station="links" mask="url(#links-path-wipe)" />
         <path class="station-path" data-station="want" mask="url(#want-path-wipe)" />
       </g>
+      <path id="inspection-guide" hidden />
       <g id="move" hidden>
         <path class="movement" d="" />
         <path class="movement-head" d="" />
@@ -840,20 +841,15 @@
       </button>
       <span id="want-total" class="sr-only"></span>
       <span id="want-status" class="sr-only" role="status">connecting</span>
-      <section id="helper-inspection" aria-label="Helper SVG observation window" hidden>
-        <div class="inspection-window">
-          <svg class="construction" viewBox="0 0 330 200" preserveAspectRatio="none" aria-hidden="true">
-            <path class="witness" d="M0 18V0h18m294 0h18v18M0 182v18h18m294 0h18v-18"/>
-            <path class="hidden" d="M0 100h330M165 0v200"/>
-          </svg>
-        </div>
-        <div class="inspection-controls">
-          <div class="inspection-actions">
-            <button class="pbtn" type="button" aria-label="Close SVG observation" title="Close SVG observation">
-              <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
-            </button>
-          </div>
-          <div class="inspection-source"></div>
+      <section id="helper-inspection" aria-label="Helper SVG source" hidden>
+        <div class="inspection-source"></div>
+        <div class="inspection-actions">
+          <button class="pbtn inspection-reset" type="button" aria-label="Reset SVG values" title="Reset SVG values">
+            <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a8 8 0 1 1 2 6m-2-6V5m0 6h6"/></svg>
+          </button>
+          <button class="pbtn inspection-close" type="button" aria-label="Close SVG source" title="Close SVG source">
+            <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
+          </button>
         </div>
       </section>
     </section>
@@ -882,7 +878,7 @@
     import { pets, walksArtwork } from './ui/pets/walks.js';
     import { inventory, scanArtwork } from './ui/inventory/scan.js';
     import { agents, helperArtwork } from './ui/agents/helper.js';
-    import { mountHelperInspection } from './ui/agents/inspection.js';
+    import { mountHelperInspection } from './ui/agents/inspection.js?v=2';
     import { drawPreviewTile, playTilePreview, preparePenStrokes } from './ui/preview-tile.js';
     import { touchprintGlyph } from './ui/touchprint/artwork.js';
 
@@ -916,10 +912,8 @@
       drawPreviewTile(agentsTile, agents, helperArtwork);
       const helperPanel = $('#helper-inspection');
       const helperInspection = mountHelperInspection(helperPanel, agentsTile);
-      const helperWindow = $('.inspection-window', helperPanel);
-      const helperClose = $('.inspection-actions > :last-child', helperPanel);
-      const helperSlot = document.createComment('Helper tile');
-      agentsTile.before(helperSlot);
+      const helperGuide = $('#inspection-guide');
+      const helperClose = $('.inspection-close', helperPanel);
       const helperTileLabel = `${agents.label}. Inspect Helper SVG.`;
       agentsTile.setAttribute('aria-label', helperTileLabel);
       agentsTile.title = 'Inspect Helper SVG';
@@ -1029,15 +1023,15 @@
           t.setAttribute('aria-label', t.getAttribute('aria-label').replace('Coming soon.', 'Concept.'));
         }
         if (t === agentsTile) {
-          t.addEventListener('click', () => {
-            if (helperPanel.hidden) openHelperInspection();
+          t.addEventListener('click', event => {
+            if (helperPanel.hidden) openHelperInspection(event);
             else helperInspection.play();
           });
         } else {
           t.addEventListener('click', () => { play(t); pauseDemo(); });
         }
         t.addEventListener('pointerenter', (e) => {
-          if (e.pointerType === 'mouse' && state === 'kept' && helperPanel.hidden) play(t);
+          if (e.pointerType === 'mouse' && state === 'kept') play(t);
         });
       });
 
@@ -1064,7 +1058,7 @@
           if (state !== 'kept') return;
           if (performance.now() > demoPause) {
             const vis = order.filter((t) => !t.classList.contains('stowed') && !t.hasAttribute('data-experiment'));
-            if (vis.length) play(vis[demoI++ % vis.length]);
+            if (vis.length && helperPanel.hidden) play(vis[demoI++ % vis.length]);
           }
           demoT = setTimeout(tick, 2400);
         };
@@ -1096,7 +1090,7 @@
       const setState = (s) => {
         const prev = state;
         const dismissInspection = s === 'off' && !helperPanel.hidden;
-        // Restore the scatter and close X-Ray in the same frame.
+        // Restore any obscured controls and close X-Ray in the same frame.
         if (dismissInspection) app.classList.add('instant');
         state = s;
         app.dataset.xray = s;
@@ -1113,44 +1107,36 @@
           stopDemo();
           if (xray.contains(document.activeElement)) mark.focus({ preventScroll: true });
         }
-        if (s === 'kept' && prev !== 'kept' && helperPanel.hidden) startDemo();
+        if (s === 'kept' && prev !== 'kept') startDemo();
         if (dismissInspection) {
           void app.offsetWidth;
           app.classList.remove('instant');
         }
       };
 
-      function openHelperInspection() {
-        const restoreKeyboardFocus = document.activeElement === agentsTile;
+      function openHelperInspection(event) {
         agentsTile.classList.remove('play');
         if (altDown) altDown.alone = false;
         helperPanel.hidden = false;
-        app.setAttribute('data-inspecting-helper', '');
-        helperWindow.append(agentsTile);
+        placeHelperSource(measure());
+        if (helperPanel.hidden) return;
         agentsTile.setAttribute('aria-label', 'Replay Helper');
         agentsTile.title = 'Replay Helper';
-        agentsTile.removeAttribute('aria-expanded');
-        agentsTile.removeAttribute('aria-controls');
+        agentsTile.setAttribute('aria-expanded', 'true');
         setState('kept');
-        stopDemo();
-        alignPaper();
-        if (restoreKeyboardFocus) agentsTile.focus({ preventScroll: true });
+        if (event.detail === 0) $('input', helperPanel).focus({ preventScroll: true });
       }
 
       function closeHelperInspection() {
-        helperSlot.after(agentsTile);
+        const restoreFocus = helperPanel.contains(document.activeElement);
         agentsTile.setAttribute('aria-label', helperTileLabel);
         agentsTile.title = 'Inspect Helper SVG';
-        agentsTile.setAttribute('aria-controls', helperPanel.id);
         agentsTile.setAttribute('aria-expanded', 'false');
         helperPanel.hidden = true;
-        app.removeAttribute('data-inspecting-helper');
-        alignPaper();
-        if (state !== 'off') {
-          layout(lastPress);
-          agentsTile.focus({ preventScroll: true });
-          pauseDemo();
-          startDemo();
+        helperGuide.setAttribute('hidden', '');
+        xray.querySelectorAll('.inspection-obscured').forEach(el => el.classList.remove('inspection-obscured'));
+        if (restoreFocus && state !== 'off') {
+          (agentsTile.classList.contains('stowed') ? mark : agentsTile).focus({ preventScroll: true });
         }
       }
       helperClose.addEventListener('click', closeHelperInspection);
@@ -1218,7 +1204,7 @@
         return { vw, vh, safe, g, gr, P, s, ink, inks, stripY, wide };
       }
 
-      function search(M, w, h, ideal, blockers, thumb) {
+      function search(M, w, h, ideal, blockers, thumb, penalty) {
         const xs = [], minX = M.g, maxX = M.vw - M.gr - w;
         if (maxX <= minX) xs.push(minX); else { for (let x = minX; x < maxX; x += 8) xs.push(x); xs.push(maxX); }
         let best = null, bestScore = Infinity;
@@ -1226,7 +1212,7 @@
           for (const x of xs) {
             const r = { l: x, t: y, r: x + w, b: y + h };
             if (blockers.some((b) => hit(r, b)) || underThumb(r, thumb)) continue;
-            const score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y);
+            const score = Math.hypot(x + w / 2 - ideal.x, y + h / 2 - ideal.y) + (penalty?.(r) ?? 0);
             if (score < bestScore) { bestScore = score; best = r; }
           }
         }
@@ -1436,7 +1422,7 @@
 
         order = [];
         tiles.forEach((t) => { if (!showTiles.includes(t)) { t.classList.add('stowed'); t.tabIndex = -1; t._r = null; } });
-        [...experiments, ...showTiles.filter(t => !experiments.includes(t))].forEach(t => {
+        [agentsTile, ...experiments, ...showTiles.filter(t => t !== agentsTile && !experiments.includes(t))].forEach(t => {
           const i = showTiles.indexOf(t);
           const r = scatter ? ScatterLayout.bounds(targets[i], size / 2)
             : place(size, size, targets[i], 0, size * .45, tiles.indexOf(t) + 1, cell * .6);
@@ -1484,6 +1470,52 @@
           aiLinks.appendChild(g);
           plugOf.set(b, line);
         });
+        if (!helperPanel.hidden) placeHelperSource(M);
+      }
+
+      function placeHelperSource(M) {
+        xray.querySelectorAll('.inspection-obscured').forEach(el => el.classList.remove('inspection-obscured'));
+        if (agentsTile.classList.contains('stowed')) {
+          closeHelperInspection();
+          return;
+        }
+
+        const bounds = el => {
+          const { left: l, top: t, right: r, bottom: b } = el.getBoundingClientRect();
+          return { l, t, r, b };
+        };
+        const tile = bounds(agentsTile);
+        const hub = { x: (tile.l + tile.r) / 2, y: (tile.t + tile.b) / 2 };
+        // Allow room for Helper's artwork at maximum scale without moving the tile.
+        const tileBlocker = grow(tile, 14);
+        const neighbors = [wantButton, linksBox, papersBox, soonNote, ...tiles, ...ais]
+          .filter(el => el !== agentsTile && !el.closest('.stowed'));
+        const neighborBounds = neighbors.map(el => [el, bounds(el)]);
+        const w = helperPanel.offsetWidth, h = helperPanel.offsetHeight;
+        const clear = [tileBlocker, ...M.inks.map(rect => grow(rect, 8))];
+        const overlapPenalty = candidate => neighborBounds.reduce((cost, [el, rect]) => {
+          if (!hit(candidate, grow(rect, 3))) return cost;
+          return cost + (el.classList.contains('station') ? 90 : 35);
+        }, 0);
+        const spot = search(M, w, h, hub, clear, [], overlapPenalty)
+          ?? search({ ...M, stripY: keyboardSpace ? M.stripY : M.vh - M.safe.b }, w, h, hub, [tileBlocker], [], overlapPenalty);
+        if (!spot) {
+          closeHelperInspection();
+          return;
+        }
+        for (const [el, rect] of neighborBounds) {
+          if (hit(spot, rect)) el.classList.add('inspection-obscured');
+        }
+
+        helperPanel.style.transform = `translate(${spot.l}px, ${spot.t}px)`;
+        const x = Math.max(spot.l, Math.min(spot.r, hub.x));
+        const y = Math.max(spot.t, Math.min(spot.b, hub.y));
+        const edge = Math.min((tile.r - tile.l) / (2 * Math.abs(x - hub.x)),
+                              (tile.b - tile.t) / (2 * Math.abs(y - hub.y)));
+        const startX = hub.x + (x - hub.x) * edge;
+        const startY = hub.y + (y - hub.y) * edge;
+        helperGuide.setAttribute('d', `M ${startX} ${startY} L ${x} ${y}`);
+        helperGuide.removeAttribute('hidden');
       }
 
       function reveal(press, next) {
@@ -1505,11 +1537,10 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        const controls = helperPanel.hidden
-          ? [wantButton, ...links, ...pbtns, ...tiles, ...ais]
-          : [agentsTile, ...helperPanel.querySelectorAll('.pbtn:not([aria-disabled="true"])')];
+        const controls = [wantButton, ...links, ...pbtns, ...tiles, ...ais];
+        if (!helperPanel.hidden) controls.push(...helperPanel.querySelectorAll('.pbtn'));
         for (const el of controls) {
-          if (el.closest('.stowed')) continue;
+          if (el.closest('.stowed, .inspection-obscured')) continue;
           const r = el.getBoundingClientRect();
           if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
         }
@@ -1528,7 +1559,7 @@
 
       // ---- pointer: hold to peek, tap to keep ----
       const TAP_MS = 280, TAP_PX = 12;
-      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want';
+      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want, .inspection-slider input';
       let press = null, nextHold = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
@@ -1536,6 +1567,14 @@
         // Mouse input always uses native clicks; the reveal gesture is for touch and pen.
         if (e.pointerType === 'mouse' || e.button !== 0) return;
         const control = e.target.closest(controlSelector);
+        if (control?.type === 'range') {
+          if (press) {
+            press.usedSecondFinger = true;
+            move.hidden = true;
+            disarm();
+          }
+          return;
+        }
         if (press) {
           if (state === 'off') return;
           if (control && secondTap) return;
@@ -1711,7 +1750,7 @@
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
           alignPaper();
-          if (state === 'off' || !helperPanel.hidden) return;
+          if (state === 'off') return;
           app.classList.add('instant');
           layout(lastPress);
           void app.offsetWidth;
