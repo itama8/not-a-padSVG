@@ -76,6 +76,7 @@ const styles = `
  * @property {number} [linger=320] Time after release before the print fades.
  * @property {boolean} [mouse=true] Show a print for mouse presses.
  * @property {boolean} [echo=true] Radiate a copy of the print on contact.
+ * @property {boolean} [enabled=true] Start with prints on. Use the controller's setEnabled() to change it.
  * @property {string} [ink] Print colour. Also settable with --touchprint-ink.
  */
 
@@ -91,6 +92,7 @@ export function mountTouchprints(host = document.body, options = {}) {
   const linger = Number.isFinite(Number(options.linger)) ? Math.max(0, Number(options.linger)) : 320;
   const showMouse = options.mouse !== false;
   const echo = options.echo !== false;
+  let enabled = options.enabled !== false;
 
   const layer = document.createElement('div');
   layer.className = 'touchprint-layer';
@@ -159,6 +161,7 @@ export function mountTouchprints(host = document.body, options = {}) {
   }
 
   function onDown(event) {
+    if (!enabled) return;
     if (event.pointerType === 'mouse') {
       if (!showMouse || event.button !== 0) return;
     }
@@ -193,9 +196,18 @@ export function mountTouchprints(host = document.body, options = {}) {
    * @param {{ hold?: number }} [options]
    */
   function touch(x, y, { hold = 260 } = {}) {
+    if (!enabled) return null;
     const record = spawn(`touchprint-${++sequence}`, x, y);
     later(() => release(record), Math.max(0, hold));
     return record;
+  }
+
+  /** Turn contact prints on or off. Turning them off fades out any print already down.
+   * @param {boolean} value
+   */
+  function setEnabled(value) {
+    enabled = Boolean(value);
+    if (!enabled) releaseAll();
   }
 
   function destroy() {
@@ -208,5 +220,5 @@ export function mountTouchprints(host = document.body, options = {}) {
     layer.remove();
   }
 
-  return { layer, touch, clear, destroy };
+  return { layer, touch, clear, destroy, setEnabled, get enabled() { return enabled; } };
 }
