@@ -25,7 +25,7 @@ export function drawPreviewTile(button, { id, label, status }, svg, artworkLabel
   </svg>`;
 }
 
-export function playTilePreview(button) {
+export function playTilePreview(button, duration = 2300) {
   clearTimeout(previewTimers.get(button));
   button.classList.remove('play');
   void button.getBoundingClientRect();
@@ -33,7 +33,12 @@ export function playTilePreview(button) {
   previewTimers.set(button, setTimeout(() => {
     button.classList.remove('play');
     previewTimers.delete(button);
-  }, 2300));
+  }, duration));
+}
+
+export function roundedRectPath(x, y, w, h, radius) {
+  const r = Math.min(radius, w / 2, h / 2);
+  return `M ${x + r} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w} ${y + r} V ${y + h - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x + r} A ${r} ${r} 0 0 1 ${x} ${y + h - r} V ${y + r} A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
 }
 
 // Normalize pen strokes so pathLength applies consistently.
@@ -44,8 +49,7 @@ function toPath(el) {
     const cx = n('cx'), cy = n('cy'), r = n('r');
     d = `M ${cx - r} ${cy} A ${r} ${r} 0 1 0 ${cx + r} ${cy} A ${r} ${r} 0 1 0 ${cx - r} ${cy}`;
   } else {
-    const x = n('x'), y = n('y'), w = n('width'), h = n('height'), r = Math.min(n('rx'), w / 2, h / 2);
-    d = `M ${x + r} ${y} H ${x + w - r} A ${r} ${r} 0 0 1 ${x + w} ${y + r} V ${y + h - r} A ${r} ${r} 0 0 1 ${x + w - r} ${y + h} H ${x + r} A ${r} ${r} 0 0 1 ${x} ${y + h - r} V ${y + r} A ${r} ${r} 0 0 1 ${x + r} ${y} Z`;
+    d = roundedRectPath(n('x'), n('y'), n('width'), n('height'), n('rx'));
   }
   const p = document.createElementNS(NS, 'path');
   for (const a of el.attributes) if (!['cx', 'cy', 'r', 'x', 'y', 'width', 'height', 'rx'].includes(a.name)) p.setAttribute(a.name, a.value);

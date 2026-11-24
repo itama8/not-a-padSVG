@@ -10,6 +10,7 @@
   <meta name="description" content="A workshop for building a composable SVG UI library, with small experiments you can try in X-Ray." />
   <link rel="stylesheet" href="./ui/preview-tile.css" />
   <link rel="stylesheet" href="./ui/agents/motion.css" />
+  <link rel="stylesheet" href="./ui/agents/inspection.css" />
   <link rel="stylesheet" href="./ui/budgeting/motion.css" />
   <link rel="stylesheet" href="./ui/pets/motion.css" />
   <link rel="stylesheet" href="./ui/inventory/motion.css" />
@@ -839,6 +840,22 @@
       </button>
       <span id="want-total" class="sr-only"></span>
       <span id="want-status" class="sr-only" role="status">connecting</span>
+      <section id="helper-inspection" aria-label="Helper SVG observation window" hidden>
+        <div class="inspection-window">
+          <svg class="construction" viewBox="0 0 330 200" preserveAspectRatio="none" aria-hidden="true">
+            <path class="witness" d="M0 18V0h18m294 0h18v18M0 182v18h18m294 0h18v-18"/>
+            <path class="hidden" d="M0 100h330M165 0v200"/>
+          </svg>
+        </div>
+        <div class="inspection-controls">
+          <div class="inspection-actions">
+            <button class="pbtn" type="button" aria-label="Close SVG observation" title="Close SVG observation">
+              <svg class="ic inspection-glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg>
+            </button>
+          </div>
+          <div class="inspection-source"></div>
+        </div>
+      </section>
     </section>
 
     <div id="hint">
@@ -865,6 +882,7 @@
     import { pets, walksArtwork } from './ui/pets/walks.js';
     import { inventory, scanArtwork } from './ui/inventory/scan.js';
     import { agents, helperArtwork } from './ui/agents/helper.js';
+    import { mountHelperInspection } from './ui/agents/inspection.js';
     import { drawPreviewTile, playTilePreview, preparePenStrokes } from './ui/preview-tile.js';
     import { touchprintGlyph } from './ui/touchprint/artwork.js';
 
@@ -894,7 +912,19 @@
       drawPreviewTile($('#budgeting-tile'), budgeting, budgetingArtwork[budgeting.defaultArtwork]);
       drawPreviewTile($('#pets-tile'), pets, walksArtwork);
       drawPreviewTile($('#inventory-tile'), inventory, scanArtwork);
-      drawPreviewTile($('#agents-tile'), agents, helperArtwork);
+      const agentsTile = $('#agents-tile');
+      drawPreviewTile(agentsTile, agents, helperArtwork);
+      const helperPanel = $('#helper-inspection');
+      const helperInspection = mountHelperInspection(helperPanel, agentsTile);
+      const helperWindow = $('.inspection-window', helperPanel);
+      const helperClose = $('.inspection-actions > :last-child', helperPanel);
+      const helperSlot = document.createComment('Helper tile');
+      agentsTile.before(helperSlot);
+      const helperTileLabel = `${agents.label}. Inspect Helper SVG.`;
+      agentsTile.setAttribute('aria-label', helperTileLabel);
+      agentsTile.title = 'Inspect Helper SVG';
+      agentsTile.setAttribute('aria-controls', helperPanel.id);
+      agentsTile.setAttribute('aria-expanded', 'false');
       const tiles = [...xray.querySelectorAll('.tile')];
       const experimentTiles = tiles.filter(tile => tile.hasAttribute('data-experiment'));
       const keyboardTile = $('[data-experiment="phone-keyboard"]');
@@ -948,7 +978,6 @@
         aisBox.appendChild(b);
         return b;
       });
-      const agentsTile = document.querySelector('.tile[data-task="agents"]');
       const plugOf = new Map();
       const flowOut = () => {
         plugOf.forEach((l) => { l.classList.remove('out', 'in'); void l.getBBox(); l.classList.add('out'); });
@@ -977,8 +1006,12 @@
 
       // ---- tile demos ----
       const play = (t) => {
-        playTilePreview(t);
-        if (t === agentsTile) setTimeout(flowOut, 550);
+        if (t === agentsTile) {
+          helperInspection.play();
+          setTimeout(flowOut, 550);
+        } else {
+          playTilePreview(t);
+        }
       };
       tiles.forEach((t) => {
         if (t.hasAttribute('data-experiment')) {
@@ -995,8 +1028,17 @@
           t.dataset.status = 'concept';
           t.setAttribute('aria-label', t.getAttribute('aria-label').replace('Coming soon.', 'Concept.'));
         }
-        t.addEventListener('click', () => { play(t); pauseDemo(); });
-        t.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && state === 'kept') play(t); });
+        if (t === agentsTile) {
+          t.addEventListener('click', () => {
+            if (helperPanel.hidden) openHelperInspection();
+            else helperInspection.play();
+          });
+        } else {
+          t.addEventListener('click', () => { play(t); pauseDemo(); });
+        }
+        t.addEventListener('pointerenter', (e) => {
+          if (e.pointerType === 'mouse' && state === 'kept' && helperPanel.hidden) play(t);
+        });
       });
 
       // While kept and idle, the tiles take turns showing what they do.
@@ -1053,19 +1095,65 @@
       let state = 'off';
       const setState = (s) => {
         const prev = state;
+        const dismissInspection = s === 'off' && !helperPanel.hidden;
+        // Restore the scatter and close X-Ray in the same frame.
+        if (dismissInspection) app.classList.add('instant');
         state = s;
         app.dataset.xray = s;
         app.classList.toggle('is-on', s !== 'off');
         if (s !== 'off') clearAltHint();
         mark.setAttribute('aria-pressed', String(s === 'kept'));
         if (s === 'off') {
+          if (dismissInspection) {
+            mark.focus({ preventScroll: true });
+            closeHelperInspection();
+          }
           move.hidden = true;
           disarm();
           stopDemo();
           if (xray.contains(document.activeElement)) mark.focus({ preventScroll: true });
         }
-        if (s === 'kept' && prev !== 'kept') startDemo();
+        if (s === 'kept' && prev !== 'kept' && helperPanel.hidden) startDemo();
+        if (dismissInspection) {
+          void app.offsetWidth;
+          app.classList.remove('instant');
+        }
       };
+
+      function openHelperInspection() {
+        const restoreKeyboardFocus = document.activeElement === agentsTile;
+        agentsTile.classList.remove('play');
+        if (altDown) altDown.alone = false;
+        helperPanel.hidden = false;
+        app.setAttribute('data-inspecting-helper', '');
+        helperWindow.append(agentsTile);
+        agentsTile.setAttribute('aria-label', 'Replay Helper');
+        agentsTile.title = 'Replay Helper';
+        agentsTile.removeAttribute('aria-expanded');
+        agentsTile.removeAttribute('aria-controls');
+        setState('kept');
+        stopDemo();
+        alignPaper();
+        if (restoreKeyboardFocus) agentsTile.focus({ preventScroll: true });
+      }
+
+      function closeHelperInspection() {
+        helperSlot.after(agentsTile);
+        agentsTile.setAttribute('aria-label', helperTileLabel);
+        agentsTile.title = 'Inspect Helper SVG';
+        agentsTile.setAttribute('aria-controls', helperPanel.id);
+        agentsTile.setAttribute('aria-expanded', 'false');
+        helperPanel.hidden = true;
+        app.removeAttribute('data-inspecting-helper');
+        alignPaper();
+        if (state !== 'off') {
+          layout(lastPress);
+          agentsTile.focus({ preventScroll: true });
+          pauseDemo();
+          startDemo();
+        }
+      }
+      helperClose.addEventListener('click', closeHelperInspection);
 
       // ---- paper ruling, registered to the wordmark's plane ----
       const isDark = () => prefs.scheme ? prefs.scheme === 'dark'
@@ -1417,7 +1505,10 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        for (const el of [wantButton, ...links, ...pbtns, ...tiles, ...ais]) {
+        const controls = helperPanel.hidden
+          ? [wantButton, ...links, ...pbtns, ...tiles, ...ais]
+          : [agentsTile, ...helperPanel.querySelectorAll('.pbtn:not([aria-disabled="true"])')];
+        for (const el of controls) {
           if (el.closest('.stowed')) continue;
           const r = el.getBoundingClientRect();
           if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
@@ -1620,7 +1711,7 @@
         cancelAnimationFrame(raf);
         raf = requestAnimationFrame(() => {
           alignPaper();
-          if (state === 'off') return;
+          if (state === 'off' || !helperPanel.hidden) return;
           app.classList.add('instant');
           layout(lastPress);
           void app.offsetWidth;
