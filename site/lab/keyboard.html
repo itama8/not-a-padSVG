@@ -6,48 +6,44 @@
   <meta name="color-scheme" content="light dark">
   <meta name="robots" content="noindex">
   <title>Keyboard lab · not-padgtp</title>
+  <link rel="stylesheet" href="./lab.css">
   <style>
-    :root { color-scheme: light dark; font: 14px/1.5 ui-monospace, monospace; }
-    body { max-width: 1280px; margin: 24px auto; padding: 0 16px; }
-    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-    h1 { margin: 0; font-size: 18px; }
-    .controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px 20px; margin: 16px 0; }
-    label { display: grid; }
-    select, input { min-height: 34px; font: inherit; }
-    .xray { display: flex; align-items: center; gap: 6px; }
-    .paste { flex: 1 1 220px; max-width: 360px; }
-    p { margin: 0 0 12px; }
-    iframe { display: block; box-sizing: border-box; width: 100%; margin: 0 auto;
-             height: clamp(540px, 74dvh, 800px); border: 1px solid GrayText; }
-    iframe[data-viewport="phone"] { width: min(100%, 392px); height: clamp(400px, calc(100dvh - 225px), 762px); }
+    #preview { display: block; box-sizing: border-box; width: 100%; height: clamp(540px, 74dvh, 800px); border: 0; border-radius: 8px; }
+    #preview[data-viewport="phone"] { width: min(100%, 392px); height: clamp(400px, calc(100dvh - 320px), 762px); margin: 0 auto; }
     @media (max-width: 639px) {
-      body { display: grid; grid-template-rows: auto auto auto minmax(320px, 1fr);
-             height: calc(100dvh - 24px); margin: 12px auto; }
-      .controls { gap: 8px 12px; margin: 10px 0; }
-      iframe[data-viewport="phone"] { height: 100%; }
+      #preview[data-viewport="phone"] { height: 52dvh; }
     }
   </style>
 </head>
-<body>
-  <header>
-    <h1>Keyboard lab</h1>
-    <a href="keyboard-motion.html">Direct keyboard</a>
-    <a href="scatter.html">Scatter lab</a>
-  </header>
-  <div class="controls">
-    <label>Preview size
+<body class="lab">
+  <p class="lab-crumbs"><a href="./index.html">Labs</a> / <span aria-current="page">Keyboard integration</span></p>
+  <div class="lab-head">
+    <h1>Keyboard integration</h1>
+    <nav aria-label="Labs"><a href="keyboard-motion.html">Direct keyboard</a> · <a href="scatter.html">Scatter lab</a></nav>
+  </div>
+  <p class="lab-lede">
+    <strong>Tests:</strong> the phone keyboard inside the real home screen.
+    <strong>Try:</strong> open the keyboard tile in X-Ray, type two lines with Enter, and
+    tap Send. Paste in the clipboard check to verify both lines. Tap × to close and keep a draft.
+  </p>
+  <div class="lab-controls">
+    <div class="field">
+      <span><label for="viewport">Preview size</label></span>
       <select id="viewport">
         <option value="desktop">Desktop</option>
         <option value="phone">Phone</option>
       </select>
-    </label>
-    <label class="xray"><input id="xray" type="checkbox" checked> Show X-Ray</label>
-    <label class="paste">Clipboard check
-      <input type="text" placeholder="Paste copied text here" autocomplete="off">
-    </label>
+    </div>
+    <label class="lab-check"><input id="xray" type="checkbox" checked> Show X-Ray</label>
+    <div class="field" style="flex:1 1 220px;max-width:360px">
+      <span><label for="paste">Clipboard check</label></span>
+      <textarea id="paste" rows="2" placeholder="Paste copied text here" autocomplete="off"></textarea>
+    </div>
   </div>
-  <p>Find the keyboard tile among the scattered icons. Type a line, tap the teal Return key, then paste above to check the result.</p>
-  <iframe id="preview" src="../index.html?v=1.2.0" title="Interactive not-padgtp home screen" allow="clipboard-write"></iframe>
+  <div class="lab-stage">
+    <iframe id="preview" src="../index.html?v=1.3.0" title="Interactive not-padgtp home screen" allow="clipboard-write"></iframe>
+  </div>
+  <p class="lab-hint">Source: <code>site/ui/phone-keyboard/index.js</code> · artwork: <code>site/reference/phone-keyboard.svg</code>. For motion in isolation, use the <a href="keyboard-motion.html">direct keyboard</a>.</p>
   <script>
     const preview = document.querySelector('#preview');
     const viewport = document.querySelector('#viewport');

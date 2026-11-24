@@ -1,15 +1,17 @@
+import { createPhoneKeyboardTyping } from './typing.js';
+
 // The export script embeds the same SVG for hosts that load from a local file.
 const embeddedArtwork = null;
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const cropTop = 44;
 const duration = 220;
 const easing = 'cubic-bezier(.2,.7,.2,1)';
-const letters = 'qwertyuiopasdfghjklzxcvbnm';
-const symbols = Array.from('1234567890@#$%&-+()!?/:;₹=');
-const emoji = Array.from('😀😃😄😁😅😂🙂🙃😉😊😍😎🤔😮😢😴😬😐🙄😇👍👎👏🙌🎉🔥');
 const pressDuration = 55;
 const releaseDuration = 240;
 const pressTravel = 2;
+const touchSlop = 8;
+const holdDelay = 450;
+const backspaceInterval = 70;
 const releaseDisplacements = Array.from({ length: 17 }, (_, index) => {
   if (index === 16) return 0;
   const t = releaseDuration / 1000 * index / 16;
@@ -31,7 +33,9 @@ const styles = `
     border: 0; border-radius: 8px; background: transparent; cursor: pointer; }
   .launcher svg { display: block; width: 100%; }
   .launcher:hover, .launcher[aria-expanded="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
-  .launcher:focus-visible, .hit:focus-visible { outline: 1px dashed currentColor; outline-offset: 1px; }
+  .launcher:focus-visible, .composer button:focus-visible, .hit:focus-visible {
+    outline: 1px dashed currentColor; outline-offset: 1px;
+  }
   .panel { position: absolute; inset-block-end: 0; inset-inline: 0; margin-inline: auto;
     width: min(100%, 29rem, max(9rem, calc((100cqh - 86px) * 1.12))); }
   .surface { opacity: 0; visibility: hidden; transform: translateY(8px);
@@ -39,13 +43,19 @@ const styles = `
     background: var(--keyboard-paper, Canvas); border-radius: 12px 12px 0 0; }
   .panel[data-open] .surface { opacity: 1; visibility: visible; transform: none; pointer-events: auto;
     transition: opacity ${duration}ms ${easing}, transform ${duration}ms ${easing}; }
-  textarea { width: 100%; display: block; padding: 8px 12px; height: clamp(38px, 11cqh, 96px);
+  .composer { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center;
+    gap: 4px; padding-inline-end: 4px; }
+  textarea { width: 100%; min-width: 0; display: block; padding: 8px 12px; height: clamp(44px, 11cqh, 96px);
     background: transparent; border: 0; resize: none; outline: none; font-size: 16px;
     line-height: 1.4; touch-action: pan-y; user-select: text; }
+  .composer button { min-width: 44px; min-height: 44px; padding: 0 8px; border: 0;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; touch-action: manipulation; }
+  .composer .send { color: var(--keyboard-paper, Canvas); background: var(--keyboard-accent, CanvasText); }
+  .composer .close { background: transparent; font-size: 24px; font-weight: 400; line-height: 1; }
   .board { position: relative; }
   .board svg { display: block; width: 100%; height: auto; pointer-events: none; }
   .hit { position: absolute; background: transparent; color: inherit; border: 0; padding: 0;
-    border-radius: 5px; cursor: pointer; touch-action: manipulation; }
+    border-radius: 5px; cursor: pointer; touch-action: none; }
   .hit[aria-pressed="true"] { background: color-mix(in srgb, currentColor 7%, transparent); }
   @media (hover: hover) and (pointer: fine) {
     .hit:hover { background: color-mix(in srgb, currentColor 5%, transparent); }
@@ -74,7 +84,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.2.0';
+export const phoneKeyboardVersion = '1.3.0';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -113,7 +123,9 @@ export async function mountPhoneKeyboard(host, {
   launcher: externalLauncher,
   restoreFocus,
 } = {}) {
-  const source = embeddedArtwork ?? await (artworkRequest ??= fetch(new URL('../../reference/phone-keyboard.svg', import.meta.url))
+  const source = embeddedArtwork ?? await (artworkRequest ??= fetch(new URL(
+    `../../reference/phone-keyboard.svg?v=${phoneKeyboardVersion}`, import.meta.url,
+  ))
     .then(response => {
       if (!response.ok) throw new Error(`Could not load phone keyboard artwork (${response.status}).`);
       return response.text();
@@ -124,7 +136,11 @@ export async function mountPhoneKeyboard(host, {
     ${externalLauncher ? '' : '<button class="launcher" type="button" aria-label="Open keyboard" aria-controls="panel"></button>'}
     <section class="panel" id="panel" aria-label="Keyboard" inert>
       <div class="surface">
-        <textarea aria-label="Text to copy" inputmode="none"></textarea>
+        <div class="composer">
+          <textarea aria-label="Text to copy" inputmode="none"></textarea>
+          <button class="send" type="button">Send</button>
+          <button class="close" type="button" aria-label="Close keyboard">×</button>
+        </div>
         <p class="error" role="status" hidden></p>
         <div class="board"><div class="key-preview" aria-hidden="true" hidden></div></div>
       </div>
@@ -132,6 +148,8 @@ export async function mountPhoneKeyboard(host, {
   const launcher = externalLauncher ?? root.querySelector('.launcher');
   const panel = root.querySelector('.panel');
   const input = root.querySelector('textarea');
+  const send = root.querySelector('.send');
+  const close = root.querySelector('.close');
   const error = root.querySelector('.error');
   const board = root.querySelector('.board');
   const preview = root.querySelector('.key-preview');
@@ -168,24 +186,25 @@ export async function mountPhoneKeyboard(host, {
     board.append(button);
   }
 
-  let open = false, saving = false, shift = false, mode = 'letters';
-  let previewKey, previewTimer;
-  const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
+  let open = false, saving = false;
+  let previewContact, previewTimer;
+  const typing = createPhoneKeyboardTyping();
 
   function updateKeys() {
-    for (const [i, letter] of Array.from(letters).entries()) {
-      const key = keys.get(`Key${letter.toUpperCase()}`);
-      key.value = mode === 'emoji' ? emoji[i] : mode === 'symbols' ? symbols[i] : shift ? letter.toUpperCase() : letter;
-      key.legend.textContent = key.value;
+    const { mode, shift } = typing;
+    for (const [id, key] of keys) {
+      const value = typing.letterValue(id);
+      if (value === undefined) continue;
+      key.legend.textContent = value;
       key.altLegend.style.display = mode === 'letters' ? '' : 'none';
-      key.button.setAttribute('aria-label', mode === 'letters' ? `${key.value}, hold for ${key.alt}` : key.value);
+      key.button.setAttribute('aria-label', mode === 'letters' ? `${value}, hold for ${key.alt}` : value);
     }
     const symbolsKey = keys.get('Symbols');
     symbolsKey.legend.textContent = mode === 'symbols' ? 'ABC' : '?123';
     symbolsKey.button.setAttribute('aria-label', mode === 'symbols' ? 'Letters' : 'Symbols');
     for (const [id, label] of Object.entries({
-      Shift: 'Shift', Backspace: 'Backspace', Comma: 'Comma', Emoji: 'Emoji', Space: 'Space', Period: 'Period',
-      Enter: 'Done and copy text, hold for a new line',
+      Shift: 'Shift', Backspace: 'Backspace, hold to delete repeatedly',
+      Comma: 'Comma', Emoji: 'Emoji', Space: 'Space', Period: 'Period', Enter: 'Enter, new line',
     })) keys.get(id).button.setAttribute('aria-label', label);
     keys.get('Shift').button.setAttribute('aria-pressed', String(shift));
     keys.get('Emoji').button.setAttribute('aria-pressed', String(mode === 'emoji'));
@@ -201,7 +220,6 @@ export async function mountPhoneKeyboard(host, {
     panel.toggleAttribute('data-open', open);
     panel.inert = !open;
     launcher.setAttribute('aria-expanded', String(open));
-    if (!externalLauncher) launcher.setAttribute('aria-label', open ? 'Close keyboard' : 'Open keyboard');
     onReserve(open ? panel.getBoundingClientRect() : null);
     if (open) input.focus({ preventScroll: true });
     else if (restoreFocus) restoreFocus();
@@ -231,46 +249,44 @@ export async function mountPhoneKeyboard(host, {
 
   function activate(id, held = false) {
     if (saving) return;
-    const key = keys.get(id);
-    const { selectionStart: start, selectionEnd: end } = input;
-    if (id === 'Enter' && !held) { void finish(); return; }
-    if (id === 'Shift') shift = mode === 'letters' && !shift;
-    else if (id === 'Symbols' || id === 'Emoji') {
-      const target = id.toLowerCase();
-      mode = mode === target ? 'letters' : target;
-      shift = false;
-    } else if (id === 'Backspace') {
-      const previous = start > 0 ? segmenter.segment(input.value).containing(start - 1).index : 0;
-      input.setRangeText('', start === end ? previous : start, end, 'end');
-    } else {
-      const fixed = { Enter: '\n', Space: ' ', Period: '.', Comma: ',' };
-      input.setRangeText(fixed[id] ?? (held ? key.alt : key.value), start, end, 'end');
-      if (shift && key.value) shift = false;
+    const { mode, shift } = typing;
+    const action = typing.activate(id, {
+      value: input.value, start: input.selectionStart, end: input.selectionEnd,
+    }, { held, alternate: keys.get(id).alt });
+    if (action?.type === 'replace') {
+      input.setRangeText(action.text, action.start, action.end, 'end');
     }
-    updateKeys();
-    input.focus({ preventScroll: true });
+    if (mode !== typing.mode || shift !== typing.shift) updateKeys();
+    if (root.activeElement !== input) input.focus({ preventScroll: true });
   }
 
   function hidePreview() {
     clearTimeout(previewTimer);
-    previewKey = null;
+    previewContact = null;
     preview.hidden = true;
   }
 
-  function showPreview(key, glyph) {
+  function showPreview(key, glyph, contact) {
     hidePreview();
     if (!glyph) return;
-    previewKey = key;
+    previewContact = contact;
     preview.textContent = glyph;
     preview.style.left = key.previewX;
     preview.style.top = key.previewY;
     preview.hidden = false;
   }
 
+  function releasePreview(contact, cancelled = false) {
+    if (previewContact !== contact) return;
+    if (cancelled) hidePreview();
+    else previewTimer = setTimeout(hidePreview, 135);
+  }
+
   for (const [id, key] of keys) {
     const { button, cap, alt } = key;
-    let pointer, timer, motion, held = false;
-    const glyph = () => key.value ?? (id === 'Comma' || id === 'Period' ? key.legend.textContent : '');
+    const contacts = new Map();
+    let motion, pointerClick = false;
+    const glyph = () => typing.letterValue(id) ?? (id === 'Comma' || id === 'Period' ? key.legend.textContent : '');
 
     function currentDisplacement() {
       if (!motion) return 0;
@@ -300,7 +316,6 @@ export async function mountPhoneKeyboard(host, {
           duration: pressDuration, easing: 'ease-out', fill: 'forwards',
         });
       }
-      showPreview(key, glyph());
     }
     function releaseKey({ cancelled = false, finishPress = false } = {}) {
       cap.removeAttribute('data-down');
@@ -309,54 +324,89 @@ export async function mountPhoneKeyboard(host, {
         const press = motion;
         press.onfinish = () => { if (motion === press) reboundKey(); };
       } else reboundKey();
-      if (previewKey !== key) return;
-      if (cancelled) hidePreview();
-      else previewTimer = setTimeout(hidePreview, 135);
     }
     key.clearPress = () => {
-      clearTimeout(timer);
+      for (const contact of contacts.values()) clearTimeout(contact.timer);
+      contacts.clear();
+      pointerClick = false;
       key.stopMotion();
       cap.removeAttribute('data-down');
-      pointer = null;
-      held = false;
     };
+
+    function outsideKey({ clientX, clientY }) {
+      const { left, right, top, bottom } = button.getBoundingClientRect();
+      return clientX < left - touchSlop || clientX > right + touchSlop ||
+        clientY < top - touchSlop || clientY > bottom + touchSlop;
+    }
+    function endContact(event, cancelled) {
+      const contact = contacts.get(event.pointerId);
+      if (!contact) return;
+      contacts.delete(event.pointerId);
+      clearTimeout(contact.timer);
+      if (!contacts.size) releaseKey({ cancelled });
+      releasePreview(contact, cancelled);
+      if (cancelled || contact.held) return;
+      if (contact.touch) activate(id);
+      else pointerClick = true;
+    }
+
+    // Suppress legacy touch-generated mouse events, including clicks without touch metadata.
+    button.addEventListener('touchstart', event => event.preventDefault(), { passive: false });
     button.addEventListener('pointerdown', event => {
-      if (event.button !== 0 || saving || pointer != null) return;
+      if (event.button !== 0 || !open || saving || contacts.has(event.pointerId)) return;
       event.preventDefault(); // Keep the text selection while using a drawn key.
-      pointer = event.pointerId;
-      held = false;
-      pressKey();
-      if (id === 'Enter' || (alt && mode === 'letters')) {
-        timer = setTimeout(() => {
-          held = true;
-          if (previewKey === key) showPreview(key, alt);
+      pointerClick = false;
+      const contact = { touch: event.pointerType === 'touch', held: false, timer: undefined };
+      if (!contacts.size) pressKey();
+      contacts.set(event.pointerId, contact);
+      showPreview(key, glyph(), contact);
+      if (typing.supportsHold(id, alt)) {
+        function hold() {
+          if (saving) return;
+          contact.held = true;
+          if (alt && previewContact === contact) showPreview(key, alt, contact);
           activate(id, true);
-        }, 450);
+          if (id === 'Backspace') contact.timer = setTimeout(hold, backspaceInterval);
+        }
+        contact.timer = setTimeout(hold, holdDelay);
       }
     });
-    for (const name of ['pointerup', 'pointerleave', 'pointercancel', 'lostpointercapture']) {
-      button.addEventListener(name, event => {
-        if (event.pointerId !== pointer) return;
-        clearTimeout(timer);
-        pointer = null;
-        releaseKey({ cancelled: name !== 'pointerup' });
-      });
+    // Touch capture keeps events on the starting button even when a finger drifts.
+    button.addEventListener('pointermove', event => {
+      if (contacts.get(event.pointerId)?.touch && outsideKey(event)) endContact(event, true);
+    });
+    button.addEventListener('pointerup', event => {
+      endContact(event, event.pointerType === 'touch' && outsideKey(event));
+    });
+    for (const name of ['pointerleave', 'pointercancel', 'lostpointercapture']) {
+      button.addEventListener(name, event => endContact(event, true));
     }
     button.addEventListener('click', event => {
-      if (event.detail === 0 && !saving) {
-        pressKey();
+      if (!open || saving || event.pointerType === 'touch' || event.sourceCapabilities?.firesTouchEvents) return;
+      if (event.detail === 0) {
         // Keyboard and assistive clicks have no pointerdown to start the press.
-        releaseKey({ finishPress: true });
+        if (!contacts.size) {
+          const contact = {};
+          pressKey();
+          showPreview(key, glyph(), contact);
+          releaseKey({ finishPress: true });
+          releasePreview(contact);
+        }
+      } else {
+        // A pointer click needs a completed mouse or pen press on this key.
+        if (!pointerClick) return;
+        pointerClick = false;
       }
-      if (!held || event.detail === 0) activate(id);
-      held = false;
+      activate(id);
     });
   }
   const listeners = new AbortController();
   reducedMotion.addEventListener('change', event => {
     if (event.matches) for (const key of keys.values()) key.stopMotion();
   }, { signal: listeners.signal });
-  launcher.addEventListener('click', () => setOpen(!open), { signal: listeners.signal });
+  launcher.addEventListener('click', () => setOpen(true), { signal: listeners.signal });
+  close.addEventListener('click', () => setOpen(false), { signal: listeners.signal });
+  send.addEventListener('click', () => void finish(), { signal: listeners.signal });
   launcher.addEventListener('keydown', event => {
     if (event.key === 'Escape' && open) setOpen(false);
   }, { signal: listeners.signal });
@@ -366,9 +416,6 @@ export async function mountPhoneKeyboard(host, {
       event.preventDefault();
       event.stopPropagation();
       setOpen(false);
-    } else if (event.target === input && event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      void finish();
     }
   });
   updateKeys();

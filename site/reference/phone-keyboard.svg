@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 282" role="img" aria-labelledby="title description">
   <title id="title">Phone keyboard</title>
-  <desc id="description">Lowercase QWERTY phone keyboard with a prediction strip, long-press symbols, and a highlighted Return key.</desc>
+  <desc id="description">Lowercase QWERTY phone keyboard with a prediction strip and long-press symbols.</desc>
   <style>
     svg {
       color: var(--keyboard-ink, #e7e9ed);
@@ -31,12 +31,6 @@
       stroke-linecap: round;
       stroke-linejoin: round;
     }
-    .return { color: var(--keyboard-accent, #8dd8d0); }
-    @media (prefers-color-scheme: light) {
-      .return { color: var(--keyboard-accent, #136e65); }
-    }
-    .return .key-outline { fill: currentColor; fill-opacity: .10; stroke-opacity: .8; }
-    .return .icon { opacity: 1; }
   </style>
   <defs>
     <symbol id="tools" viewBox="0 0 20 20">
