@@ -9,7 +9,7 @@ As ideas mature, their SVG artwork, rendering, behavior, and component
 declarations become pieces we can reuse in other experiments and apps.
 
 Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
-press Alt on desktop or tap the wordmark on a touch screen for X-Ray.
+press Alt on desktop or tap anywhere on touch screen device for X-Ray.
 The [labs](https://itama8.github.io/not-padgtp/dev/lab/) compare tile artwork
 and motion at two sizes, explore the scatter layout, and exercise typing,
 motion, and clipboard interaction. The [touchprint lab](site/lab/touchprint.html)
