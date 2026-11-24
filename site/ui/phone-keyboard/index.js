@@ -69,8 +69,8 @@ const styles = `
     background: var(--keyboard-paper, Canvas); border-radius: 12px 12px 0 0; }
   .panel[data-open] .surface { opacity: 1; visibility: visible; transform: none; pointer-events: auto;
     transition: opacity ${duration}ms ${easing}, transform ${duration}ms ${easing}; }
-  .composer { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center;
-    gap: 4px; padding-inline-end: 4px; }
+  .composer { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start;
+    gap: 4px; padding-inline: 4px; }
   textarea { width: 100%; min-width: 0; display: block; padding: 8px 12px; height: clamp(44px, 11cqh, 96px);
     background: transparent; border: 0; resize: none; outline: none; font-size: 16px;
     line-height: 1.4; touch-action: pan-y; user-select: text; }
@@ -112,7 +112,7 @@ const styles = `
 `;
 
 export const phoneKeyboardMotion = { duration, easing };
-export const phoneKeyboardVersion = '1.3.1';
+export const phoneKeyboardVersion = '1.3.2';
 
 function makeLauncher(artwork) {
   const svg = artwork.cloneNode(false);
@@ -165,9 +165,9 @@ export async function mountPhoneKeyboard(host, {
     <section class="panel" id="panel" aria-label="Keyboard" inert>
       <div class="surface">
         <div class="composer">
+          <button class="close" type="button" aria-label="Close keyboard">×</button>
           <textarea aria-label="Text to copy" inputmode="none"></textarea>
           <button class="send" type="button" aria-label="Send" title="Send">${sendArtwork}</button>
-          <button class="close" type="button" aria-label="Close keyboard">×</button>
         </div>
         <p class="error" role="status" hidden></p>
         <div class="board"><div class="key-preview" aria-hidden="true" hidden></div></div>
