@@ -193,17 +193,7 @@
     .ai:hover .ring, .ai.armed .ring, .ai:focus-visible .ring, .ai.play .ring { stroke-width: 1.5; opacity: min(1, calc(.7 * var(--kl))); }
     .ai.play .ic { animation: pulse .45s ease both; }
 
-    /* Fingerprint marks: a scatter badge whose hatch and glow light while marks are on. */
-    #touch-toggle {
-      position: absolute; left: 0; top: 0; margin: 0; padding: 0; border: 0; background: none;
-      color: var(--ink); border-radius: 50%; cursor: pointer; pointer-events: none; outline: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    #touch-toggle .ic { width: 100%; height: 100%; }
-    #touch-toggle .tt-ring {
-      fill: var(--paper); stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke;
-      opacity: min(1, calc(.34 * var(--kl)));
-    }
+    /* Fingerprint marks: a working tile whose hatch and glow light while marks are on. */
     #touch-toggle .tt-glow { fill: var(--blue); opacity: 0; transition: opacity 180ms ease; }
     #touch-toggle .tt-hatch { opacity: 0; transition: opacity 180ms ease; }
     #touch-toggle .tt-glyph {
@@ -214,11 +204,7 @@
     #touch-toggle[aria-pressed="true"] .tt-glow { opacity: min(1, calc(.22 * var(--kt))); }
     #touch-toggle[aria-pressed="true"] .tt-hatch { opacity: min(1, calc(.62 * var(--kl))); }
     #touch-toggle[aria-pressed="true"] .tt-glyph { opacity: 1; }
-    #touch-toggle:hover .tt-ring, #touch-toggle.armed .tt-ring, #touch-toggle:focus-visible .tt-ring {
-      stroke-width: 1.5; opacity: min(1, calc(.7 * var(--kl)));
-    }
-    #touch-toggle:focus-visible { outline: 1.5px solid var(--ink); outline-offset: 2px; }
-    #touch-toggle pattern path { stroke: var(--blue); stroke-width: .55; }
+    #touch-toggle pattern path { stroke: var(--blue); stroke-width: .6; }
     #marks .plug { stroke-dasharray: 2 4; opacity: min(1, calc(.2 * var(--kl))); }
     #marks .plug.out { animation: plug-out .5s linear 3; opacity: min(1, calc(.45 * var(--kl))); }
     #marks .plug.in { animation: plug-in .4s linear 2; opacity: min(1, calc(.5 * var(--kl))); }
@@ -324,7 +310,7 @@
     .ilink:hover, .ilink.armed { background: color-mix(in srgb, var(--ink) calc(9% * var(--kl)), transparent); }
     .ilink:focus-visible { outline: 1.5px solid var(--ink); outline-offset: -2px; }
     .ilink.nope { animation: nope .42s ease; }
-    #app.is-on :is(.tile, .ai, .pbtn, .ilink, #want, #touch-toggle) { pointer-events: auto; }
+    #app.is-on :is(.tile, .ai, .pbtn, .ilink, #want) { pointer-events: auto; }
 
     /* ---------- the quiet hint: press, hold, follow a path to a tile ---------- */
     #hint {
@@ -775,17 +761,18 @@
         </svg>
       </button>
 
-      <button id="touch-toggle" class="xi" type="button" aria-label="Fingerprint touch marks" aria-pressed="false">
-        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true">
+      <button id="touch-toggle" class="tile" type="button" data-experiment="fingerprints" data-status="iterating"
+              aria-label="Fingerprint marks. Iterating." aria-pressed="false" title="Fingerprint marks · Iterating">
+        <svg class="ic" viewBox="0 0 56 56" aria-hidden="true">
           <defs>
-            <pattern id="touch-hatch" patternUnits="userSpaceOnUse" width="2.6" height="2.6" patternTransform="rotate(38)">
-              <path d="M 0 0 V 2.6" />
+            <pattern id="touch-hatch" patternUnits="userSpaceOnUse" width="4.2" height="4.2" patternTransform="rotate(38)">
+              <path d="M 0 0 V 4.2" />
             </pattern>
           </defs>
-          <circle class="tt-ring" cx="12" cy="12" r="11.2" />
-          <circle class="tt-glow" cx="12" cy="12" r="10.5" />
-          <circle class="tt-hatch" cx="12" cy="12" r="10.5" fill="url(#touch-hatch)" />
-          <g class="tt-glyph" transform="translate(12 12) scale(.8) translate(-12 -12)"></g>
+          <rect class="frame" x="2" y="2" width="52" height="52" rx="6" />
+          <rect class="tt-glow" x="4" y="4" width="48" height="48" rx="4.5" />
+          <rect class="tt-hatch" x="4" y="4" width="48" height="48" rx="4.5" fill="url(#touch-hatch)" />
+          <g class="tt-glyph" transform="translate(28 28) scale(1.7) translate(-12 -12)"></g>
         </svg>
       </button>
 
@@ -1287,7 +1274,7 @@
             tiles: ScatterLayout.candidates(size, size * 0.54, cell, o, area, blockers, stride),
             badges: ScatterLayout.candidates(badge, badge / 2, cell, o, area, blockers),
             size, badgeSize: badge, cell, center: c, width: M.vw, height: M.vh,
-            tileCount: showTiles.length, badgeCount: showAis.length + 1
+            tileCount: showTiles.length, badgeCount: showAis.length
           }, { ...ScatterLayout.MOODS[desktopMood], mood: desktopMood }, SEED);
         }
         app.dataset.layout = keyboardSpace ? 'composing' : scatter ? desktopMood : compactLayout;
@@ -1375,19 +1362,6 @@
         // AI badges gather around the agents tile they plug into.
         const hub = agentsTile._r && !agentsTile.classList.contains('stowed')
           ? { x: (agentsTile._r.l + agentsTile._r.r) / 2, y: (agentsTile._r.t + agentsTile._r.b) / 2 } : c;
-
-        // Fingerprint marks: a small badge in the scatter, lit while the marks are on.
-        const touchSpot = scatter
-          ? ScatterLayout.bounds(scatter.badges[showAis.length], badge / 2)
-          : (place(badge, badge, hub, size * 1.15 + badge, badge * .9, 999, cell * .35)
-            ?? place(badge, badge, { x: M.vw - M.gr - badge, y: M.stripY - 16 - badge }, 0, 0, 999, cell * .35)
-            ?? { l: M.vw - M.gr - badge, t: M.stripY - 16 - badge, r: M.vw - M.gr, b: M.stripY - 16 });
-        touchToggle.style.width = touchToggle.style.height = badge + 'px';
-        const tox = scatter ? touchSpot.l : Math.round(touchSpot.l);
-        const toy = scatter ? touchSpot.t : Math.round(touchSpot.t);
-        touchToggle.style.transform = `translate(${tox}px, ${toy}px)`;
-        touchToggle.style.setProperty('--d', `${1250 + showAis.length * 60}ms`);
-
         aiLinks.textContent = '';
         plugOf.clear();
         ais.forEach((b) => { if (!showAis.includes(b)) { b.classList.add('stowed'); b.tabIndex = -1; } });
@@ -1434,7 +1408,7 @@
       const disarm = () => { if (armed) armed.classList.remove('armed'); armed = null; };
       function armAt(x, y) {
         let found = null;
-        for (const el of [wantButton, ...links, ...pbtns, ...tiles, ...ais, touchToggle]) {
+        for (const el of [wantButton, ...links, ...pbtns, ...tiles, ...ais]) {
           if (el.closest('.stowed')) continue;
           const r = el.getBoundingClientRect();
           if (x > r.left - 6 && x < r.right + 6 && y > r.top - 6 && y < r.bottom + 6) { found = el; break; }
@@ -1454,7 +1428,7 @@
 
       // ---- pointer: hold to peek, tap to keep ----
       const TAP_MS = 280, TAP_PX = 12;
-      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want, #touch-toggle';
+      const controlSelector = '.tile, .ai, .pbtn, .ilink, #want';
       let press = null, nextHold = null, secondTap = null;
       app.addEventListener('pointerdown', (e) => {
         if (altDown) altDown.alone = false;
