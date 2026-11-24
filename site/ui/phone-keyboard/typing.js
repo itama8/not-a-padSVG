@@ -65,7 +65,7 @@ export function createPhoneKeyboardTyping() {
     const glyph = keyValue(id);
     const text = fixedKeys.get(id) ?? (held ? alternate : glyph);
     if (text === undefined) return;
-    if (symbolPages[mode] && glyph !== undefined) mode = 'letters';
+    if (symbolPages[mode] && glyph !== undefined && !/^[0-9]$/.test(glyph)) mode = 'letters';
     if (shift === 'once' && letterKeys.has(id)) shift = 'off';
     return { type: 'replace', text, start, end };
   }

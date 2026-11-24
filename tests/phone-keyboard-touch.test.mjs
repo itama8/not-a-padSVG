@@ -260,6 +260,14 @@ test('phone keyboard commits each valid Chromium touch release once', {
     await tap(symbols);
     assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'More symbols');
     assert.equal(await evaluate("key('Shift').hasAttribute('aria-pressed')"), false);
+    const one = await point('KeyQ', 1);
+    await down(one);
+    assert.equal(await evaluate("keyboard.querySelector('.key-preview').textContent"), '1');
+    await up(one);
+    await tap(await point('KeyP', 1));
+    assert.equal(await value(), 'AS10');
+    assert.equal(await evaluate("key('KeyQ').getAttribute('aria-label')"), '1');
+    await until(() => evaluate("keyboard.querySelector('.key-preview').hidden"));
     const symbolA = await point('KeyA', 1);
     assert.ok(symbolA.x < a.x);
     assert.equal(await evaluate("key('SymbolExtra').hidden"), false);
@@ -275,7 +283,7 @@ test('phone keyboard commits each valid Chromium touch release once', {
     await down(slash);
     await up(slash);
     await up(symbolA);
-    assert.equal(await value(), 'AS/');
+    assert.equal(await value(), 'AS10/');
     assert.equal(await evaluate("key('SymbolExtra').hidden"), true);
     assert.equal(await evaluate("key('Shift').getAttribute('aria-label')"), 'Shift, Caps Lock on');
 
@@ -287,7 +295,7 @@ test('phone keyboard commits each valid Chromium touch release once', {
     await tap(a);
     await tap(shift);
     await tap(s);
-    assert.equal(await value(), 'AS/√As');
+    assert.equal(await value(), 'AS10/√As');
   } finally {
     socket?.close();
     if (browser.pid && browser.exitCode === null && browser.signalCode === null) {
