@@ -10,8 +10,9 @@ Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
 press Alt on desktop or tap the wordmark on a touch screen for X-Ray.
 The [labs](https://itama8.github.io/not-padgtp/dev/lab/) compare tile artwork
 and motion at two sizes, explore the scatter layout, and exercise typing,
-motion, and clipboard interaction. Each lab states what it tests, what to
-try, and what good looks like; see [`site/lab/README.md`](site/lab/README.md)
+motion, and clipboard interaction. The [touchprint lab](site/lab/touchprint.html)
+tests a fingerprint mark for demo recordings. Each lab states what it tests,
+what to try, and what good looks like; see [`site/lab/README.md`](site/lab/README.md)
 for the shared shell and conventions.
 
 The website lives in [`site/`](site/) and uses HTML, CSS, and JavaScript with no
@@ -37,6 +38,11 @@ available for comparison.
 The [AI Agents Helper](site/ui/agents/helper.js) uses this pattern too. X-Ray
 owns the links to AI badges. Both pages import the same
 [base tile styles](site/ui/preview-tile.css) for ink, frames, and replay effects.
+The [Touchprint overlay](site/ui/touchprint/index.js) works differently: it mounts
+its own fixed, pointer-transparent layer and stamps a fingerprint at each contact.
+Its artwork comes from [andrsrxn/icons](https://github.com/andrsrxn/icons) (MIT).
+The [touchprint lab](site/lab/touchprint.html) compares size, linger, mouse input,
+and the fingerprint echo.
 
 The folder layout, declarations, and schemas are experiments too. Contributors
 and agents can propose edits and optimizations as real use cases expose gaps.

@@ -1587,6 +1587,12 @@
           app.classList.remove('instant');
         });
       });
+
+      // Dev demo: mark every contact point with a fingerprint. The fixed layer
+      // passes pointer events through, so X-Ray gestures and controls still work.
+      import('./ui/touchprint/index.js')
+        .then(({ mountTouchprints }) => mountTouchprints(document.body))
+        .catch(error => console.error(error));
     })();
   </script>
 </body>

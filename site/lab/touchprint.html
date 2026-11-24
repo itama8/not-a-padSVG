@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex">
+  <title>Touchprints · not-padgtp</title>
+  <link rel="stylesheet" href="./lab.css">
+  <style>
+    .tp-stage {
+      min-height: 480px; background: Canvas; isolation: isolate;
+    }
+    .tp-demo {
+      min-height: 480px; padding: 26px; box-sizing: border-box;
+      display: flex; flex-direction: column; gap: 20px; justify-content: space-between;
+      background-image: radial-gradient(color-mix(in srgb, CanvasText 16%, transparent) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .tp-top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+    .tp-mark { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .72; }
+    .tp-live { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; opacity: .72; }
+    .tp-live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #1978cf; }
+    @media (prefers-color-scheme: dark) { .tp-live::before { background: #5ea9f4; } }
+    .tp-demo h2 { margin: 0; font-size: clamp(26px, 5vw, 46px); line-height: 1.05; letter-spacing: -.04em; max-width: 12ch; }
+    .tp-demo p { margin: 10px 0 0; max-width: 44ch; font-size: 13px; line-height: 1.55; opacity: .78; }
+    .tp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .tp-actions button {
+      font: inherit; min-height: 44px; padding: 10px 14px; border-radius: 6px;
+      color: CanvasText; background: Canvas; border: 1px solid color-mix(in srgb, CanvasText 28%, transparent);
+      cursor: pointer;
+    }
+    .tp-actions button:first-child { color: Canvas; background: CanvasText; border-color: CanvasText; }
+    .tp-actions button:hover { border-color: CanvasText; }
+    .tp-actions button:focus-visible { outline: 2px solid LinkText; outline-offset: 2px; }
+    .tp-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); gap: 8px; }
+    .tp-card {
+      min-height: 92px; padding: 12px; border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+      border-radius: 6px; background: color-mix(in srgb, Canvas 88%, CanvasText);
+      display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+    }
+    .tp-card strong { font-size: 12px; font-weight: 600; }
+    .tp-card span { font-size: 11px; line-height: 1.4; opacity: .66; }
+    .tp-card .tp-bar { height: 3px; border-radius: 2px; background: color-mix(in srgb, CanvasText 18%, transparent); overflow: hidden; }
+    .tp-card .tp-bar i { display: block; width: 64%; height: 100%; background: #1978cf; }
+    @media (prefers-color-scheme: dark) { .tp-card .tp-bar i { background: #5ea9f4; } }
+    @media (max-width: 520px) {
+      .tp-demo { min-height: 520px; padding: 18px; gap: 16px; }
+      .tp-cards { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body class="lab">
+  <p class="lab-crumbs"><a href="./index.html">Labs</a> / <span aria-current="page">Touchprints</span></p>
+  <div class="lab-head">
+    <div>
+      <h1>Touchprints</h1>
+      <p class="lab-lede"><strong>Tests:</strong> a fingerprint that marks each contact point in a demo,
+      distinct from the app's own icons. <strong>Try:</strong> tap, click, and drag across the stage;
+      use several fingers on a touch screen. Toggle the echo, size, and linger. <strong>Good:</strong>
+      the contact point is unmistakable, the print reads at 44px, and it clears quickly enough to leave
+      the demo surface readable.</p>
+    </div>
+  </div>
+
+  <div class="lab-controls">
+    <div class="field">
+      <span><label for="size">Print size</label> <output id="size-out" for="size">60px</output></span>
+      <input id="size" type="range" min="44" max="84" step="4" value="60">
+    </div>
+    <div class="field">
+      <span><label for="linger">Linger after release</label> <output id="linger-out" for="linger">360ms</output></span>
+      <input id="linger" type="range" min="0" max="900" step="60" value="360">
+    </div>
+    <label class="lab-check"><input id="mouse" type="checkbox" checked> Mouse clicks</label>
+    <label class="lab-check"><input id="echo" type="checkbox" checked> Fingerprint echo</label>
+    <div class="lab-actions">
+      <label class="lab-check"><input id="auto" type="checkbox"> Auto demo</label>
+      <button type="button" id="two">Two at once</button>
+      <button type="button" id="clear">Clear marks</button>
+    </div>
+  </div>
+
+  <div class="lab-stage tp-stage" id="stage">
+    <div class="tp-demo">
+      <div>
+        <div class="tp-top">
+          <span class="tp-mark">not-padgtp / demo surface</span>
+          <span class="tp-live">overlay live</span>
+        </div>
+        <h2>Tap anywhere.</h2>
+        <p>This card stands in for the app you are demoing. The buttons and cards below still work;
+        the print layer passes every pointer event through.</p>
+      </div>
+      <div class="tp-actions">
+        <button type="button" data-note="Start demo">Start demo</button>
+        <button type="button" data-note="Copy link">Copy link</button>
+        <button type="button" data-note="Open settings">Open settings</button>
+      </div>
+      <div class="tp-cards">
+        <div class="tp-card"><strong>Recent work</strong><span>Three drafts, one shared note.</span><div class="tp-bar"><i></i></div></div>
+        <div class="tp-card"><strong>Progress</strong><span>64% of the weekly plan.</span><div class="tp-bar"><i style="width:64%"></i></div></div>
+        <div class="tp-card"><strong>Next up</strong><span>Review the walk route.</span><div class="tp-bar"><i style="width:38%"></i></div></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="lab-status" id="status" role="status">Ready. Tap the stage to place a print.</p>
+  <p class="lab-hint"><code>mountTouchprints(stage, { size, linger, mouse, echo })</code> from
+  <code>site/ui/touchprint/index.js</code>. The fixed overlay is <code>aria-hidden</code> and
+  <code>pointer-events: none</code>; <code>touch(x, y, { hold })</code> places a print for scripted demos.
+  Fingerprint geometry from <a href="https://github.com/andrsrxn/icons">andrsrxn/icons</a> (MIT).</p>
+
+  <script type="module">
+    import { mountTouchprints } from '../ui/touchprint/index.js';
+    import { announce } from './lab.js';
+
+    const stage = document.querySelector('#stage');
+    const status = document.querySelector('#status');
+    const size = document.querySelector('#size');
+    const sizeOut = document.querySelector('#size-out');
+    const linger = document.querySelector('#linger');
+    const lingerOut = document.querySelector('#linger-out');
+    const mouse = document.querySelector('#mouse');
+    const echo = document.querySelector('#echo');
+    const auto = document.querySelector('#auto');
+
+    let prints;
+    let tourTimer = null;
+    let tourIndex = 0;
+
+    const readOptions = () => ({
+      size: Number(size.value),
+      linger: Number(linger.value),
+      mouse: mouse.checked,
+      echo: echo.checked,
+    });
+
+    const mount = () => {
+      prints?.destroy();
+      prints = mountTouchprints(stage, readOptions());
+    };
+
+    const TOUR = [
+      [.18, .30], [.72, .27], [.48, .55], [.27, .73], [.78, .70],
+    ];
+
+    function stopTour() {
+      clearInterval(tourTimer);
+      tourTimer = null;
+    }
+
+    function startTour() {
+      stopTour();
+      const tick = () => {
+        const r = stage.getBoundingClientRect();
+        const [fx, fy] = TOUR[tourIndex++ % TOUR.length];
+        prints.touch(r.left + r.width * fx, r.top + r.height * fy, { hold: 320 });
+      };
+      tick();
+      tourTimer = setInterval(tick, 1150);
+    }
+
+    const syncOutputs = () => {
+      sizeOut.textContent = `${size.value}px`;
+      lingerOut.textContent = `${linger.value}ms`;
+    };
+
+    size.addEventListener('input', syncOutputs);
+    linger.addEventListener('input', syncOutputs);
+    size.addEventListener('change', mount);
+    linger.addEventListener('change', mount);
+    mouse.addEventListener('change', mount);
+    echo.addEventListener('change', mount);
+
+    document.querySelector('#clear').addEventListener('click', () => {
+      prints.clear();
+      announce(status, 'Marks cleared.');
+    });
+
+    document.querySelector('#two').addEventListener('click', () => {
+      const r = stage.getBoundingClientRect();
+      prints.touch(r.left + r.width * .35, r.top + r.height * .45, { hold: 500 });
+      prints.touch(r.left + r.width * .65, r.top + r.height * .58, { hold: 500 });
+      announce(status, 'Two prints: one for each contact.');
+    });
+
+    auto.addEventListener('change', () => {
+      if (auto.checked) {
+        startTour();
+        announce(status, 'Auto demo running: a scripted touch lands every 1.15 seconds.');
+      } else {
+        stopTour();
+        announce(status, 'Auto demo stopped. Tap the stage.');
+      }
+    });
+
+    let interactions = 0;
+    stage.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-note]');
+      if (!button) return;
+      interactions += 1;
+      announce(status, `${button.dataset.note} selected. ${interactions} demo interaction${interactions === 1 ? '' : 's'} so far.`);
+    });
+
+    syncOutputs();
+    mount();
+  </script>
+</body>
+</html>
