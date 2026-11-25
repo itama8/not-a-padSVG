@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Counter routing lab</title>
+<style>
+  body { font: 16px system-ui; max-width: 42rem; margin: 3rem auto; padding: 1rem; background: #faf9f6; color: #222; }
+  #want { display:block; width:min(330px, 100%); padding:0; border:0; background:none; color:inherit; cursor:pointer; }
+  #want[aria-disabled="true"] { cursor:wait; }
+  svg { display:block; width:100%; } #want-count { fill:currentColor; font:800 78px system-ui; }
+  #want-label { fill:#2463ca; font:14px monospace; }
+  button:focus-visible { outline:2px solid #2463ca; }
+  #burst { padding:.7rem 1rem; cursor:pointer; }
+  #want-status { font-family:monospace; }
+</style>
+</head>
+<body>
+<p><a href="./index.html">Labs</a> / Counter routing</p>
+<h1>Counter routing</h1>
+<p>Tap the number for normal enthusiasm. Then send a scripted burst: the server should route the excessive clicks to the red total with “nice try, thanks a lot :)”.</p>
+<button id="want" type="button" aria-label="I WANT THIS" aria-disabled="true" aria-describedby="want-total want-status">
+<svg viewBox="0 0 220 160" aria-hidden="true">
+  <text id="want-count" x="110" y="80" text-anchor="middle" dominant-baseline="central">—</text>
+  <text id="want-label" x="110" y="148" text-anchor="middle">I WANT THIS</text>
+</svg>
+</button>
+<p id="want-total"></p>
+<p>Connection: <span id="want-status" role="status">connecting</span></p>
+<button id="burst" type="button" disabled>Send a scripted burst (250 clicks)</button>
+<p id="result" role="status"></p>
+<p>This uses the same server, session, and stored totals as the home page. A local server uses local storage; a deployed site uses its configured counter. Reloading keeps the stored totals and any active flag.</p>
+<script src="../want-config.js" defer></script>
+<script type="module">
+import '../want.js';
+const counter = document.querySelector('#want');
+const burst = document.querySelector('#burst');
+const status = document.querySelector('#want-status');
+const result = document.querySelector('#result');
+function sync() {
+  burst.disabled = !['live', 'nice try, thanks a lot :)'].includes(status.textContent);
+  if (counter.dataset.diverted === 'true') result.textContent = 'Detected: clicks are now going to the separate stored red total.';
+}
+new MutationObserver(sync).observe(counter, { attributes: true, attributeFilter: ['data-diverted', 'aria-disabled'] });
+new MutationObserver(sync).observe(status, { childList: true, characterData: true, subtree: true });
+burst.addEventListener('click', () => {
+  result.textContent = 'Sending 250 clicks through the real counter client…';
+  for (let i = 0; i < 250; i++) counter.click();
+});
+sync();
+</script>
+</body>
+</html>
