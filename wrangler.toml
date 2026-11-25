@@ -9,7 +9,7 @@ SITE_ORIGIN = "https://itama8.github.io"
 
 [assets]
 directory = "./site"
-run_worker_first = ["/api/want"]
+run_worker_first = ["/api/want", "/api/want/session"]
 
 [[durable_objects.bindings]]
 name = "WANT_COUNTER"

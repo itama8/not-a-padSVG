@@ -1,3 +1,5 @@
+import { setCounterTreatment } from './ui/want-counter/treatment.js';
+
 (() => {
   const button = document.querySelector('#want');
   const label = document.querySelector('#want-label');
@@ -25,6 +27,25 @@
   let arrivals = [];
   let delay = 1000, total = null, taps = 0, accepted = 0, sentThrough = null, batchTimer;
   let displayed = 0, catchUpSteps = 0, catchUpTimer;
+  let diverted = false, lease, connecting = false;
+  const sessionAddress = address ? new URL('/api/want/session', address) : null;
+  if (sessionAddress) sessionAddress.protocol = address.protocol === 'wss:' ? 'https:' : 'http:';
+  const sessionKey = 'want-session:' + sessionAddress?.origin;
+  try { lease = JSON.parse(localStorage.getItem(sessionKey)); } catch (_) { /* Storage may be disabled. */ }
+  setCounterTreatment(button, false);
+
+  async function session() {
+    if (lease?.token && lease.expires > Date.now() + 60_000) return lease.token;
+    const response = await fetch(sessionAddress, { method: 'POST' });
+    if (!response.ok) throw new Error('Session unavailable');
+    lease = await response.json();
+    if (typeof lease.token !== 'string' || !Number.isSafeInteger(lease.expires)) throw new Error('Invalid session');
+    try { localStorage.setItem(sessionKey, JSON.stringify(lease)); } catch (_) { /* In-memory session still works. */ }
+    // A new session has its own receipts. Resend only clicks not yet acknowledged.
+    taps -= accepted;
+    accepted = 0;
+    return lease.token;
+  }
 
   function nextPosition(previous, length) {
     if (previous < 0) return Math.floor(Math.random() * length);
@@ -63,10 +84,10 @@
   function renderTotal() {
     const text = (total === null ? '+' : '') + format.format(displayed);
     const previous = count.textContent;
+    description.textContent = total === null ? `${format.format(displayed)} local clicks pending`
+      : text + (diverted ? ' diverted clicks' : (displayed === 1 ? ' click' : ' clicks'));
     if (text === previous) return;
     count.textContent = text;
-    description.textContent = total === null ? `${format.format(displayed)} local clicks pending`
-      : text + (displayed === 1 ? ' click' : ' clicks');
     if (text.length !== previous.length) {
       count.style.fontSize = '';
       const width = count.getComputedTextLength();
@@ -112,10 +133,23 @@
     }
   }
 
-  function connect() {
+  async function connect() {
+    if (connecting) return;
+    connecting = true;
     setStatus(total === null ? 'connecting' : 'reconnecting', true);
     sentThrough = null;
+    try {
+      address.searchParams.set('session', await session());
+    } catch (_) {
+      connecting = false;
+      setStatus('reconnecting', true);
+      retry = setTimeout(connect, delay);
+      delay = Math.min(delay * 2, 15000);
+      return;
+    }
+    connecting = false;
     const connection = new WebSocket(address);
+    let received = false;
     socket = connection;
     connection.addEventListener('message', ({ data }) => {
       if (socket !== connection) return;
@@ -126,16 +160,23 @@
         return;
       }
       const next = snapshot?.total, acknowledged = snapshot?.accepted;
+      const nextDiverted = snapshot?.diverted === true;
+      const switched = nextDiverted !== diverted;
       if (!Number.isSafeInteger(next) || !Number.isSafeInteger(acknowledged) ||
-          acknowledged < accepted || acknowledged > taps || next < acknowledged ||
-          (total !== null && next - total < acknowledged - accepted)) return;
+          next < 0 || acknowledged < accepted || acknowledged > taps ||
+          (!switched && total !== null && next - total < acknowledged - accepted)) return;
+      received = true;
       const reconnecting = sentThrough === null;
       const firstTotal = total === null;
       const remote = !firstTotal && next - total > acknowledged - accepted;
+      diverted = nextDiverted;
+      setCounterTreatment(button, diverted);
       total = next;
       accepted = acknowledged;
       sentThrough = Math.max(sentThrough ?? 0, accepted);
-      if (firstTotal) {
+      if (firstTotal || switched) {
+        clearTimeout(catchUpTimer);
+        catchUpTimer = undefined;
         displayed = total + (taps - accepted);
         renderTotal();
       } else if (remote) {
@@ -144,10 +185,15 @@
         animateUpdate();
       }
       delay = 1000;
-      setStatus('live', true);
+      setStatus(diverted ? 'nice try, thanks a lot :)' : 'live', true);
       if (reconnecting) flush(); else scheduleFlush();
     });
-    connection.addEventListener('close', () => {
+    connection.addEventListener('close', event => {
+      // Refresh after an expired session or an IP change, including failed upgrades.
+      if (!received || event.code === 1008) {
+        lease = undefined;
+        try { localStorage.removeItem(sessionKey); } catch (_) { /* Optional persistence. */ }
+      }
       if (socket !== connection) return;
       clearTimeout(batchTimer);
       batchTimer = undefined;
