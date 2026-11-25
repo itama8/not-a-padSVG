@@ -1,7 +1,7 @@
 name: Build and deploy site
 
-# main -> https://itama8.github.io/not-padgtp/
-# dev  -> https://itama8.github.io/not-padgtp/dev/  (not indexed by search engines)
+# main -> https://itama8.github.io/not-a-padSVG/
+# dev  -> https://itama8.github.io/not-a-padSVG/dev/  (not indexed by search engines)
 # A push to either branch rebuilds both, so neither overwrites the other.
 
 on:

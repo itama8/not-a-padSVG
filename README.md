@@ -1,14 +1,20 @@
-# not-padgtp
+# not-a-padSVG
 
-not-padgtp is a workshop for building a composable SVG UI library. We use
-small, self-contained experiments to develop one interaction at a time. The
-notepad and its X-Ray layer give those experiments a stripped-down showcase.
-As ideas mature, their SVG artwork, rendering, behavior, and component
-declarations become pieces we can reuse in other experiments and apps.
+not-a-padSVG is my personal site and a workshop for building a composable SVG
+UI library. It's a home for my writing, short updates, videos, tools, and
+experiments.
 
-Open the [development showcase](https://itama8.github.io/not-padgtp/dev/) and
+The workshop is inspired by Pasquale Vitiello’s
+[Plotter project](https://plotter.pasqualevitiello.com)
+([source repository](https://github.com/pasqualevitiello/plotter)). Small,
+self-contained experiments develop one interaction at a time. The notepad
+and its X-Ray layer showcase that work. As experiments mature, their SVG
+artwork, rendering, behavior, and component declarations become pieces we
+can reuse across the site and in other apps.
+
+Open the [development showcase](https://itama8.github.io/not-a-padSVG/dev/) and
 press Alt on desktop or tap anywhere on touch screen device for X-Ray.
-The [labs](https://itama8.github.io/not-padgtp/dev/lab/) compare tile artwork
+The [labs](https://itama8.github.io/not-a-padSVG/dev/lab/) compare tile artwork
 and motion at two sizes, explore the scatter layout, and exercise typing,
 motion, and clipboard interaction. Each lab states what it tests, what to
 try, and what good looks like; see [`site/lab/README.md`](site/lab/README.md)
@@ -104,8 +110,8 @@ and the standalone keyboard export.
 
 | Branch | What it is | Where it's live |
 | --- | --- | --- |
-| `dev` | Where new ideas get built | https://itama8.github.io/not-padgtp/dev/ |
-| `main` | What the public sees | https://itama8.github.io/not-padgtp/ |
+| `dev` | Where new ideas get built | https://itama8.github.io/not-a-padSVG/dev/ |
+| `main` | What the public sees | https://itama8.github.io/not-a-padSVG/ |
 
 A push to either branch rebuilds and deploys both. Promote reviewed public site
 changes to `main`. The tile and scatter labs live under `/dev/`.
