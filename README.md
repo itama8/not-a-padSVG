@@ -14,6 +14,13 @@ and its X-Ray layer showcase that work. As experiments mature, their SVG
 artwork, rendering, behavior, and component declarations become pieces we
 can reuse across the site and in other apps.
 
+## Branches
+
+| Branch | What it is | Where it's live |
+| --- | --- | --- |
+| `dev` | Where new ideas get built | https://itama8.github.io/not-a-padSVG/dev/ |
+| `main` | What the public sees | https://itama8.github.io/not-a-padSVG/ |
+
 Open the [development showcase](https://itama8.github.io/not-a-padSVG/dev/) and
 press Alt on desktop or tap anywhere on touch screen device for X-Ray.
 The [labs](https://itama8.github.io/not-a-padSVG/dev/lab/) compare tile artwork
@@ -107,18 +114,6 @@ name. Each status has a distinct corner mark.
 Run `node --test tests/*.test.mjs` from the repository root with Node 22.18 or
 later and Python 3.9 or later. The checks cover tile autoplay, keyboard typing,
 and the standalone keyboard export.
-
-## Branches
-
-| Branch | What it is | Where it's live |
-| --- | --- | --- |
-| `dev` | Where new ideas get built | https://itama8.github.io/not-a-padSVG/dev/ |
-| `main` | What the public sees | https://itama8.github.io/not-a-padSVG/ |
-
-A push to either branch rebuilds and deploys both. Promote reviewed public site
-changes to `main`. The tile and scatter labs live under `/dev/`.
-
-`version.txt` on the live site shows which commit of each branch is deployed.
 
 ## Live click counter
 
