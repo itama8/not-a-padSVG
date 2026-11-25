@@ -1,5 +1,7 @@
 # not-a-padSVG
 
+https://itama8.github.io/not-a-padSVG/dev/
+
 not-a-padSVG is my personal site and a workshop for building a composable SVG
 UI library. It's a home for my writing, short updates, videos, tools, and
 experiments.
