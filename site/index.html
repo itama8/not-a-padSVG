@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>not-padgtp</title>
+  <title>not-a-padSVG</title>
   <meta name="color-scheme" content="light dark" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <meta name="theme-color" content="#16181c" media="(prefers-color-scheme: dark)" />
@@ -376,10 +376,10 @@
 <body>
   <div id="probe" aria-hidden="true"></div>
   <div id="app" data-xray="off" data-hint="0">
-    <h1 class="sr-only">not-padgtp</h1>
+    <h1 class="sr-only">not-a-padSVG</h1>
 
     <!-- Paper ruling. Pattern units are the wordmark's plane: one rule = the 32.5-unit half-step between
-         the Not and pad baselines; the grid's origin sits on the G-T-P registration line. -->
+         the Not and a pad baselines; the grid's origin sits on the S-V-G registration line. -->
     <svg id="paper" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <pattern id="pat-ruled" patternUnits="userSpaceOnUse" width="65" height="32.5">
@@ -414,10 +414,10 @@
     </svg>
 
     <div class="stage">
-      <button id="mark" type="button" aria-pressed="false" aria-label="not-padgtp. X-ray" aria-describedby="hint-desc">
+      <button id="mark" type="button" aria-pressed="false" aria-label="not-a-padSVG. X-Ray" aria-describedby="hint-desc">
         <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
-          <title id="mark-title">not-padgtp wordmark</title>
-          <desc id="mark-desc">Blue handwritten "Not" above "pad". In the x-ray, black handwritten G, T, P appear in a column beneath the d.</desc>
+          <title id="mark-title">not-a-padSVG wordmark</title>
+          <desc id="mark-desc">Blue handwritten "Not" above "a pad". In the x-ray, black handwritten S, V, G appear in a column beneath the d.</desc>
           <defs>
             <mask id="reg-wipe" maskUnits="userSpaceOnUse" x="437" y="164" width="20" height="252">
               <rect class="wipe-y" style="--d:640ms;--dur:340ms" x="437" y="166" width="20" height="250" fill="#fff" />
@@ -434,6 +434,9 @@
             <g transform="translate(290 121) rotate(-4)">
               <path d="M 1 -15 C 1 -5 1 3 2 8 C 3 13 7 10 10 7 M -8 -4 C -2 -5 5 -5 10 -6" />
             </g>
+            <g transform="translate(160 186) rotate(-2)">
+              <path d="M 6 -5 C 2 -11 -8 -7 -10 0 C -13 11 -2 11 5 2 M 7 -7 C 5 0 6 5 9 8" />
+            </g>
             <!-- PAD -->
             <g transform="translate(290 186) rotate(3)">
               <path d="M -6 -5 C -6 2 -7 13 -5 20 M -5 -4 C -2 -10 9 -7 10 0 C 11 7 0 10 -5 3" />
@@ -447,7 +450,7 @@
           </g>
 
           <g class="xr" aria-hidden="true">
-            <!-- Registration: G, T, P share the vertical beneath the d. Drawn after the letters, to explain them. -->
+            <!-- Registration: S, V, G share the vertical beneath the d. Drawn after the letters, to explain them. -->
             <g class="construction">
               <g mask="url(#reg-wipe)"><path class="hidden" d="M 447 172 L 447 412" /></g>
               <path class="witness pen" pathLength="1" style="--d:700ms;--dur:90ms" d="M 433 190 H 442" />
@@ -459,16 +462,14 @@
               <g class="pop" style="--d:860ms"><circle class="node" cx="447" cy="335" r="2" /></g>
               <g class="pop" style="--d:930ms"><circle class="node" cx="447" cy="406" r="2" /></g>
             </g>
-            <!-- The spelling is intentionally G-T-P, never G-P-T. Pen order: G, T bar, T stem, P. -->
             <g transform="translate(420 260) rotate(-5)"><g class="reveal-letter">
-              <path class="pen" pathLength="1" style="--d:0ms;--dur:260ms" d="M 10 -11 C 3 -15 -8 -9 -10 0 C -11 10 0 13 8 7 C 9 5 9 1 9 -1 L -1 0" />
+              <path class="pen" pathLength="1" style="--d:0ms;--dur:260ms" d="M 9 -9 C 5 -15 -10 -10 -9 -4 C -8 0 4 -2 8 3 C 13 10 -3 15 -10 8" />
             </g></g>
             <g transform="translate(420 332) rotate(2)"><g class="reveal-letter">
-              <path class="pen" pathLength="1" style="--d:250ms;--dur:120ms" d="M -12 -10 Q 0 -12 12 -10" />
-              <path class="pen" pathLength="1" style="--d:350ms;--dur:130ms" d="M 1 -10 Q -1 2 0 13" />
+              <path class="pen" pathLength="1" style="--d:250ms;--dur:220ms" d="M -11 -11 C -8 -4 -3 7 0 12 C 3 8 9 -5 11 -12" />
             </g></g>
             <g transform="translate(420 402) rotate(-3)"><g class="reveal-letter">
-              <path class="pen" pathLength="1" style="--d:470ms;--dur:240ms" d="M -7 12 C -6 3 -7 -7 -7 -12 C 0 -14 11 -12 11 -4 C 11 3 1 4 -6 2" />
+              <path class="pen" pathLength="1" style="--d:470ms;--dur:240ms" d="M 10 -11 C 3 -15 -8 -9 -10 0 C -11 10 0 13 8 7 C 9 5 9 1 9 -1 L -1 0" />
             </g></g>
           </g>
         </svg>
@@ -824,7 +825,7 @@
       </div>
 
       <nav id="links" class="xi station" aria-label="Links">
-        <a class="ilink" data-link="github" href="https://github.com/itama8/not-padgtp" aria-label="Star not-padgtp on GitHub">
+        <a class="ilink" data-link="github" href="https://github.com/itama8/not-a-padSVG" aria-label="Star not-a-padSVG on GitHub">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path class="logo-gh" d="M12 0c6.63 0 12 5.276 12 11.79-.001 5.067-3.29 9.567-8.175 11.187-.6.118-.825-.25-.825-.56 0-.398.015-1.665.015-3.242 0-1.105-.375-1.813-.81-2.181 2.67-.295 5.475-1.297 5.475-5.822 0-1.297-.465-2.344-1.23-3.169.12-.295.54-1.503-.12-3.125 0 0-1.005-.324-3.3 1.209a11.32 11.32 0 00-3-.398c-1.02 0-2.04.133-3 .398-2.295-1.518-3.3-1.209-3.3-1.209-.66 1.622-.24 2.83-.12 3.125-.765.825-1.23 1.887-1.23 3.169 0 4.51 2.79 5.527 5.46 5.822-.345.294-.66.81-.765 1.577-.69.31-2.415.81-3.495-.973-.225-.354-.9-1.223-1.845-1.209-1.005.015-.405.56.015.781.51.28 1.095 1.327 1.23 1.666.24.663 1.02 1.93 4.035 1.385 0 .988.015 1.916.015 2.196 0 .31-.225.664-.825.56C3.303 21.374-.003 16.867 0 11.791 0 5.276 5.37 0 12 0z" /><path class="star" d="M 20.5 -1.2 L 21.6 1.1 L 24.1 1.4 L 22.3 3.1 L 22.7 5.6 L 20.5 4.4 L 18.3 5.6 L 18.7 3.1 L 16.9 1.4 L 19.4 1.1 Z" /></svg>
         </a>
       </nav>
@@ -895,7 +896,7 @@
     (() => {
       // ---- Links. Empty ones give a small "not yet" shake when followed. ----
       const LINKS = {
-        github: 'https://github.com/itama8/not-padgtp'
+        github: 'https://github.com/itama8/not-a-padSVG'
       };
 
       const $ = (s, r = document) => r.querySelector(s);
@@ -1188,7 +1189,7 @@
       }
       function alignPaper() {
         const M = measure();
-        const o = M.P(447, 132);                    // G-T-P registration line x, "Not" baseline y
+        const o = M.P(447, 132);                    // S-V-G registration line x, "Not" baseline y
         const s = M.s;
         document.querySelectorAll('#paper pattern').forEach((pt) => pt.setAttribute('patternTransform', `translate(${o.x} ${o.y}) scale(${s})`));
         document.querySelectorAll('#paper .rl').forEach((el) => el.setAttribute('stroke-width', String(1 / s)));
@@ -1226,7 +1227,7 @@
         const P = (x, y) => ({ x: ox + x * s, y: oy + y * s });
         const box = (x0, y0, x1, y1) => { const a = P(x0, y0), b = P(x1, y1); return { l: a.x, t: a.y, r: b.x, b: b.y }; };
         const ink = box(138, 98, 462, 420);
-        const inks = [box(143, 101, 306, 137), box(278, 163, 438, 212), box(404, 166, 453, 418)];
+        const inks = [box(143, 101, 306, 137), box(146, 172, 173, 199), box(278, 163, 438, 212), box(404, 166, 453, 418)];
         const g = Math.max(16, safe.l), gr = Math.max(16, safe.r);
         const stripY = vh - safe.b - 46;
         const wide = vw >= 720 && vh >= 520;

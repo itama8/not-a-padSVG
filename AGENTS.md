@@ -1,4 +1,4 @@
-# Working on not-padgtp
+# Working on not-a-padSVG
 
 The project develops reusable SVG UI through small experiments. The notepad and
 X-Ray are the showcase. See [the README](README.md) for the current layout and

@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#ffffff" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="description" content="Not-PadGTP — a wordmark that reveals its hidden layer when touched." />
-  <title>not-pad / x-ray</title>
+  <meta name="description" content="not-a-padSVG — a wordmark that reveals its hidden layer when touched." />
+  <title>not-a-padSVG · X-Ray</title>
   <style>
     :root { color-scheme: only light; --paper: #fff; --blue: #1978cf; --ink: #202027; }
     * { box-sizing: border-box; }
@@ -51,9 +51,9 @@
     .construction .hidden { opacity: .24; stroke-dasharray: 3 5; }
     .construction .witness { opacity: .17; }
     .construction .node { opacity: .29; }
-    .g-letter { transition-delay: 70ms; }
-    .t-letter { transition-delay: 150ms; }
-    .p-letter { transition-delay: 230ms; }
+    .s-letter { transition-delay: 70ms; }
+    .v-letter { transition-delay: 150ms; }
+    .g-letter { transition-delay: 230ms; }
     #surface[data-xray="off"] .xray-item { transition-delay: 0ms; }
     #surface[data-xray="off"] .reveal-letter { transition-delay: 0ms; }
     @media (prefers-reduced-motion: reduce) {
@@ -62,15 +62,15 @@
   </style>
 </head>
 <body>
-  <main id="surface" role="button" tabindex="0" aria-pressed="false" aria-label="Not-Pad. Tap to reveal X-Ray." data-xray="off">
+  <main id="surface" role="button" tabindex="0" aria-pressed="false" aria-label="not-a-padSVG. Tap to reveal X-Ray." data-xray="off">
     <!-- A single 560x440 plane, per Plotter's construction grammar.
-         Relationship: the black G, T, and P occupy the vertical registration beneath the blue d.
+         Relationship: the black S, V, and G occupy the vertical registration beneath the blue d.
          The faint line and witnesses appear only in X-Ray to explain that alignment.
          Brand ink deliberately retains the handwritten blue / black colors of the supplied reference. -->
     <svg class="art" viewBox="0 0 560 440" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mark-title mark-desc">
-      <title id="mark-title">Not-PadGTP interactive wordmark</title>
-      <desc id="mark-desc">Blue handwritten Not above pad. In X-Ray, black G, T, P appear in a vertical column beneath the d.</desc>
-      <g class="brand-letter" aria-label="Not Pad">
+      <title id="mark-title">not-a-padSVG interactive wordmark</title>
+      <desc id="mark-desc">Blue handwritten Not above a pad. In X-Ray, black S, V, G appear in a vertical column beneath the d.</desc>
+      <g class="brand-letter" aria-label="Not a pad">
         <!-- NOT -->
         <g transform="translate(160 121) rotate(-5)">
           <path d="M -11 11 C -10 0 -8 -12 -5 -13 C -2 -14 -3 7 0 8 C 4 8 8 -8 11 -13" />
@@ -80,6 +80,9 @@
         </g>
         <g transform="translate(290 121) rotate(-4)">
           <path d="M 1 -15 C 1 -5 1 3 2 8 C 3 13 7 10 10 7 M -8 -4 C -2 -5 5 -5 10 -6" />
+        </g>
+        <g transform="translate(160 186) rotate(-2)">
+          <path d="M 6 -5 C 2 -11 -8 -7 -10 0 C -13 11 -2 11 5 2 M 7 -7 C 5 0 6 5 9 8" />
         </g>
         <!-- PAD -->
         <g transform="translate(290 186) rotate(3)">
@@ -101,15 +104,14 @@
         <circle class="node" cx="447" cy="335" r="2" />
         <circle class="node" cx="447" cy="406" r="2" />
       </g>
-      <!-- The spelling is intentionally G-T-P, never G-P-T. -->
-      <g transform="translate(420 260) rotate(-5)" aria-hidden="true"><g class="reveal-letter xray-item g-letter">
+      <g transform="translate(420 260) rotate(-5)" aria-hidden="true"><g class="reveal-letter xray-item s-letter">
+        <path d="M 9 -9 C 5 -15 -10 -10 -9 -4 C -8 0 4 -2 8 3 C 13 10 -3 15 -10 8" />
+      </g></g>
+      <g transform="translate(420 332) rotate(2)" aria-hidden="true"><g class="reveal-letter xray-item v-letter">
+        <path d="M -11 -11 C -8 -4 -3 7 0 12 C 3 8 9 -5 11 -12" />
+      </g></g>
+      <g transform="translate(420 402) rotate(-3)" aria-hidden="true"><g class="reveal-letter xray-item g-letter">
         <path d="M 10 -11 C 3 -15 -8 -9 -10 0 C -11 10 0 13 8 7 C 9 5 9 1 9 -1 L -1 0" />
-      </g></g>
-      <g transform="translate(420 332) rotate(2)" aria-hidden="true"><g class="reveal-letter xray-item t-letter">
-        <path d="M -12 -10 Q 0 -12 12 -10 M 1 -10 Q -1 2 0 13" />
-      </g></g>
-      <g transform="translate(420 402) rotate(-3)" aria-hidden="true"><g class="reveal-letter xray-item p-letter">
-        <path d="M -7 12 C -6 3 -7 -7 -7 -12 C 0 -14 11 -12 11 -4 C 11 3 1 4 -6 2" />
       </g></g>
     </svg>
   </main>
@@ -121,8 +123,8 @@
         surface.dataset.xray = reveal ? 'on' : 'off';
         surface.setAttribute('aria-pressed', String(reveal));
         surface.setAttribute('aria-label', reveal
-          ? 'X-Ray is on. Not-PadGTP. Tap to hide X-Ray.'
-          : 'Not-Pad. Tap to reveal X-Ray.');
+          ? 'X-Ray is on. not-a-padSVG. Tap to hide X-Ray.'
+          : 'not-a-padSVG. Tap to reveal X-Ray.');
       };
       surface.addEventListener('click', toggle);
       surface.addEventListener('keydown', (event) => {
